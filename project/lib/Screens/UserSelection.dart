@@ -152,17 +152,17 @@ class SelectionTile extends StatelessWidget {
                     Text(
                       title,
                       style: const TextStyle(
-                        fontSize: 22,
+                        fontSize: 25,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF121415),
                       ),
                     ),
                     // Subtitle/Registration Text
-                    const SizedBox(height: 5),
+                    const SizedBox(height: 12),
                     Text(
                       subtitle,
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 15,
                         color: Color(0xFF05A664),
                       ),
                     ),
