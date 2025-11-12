@@ -76,24 +76,24 @@ flutter:
   fonts:
     - family: Poppins
       fonts:
-        - asset: Assets/Fonts/Poppins-Regular.ttf
-        - asset: Assets/Fonts/Poppins-Bold.ttf
-        - asset: Assets/Fonts/Poppins-Black.ttf
-        - asset: Assets/Fonts/Poppins-BlackItalic.ttf
-        - asset: Assets/Fonts/Poppins-BoldItalic.ttf
-        - asset: Assets/Fonts/Poppins-ExtraBold.ttf
-        - asset: Assets/Fonts/Poppins-ExtraBoldItalic.ttf
-        - asset: Assets/Fonts/Poppins-ExtraLight.ttf
-        - asset: Assets/Fonts/Poppins-ExtraLightItalic.ttf
-        - asset: Assets/Fonts/Poppins-Italic.ttf
-        - asset: Assets/Fonts/Poppins-Light.ttf
-        - asset: Assets/Fonts/Poppins-LightItalic.ttf
-        - asset: Assets/Fonts/Poppins-Medium.ttf
-        - asset: Assets/Fonts/Poppins-MediumItalic.ttf
-        - asset: Assets/Fonts/Poppins-SemiBold.ttf
-        - asset: Assets/Fonts/Poppins-SemiBoldItalic.ttf
-        - asset: Assets/Fonts/Poppins-Thin.ttf
-        - asset: Assets/Fonts/Poppins-ThinItalic.ttf
+        - asset: assets/fonts/Poppins-Regular.ttf
+        - asset: assets/fonts/Poppins-Bold.ttf
+        - asset: assets/fonts/Poppins-Black.ttf
+        - asset: assets/fonts/Poppins-BlackItalic.ttf
+        - asset: assets/fonts/Poppins-BoldItalic.ttf
+        - asset: assets/fonts/Poppins-ExtraBold.ttf
+        - asset: assets/fonts/Poppins-ExtraBoldItalic.ttf
+        - asset: assets/fonts/Poppins-ExtraLight.ttf
+        - asset: assets/fonts/Poppins-ExtraLightItalic.ttf
+        - asset: assets/fonts/Poppins-Italic.ttf
+        - asset: assets/fonts/Poppins-Light.ttf
+        - asset: assets/fonts/Poppins-LightItalic.ttf
+        - asset: assets/fonts/Poppins-Medium.ttf
+        - asset: assets/fonts/Poppins-MediumItalic.ttf
+        - asset: assets/fonts/Poppins-SemiBold.ttf
+        - asset: assets/fonts/Poppins-SemiBoldItalic.ttf
+        - asset: assets/fonts/Poppins-Thin.ttf
+        - asset: assets/fonts/Poppins-ThinItalic.ttf
   #         style: italic
   #   - family: Trajan Pro
   #     fonts:

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'DriverRegistration1.dart';
 
 
 // You would use this in your main.dart or a dedicated screen file
@@ -44,7 +45,10 @@ class UserSelectionScreen extends StatelessWidget {
                 title: 'Driver',
                 subtitle: 'Register As a Driver',
                 onTap: () {
-                  print('Driver selected');
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const DriverRegistrationScreen()),
+                  );
                 },
               ),
 
@@ -195,4 +199,3 @@ class SelectionTile extends StatelessWidget {
     );
   }
 }
-
