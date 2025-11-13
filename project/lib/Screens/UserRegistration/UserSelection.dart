@@ -156,7 +156,7 @@ class SelectionTile extends StatelessWidget {
                     Text(
                       title,
                       style: const TextStyle(
-                        fontSize: 25,
+                        fontSize: 35,
                         fontWeight: FontWeight.bold,
                         color: Color(0xFF121415),
                       ),
