@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'DriverRegistration.dart';
+import 'PassengerRegistration.dart';
 
 
 // You would use this in your main.dart or a dedicated screen file
@@ -60,7 +61,10 @@ class UserSelectionScreen extends StatelessWidget {
                 title: 'Passenger',
                 subtitle: 'Register As a Passenger',
                 onTap: () {
-                  print('Passenger selected');
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const PassengerRegistrationScreen()),
+                  );
                 },
               ),
 
