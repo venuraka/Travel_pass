@@ -19,14 +19,14 @@ class InputTextField extends StatelessWidget {
       decoration: InputDecoration(
         labelText: labelText,
         labelStyle: const TextStyle(
-          color: Colors.black54,
+          color: Color(0xFF121415),
           fontWeight: FontWeight.w500,
         ),
         enabledBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Colors.green, width: 1.0),
+          borderSide: BorderSide( color: Color(0xFF05A664), width: 1.0),
         ),
         focusedBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Colors.green, width: 2.0),
+          borderSide: BorderSide(color: Color(0xFF05A664), width: 2.0),
         ),
         suffixIcon: showTrailingIcon
             ? Padding(

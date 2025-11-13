@@ -1,59 +1,26 @@
 import 'package:flutter/material.dart';
+import '../../Components/Header.dart';
 import '../../Components/InputTexts.dart';
 import '../../Components/Whitecard.dart';
+
 
 class DriverRegistrationScreen extends StatelessWidget {
   const DriverRegistrationScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    const Color darkBackground = Color(0xFF121415);
-
     return Scaffold(
-      backgroundColor: darkBackground,
+      backgroundColor: const Color(0xFF121415),
       body: Stack(
-        children: <Widget>[
-          // Header
-          Positioned(
-            top: 60,
-            left: 20,
-            right: 20,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                IconButton(
-                  icon: const Icon(
-                    Icons.arrow_back,
-                    color: Colors.white,
-                    size: 30,
-                  ),
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                ),
-                const SizedBox(height: 50),
-                const Text(
-                  'Driver',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const Text(
-                  'Registration',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green, // 'Registration' in green
-                  ),
-                ),
-              ],
-            ),
+        children: [
+          const RegistrationHeader(
+            title: 'Driver',
+            subtitle: 'Registration',
+            subtitleColor: Color(0xFF05A664),
           ),
 
-          // White Card section
           WhiteCard(
+            topPadding: 300,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -79,7 +46,6 @@ class DriverRegistrationScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 60),
 
-                // Register Button
                 SizedBox(
                   width: double.infinity,
                   height: 55,
@@ -88,7 +54,7 @@ class DriverRegistrationScreen extends StatelessWidget {
                       debugPrint('Register button pressed!');
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
+                      backgroundColor: const Color(0xFF05A664),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10.0),
                       ),
