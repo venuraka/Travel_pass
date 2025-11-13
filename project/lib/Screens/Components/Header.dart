@@ -5,6 +5,7 @@ class RegistrationHeader extends StatelessWidget {
   final String subtitle;
   final Color subtitleColor;
   final VoidCallback? onBackPressed;
+  final double topPadding; // ✅ Added variable for top padding
 
   const RegistrationHeader({
     super.key,
@@ -12,6 +13,7 @@ class RegistrationHeader extends StatelessWidget {
     required this.subtitle,
     this.subtitleColor = const Color(0xFF05A664),
     this.onBackPressed,
+    this.topPadding = 50.0, // ✅ Default padding value
   });
 
   @override
@@ -37,7 +39,7 @@ class RegistrationHeader extends StatelessWidget {
                   ),
                   onPressed: onBackPressed ?? () => Navigator.pop(context),
                 ),
-                const SizedBox(height: 50),
+                SizedBox(height: topPadding), // ✅ Dynamic padding here
                 Text(
                   title,
                   style: const TextStyle(

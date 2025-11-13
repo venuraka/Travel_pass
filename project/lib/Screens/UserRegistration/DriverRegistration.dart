@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../Components/Header.dart';
-import '../../Components/InputTexts.dart';
-import '../../Components/Whitecard.dart';
+import '../Components/InputTexts.dart';
+import '../Components/Whitecard.dart';
+import '../Components/Header.dart';
+import 'VehicleRegistration.dart';
 
 
 class DriverRegistrationScreen extends StatelessWidget {
@@ -51,7 +52,10 @@ class DriverRegistrationScreen extends StatelessWidget {
                   height: 55,
                   child: ElevatedButton(
                     onPressed: () {
-                      debugPrint('Register button pressed!');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const VehicleRegistrationScreen()),
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF05A664),

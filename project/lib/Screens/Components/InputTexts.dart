@@ -28,22 +28,6 @@ class InputTextField extends StatelessWidget {
         focusedBorder: const UnderlineInputBorder(
           borderSide: BorderSide(color: Color(0xFF05A664), width: 2.0),
         ),
-        suffixIcon: showTrailingIcon
-            ? Padding(
-          padding: const EdgeInsets.only(top: 10.0),
-          child: Container(
-            width: 15,
-            height: 15,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: Colors.pinkAccent,
-                width: 2,
-              ),
-            ),
-          ),
-        )
-            : null,
       ),
     );
   }

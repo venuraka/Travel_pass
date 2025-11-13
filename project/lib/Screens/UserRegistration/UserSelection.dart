@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'DriverRegistration1.dart';
+import 'DriverRegistration.dart';
 
 
 // You would use this in your main.dart or a dedicated screen file
@@ -69,9 +69,6 @@ class UserSelectionScreen extends StatelessWidget {
 
               // 5. Terms of Service Footer
               InkWell(
-                onTap: () {
-                  print('Terms of Service clicked');
-                },
                 child: const Padding(
                   padding: EdgeInsets.only(bottom: 20.0),
                   child: Text(
