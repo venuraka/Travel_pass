@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import '../Components/BottomBar.dart';
 
 // Define the primary color used throughout the app
 const Color primaryGreen = Color(0xFF05A664);
 
-class AttendanceScreen extends StatelessWidget {
-  const AttendanceScreen({super.key});
+class PassengerScreen extends StatelessWidget {
+  const PassengerScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +33,7 @@ class AttendanceScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
-                        'Attendance ',
+                        'Passengers ',
                         style: TextStyle(
                           fontSize: 25,
                           fontWeight: FontWeight.w800,
@@ -82,12 +83,7 @@ class AttendanceScreen extends StatelessWidget {
 
                 const SizedBox(height: 25),
 
-                _buildMetricCard(
-                  title: "Start a Poll",
-                  icon: Icons.bar_chart,
-                  hasBorder: true,
-                  isPrimaryColor: false,
-                ),
+
 
                 const SizedBox(height: 25),
 
@@ -132,7 +128,6 @@ class AttendanceScreen extends StatelessWidget {
           ),
         ),
       ),
-
     );
   }
 

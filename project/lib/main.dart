@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'Screens/UserRegistration/UserSelection.dart';
+import 'Screens/Driver/Dashboard.dart';
+
+
 
 
 void main() {
@@ -18,7 +20,9 @@ class MyApp extends StatelessWidget {
         fontFamily: 'Poppins',
         scaffoldBackgroundColor: Colors.white,
       ),
-      home: const UserSelectionScreen(),
+
+      // Initial screen when the app starts
+        home: const DriverDashboardScreen(),
     );
   }
 }
