@@ -3,6 +3,7 @@ import '../Components/BottomBar.dart';
 import 'Attendance.dart';
 import 'Money.dart';
 import 'Passengers.dart';
+import 'Poll.dart';
 import 'Updates.dart';
 
 const Color primaryGreen = Color(0xFF05A664);
@@ -51,7 +52,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     }
   }
 
-  /// Dashboard content (your original widgets)
+  /// Dashboard content
   Widget _buildDashboardContent() {
     return SafeArea(
       child: SingleChildScrollView(
@@ -60,7 +61,6 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
               // --- Header ---
               Padding(
                 padding: const EdgeInsets.only(top: 16.0, bottom: 20.0),
@@ -107,9 +107,24 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
               const SizedBox(height: 70),
 
               // --- Metric Cards ---
-              _buildMetricCard(title: "Today's Passengers", value: '27', hasBorder: true, isPrimaryColor: true),
+              _buildMetricCard(
+                  title: "Today's Passengers",
+                  value: '27',
+                  hasBorder: true,
+                  isPrimaryColor: true),
               const SizedBox(height: 25),
-              _buildMetricCard(title: "Start a Poll", icon: Icons.bar_chart, hasBorder: true, isPrimaryColor: false),
+              _buildMetricCard(
+                title: "Start a Poll",
+                icon: Icons.bar_chart,
+                hasBorder: true,
+                isPrimaryColor: false,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const PollScreen()),
+                  );
+                },
+              ),
               const SizedBox(height: 25),
               _buildPaymentReminderCard(),
               const SizedBox(height: 100),
@@ -134,7 +149,8 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                       ),
                       child: const Text(
                         'Start Journey',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
@@ -147,43 +163,50 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     );
   }
 
+  /// Metric Card Widget
   Widget _buildMetricCard({
     required String title,
     String? value,
     IconData? icon,
     required bool hasBorder,
     required bool isPrimaryColor,
+    VoidCallback? onTap,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(20.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10.0),
-        border: hasBorder ? Border.all(color: primaryGreen, width: 1.5) : null,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: Colors.black87,
-              )),
-          if (value != null)
-            Text(value,
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: isPrimaryColor ? primaryGreen : Colors.black87,
-                ))
-          else if (icon != null)
-            Icon(icon, color: primaryGreen, size: 30),
-        ],
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10.0),
+      child: Container(
+        padding: const EdgeInsets.all(20.0),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10.0),
+          border: hasBorder ? Border.all(color: primaryGreen, width: 1.5) : null,
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87,
+                )),
+            if (value != null)
+              Text(value,
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: isPrimaryColor ? primaryGreen : Colors.black87,
+                  ))
+            else if (icon != null)
+              Icon(icon, color: primaryGreen, size: 30),
+          ],
+        ),
       ),
     );
   }
 
+  /// Payment Reminder Card
   Widget _buildPaymentReminderCard() {
     return Container(
       padding: const EdgeInsets.all(16.0),
@@ -198,7 +221,8 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
         children: [
           const Text(
             'Payment Reminders',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black87),
+            style: TextStyle(
+                fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black87),
           ),
           const SizedBox(height: 8),
           RichText(
@@ -207,12 +231,14 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
               children: [
                 TextSpan(
                   text: 'Venuraka ',
-                  style: TextStyle(fontWeight: FontWeight.bold, color: primaryGreen),
+                  style:
+                  TextStyle(fontWeight: FontWeight.bold, color: primaryGreen),
                 ),
                 TextSpan(text: 'has to pay ', style: TextStyle(color: Colors.black54)),
                 TextSpan(
                   text: 'LKR 1000/=',
-                  style: TextStyle(fontWeight: FontWeight.bold, color: primaryGreen),
+                  style:
+                  TextStyle(fontWeight: FontWeight.bold, color: primaryGreen),
                 ),
               ],
             ),
