@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../Components/InputTexts.dart';
 import '../Components/Whitecard.dart';
 import '../Components/Header.dart';
+import '../Driver/Dashboard.dart';
 
 class VehicleRegistrationScreen extends StatefulWidget {
   const VehicleRegistrationScreen({super.key});
@@ -99,7 +100,10 @@ class _DriverRegistration2ScreenState
                   height: 55,
                   child: ElevatedButton(
                     onPressed: () {
-                      debugPrint('Register button pressed!');
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const DriverDashboardScreen()),
+                      );
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF05A664),
