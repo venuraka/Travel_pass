@@ -26,18 +26,20 @@ class CustomBottomNavBar extends StatelessWidget {
       child: InkWell(
         onTap: () => onTabSelected(index),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
+          // reduced top padding and kept a small bottom padding
+          padding: const EdgeInsets.only(top: 0, bottom: 10),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(icon, size: 24, color: color),
-              const SizedBox(height: 2),
-              Text(label,
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 11,
-                    fontWeight: weight,
-                  )),
+              Text(
+                label,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 11,
+                  fontWeight: weight,
+                ),
+              ),
             ],
           ),
         ),
@@ -47,19 +49,19 @@ class CustomBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double height = 56 + MediaQuery.of(context).padding.bottom;
+    final double height = 70 + MediaQuery.of(context).padding.bottom;
 
     return Container(
       height: height,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.08),
             blurRadius: 12,
             offset: const Offset(0, -3),
-          )
+          ),
         ],
       ),
       child: Row(
