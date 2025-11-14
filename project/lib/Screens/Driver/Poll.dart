@@ -13,64 +13,128 @@ class _PollScreenState extends State<PollScreen> {
 
   void _onDaySelected(DateTime day, DateTime focusedDay) {
     setState(() {
-      if (_selectedDates.contains(day)) {
-        _selectedDates.remove(day); // deselect if already selected
+      // Normalize dates to midnight UTC for consistent comparison, as TableCalendar does.
+      final normalizedDay = DateTime.utc(day.year, day.month, day.day);
+
+      if (_selectedDates.contains(normalizedDay)) {
+        _selectedDates.remove(normalizedDay); // deselect if already selected
       } else {
-        _selectedDates.add(day); // select new date
+        _selectedDates.add(normalizedDay); // select new date
       }
     });
   }
 
   void _saveDates() {
-    // You can save this list to database or shared preferences
     print("Selected Dates: $_selectedDates");
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Dates saved!")),
+      const SnackBar(content: Text("Poll added successfully!")),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // --- AppBar modified to match the image style (White background, Green icon) ---
       appBar: AppBar(
-        title: const Text('Make a Poll',
+        title: const Text(
+          'Start a Poll', // Changed text to match image
           style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w400,
+            color: Colors.black, // Dark title color
+            fontWeight: FontWeight.w500,
           ),
         ),
-        backgroundColor: const Color(0xFF05A664),
+        backgroundColor: Colors.white, // White background
+        elevation: 0, // Removes the shadow for a flat look
+        iconTheme: const IconThemeData(
+            color: Color(0xFF05A664)), // Green back arrow icon
       ),
       body: Column(
         children: [
-          TableCalendar(
-            firstDay: DateTime(2020),
-            lastDay: DateTime(2030),
-            focusedDay: DateTime.now(),
-            calendarFormat: CalendarFormat.month,
-            selectedDayPredicate: (day) {
-              return _selectedDates.contains(day);
-            },
-            onDaySelected: _onDaySelected,
-            calendarStyle: const CalendarStyle(
-              isTodayHighlighted: true,
-              selectedDecoration: BoxDecoration(
-                color: Color(0xFF05A664),
-                shape: BoxShape.circle,
-              ),
-              todayDecoration: BoxDecoration(
-                color: Colors.orange,
-                shape: BoxShape.circle,
+          // Calendar takes remaining space
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 30.0, left: 16.0, right: 16.0),
+              child: TableCalendar(
+                // Use UTC dates for better calendar management
+                firstDay: DateTime.utc(2020, 1, 1),
+                lastDay: DateTime.utc(2030, 12, 31),
+                focusedDay: DateTime.now(),
+                calendarFormat: CalendarFormat.month,
+
+                // --- Updated Header Style to match image colors/font ---
+                headerStyle: const HeaderStyle(
+                  formatButtonVisible: false, // hide 2-week toggle
+                  titleCentered: true,
+                  titleTextStyle: TextStyle(
+                    color: Color(0xFF05A664), // Green month name
+                    fontSize: 20, // Slightly larger font
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                // Ensure selection predicate uses normalized dates
+                selectedDayPredicate: (day) {
+                  return _selectedDates.contains(
+                      DateTime.utc(day.year, day.month, day.day));
+                },
+                onDaySelected: _onDaySelected,
+
+                // --- Calendar Style adjusted for green dates ---
+                calendarStyle: const CalendarStyle(
+                  // Style for selected days (green circle)
+                  selectedDecoration: BoxDecoration(
+                    color: Color(0xFF05A664),
+                    shape: BoxShape.circle,
+                  ),
+                  // Style for the 'Today' indicator (dark circle in original)
+                  todayDecoration: BoxDecoration(
+                    color: Color(0xFF121415),
+                    shape: BoxShape.circle,
+                  ),
+                  // Style for the main day numbers (green text as in image)
+                  defaultTextStyle: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                  weekendTextStyle: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                  // Highlight day names and numbers in green
+                  rowDecoration: BoxDecoration(),
+                ),
+
+                // --- Customize Day of Week labels (M T W T F S S) ---
+                daysOfWeekStyle: const DaysOfWeekStyle(
+                  weekdayStyle: TextStyle(
+                      color: Color(0xFF05A664), fontWeight: FontWeight.bold),
+                  weekendStyle: TextStyle(
+                      color: Color(0xFF05A664), fontWeight: FontWeight.bold),
+                ),
               ),
             ),
           ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: _saveDates,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF05A664),
+
+          // --- Button modified for Pill Shape ---
+          Padding(
+            // Increased vertical padding at the bottom to match image spacing
+            padding: const EdgeInsets.fromLTRB(16.0, 10.0, 16.0, 30.0),
+            child: SizedBox(
+              width: double.infinity, // full width
+              height: 60,
+              child: ElevatedButton(
+                onPressed: _saveDates,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF05A664),
+                  elevation: 0, // Removes shadow
+                  // *** KEY CHANGE: Large border radius for the pill shape ***
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30)),
+                ),
+                child: const Text(
+                  "Add Poll",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600, // Slightly bolder text
+                    fontSize: 18,
+                  ),
+                ),
+              ),
             ),
-            child: const Text("Save Selected Dates"),
           ),
         ],
       ),
