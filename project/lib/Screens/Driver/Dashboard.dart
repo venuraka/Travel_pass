@@ -4,6 +4,7 @@ import 'Attendance.dart';
 import 'Money.dart';
 import 'Passengers.dart';
 import 'Poll.dart';
+import 'TodayPassengers.dart';
 import 'Updates.dart';
 
 const Color primaryGreen = Color(0xFF05A664);
@@ -108,10 +109,17 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
 
               // --- Metric Cards ---
               _buildMetricCard(
-                  title: "Today's Passengers",
-                  value: '27',
-                  hasBorder: true,
-                  isPrimaryColor: true),
+                title: "Today's Passengers",
+                value: '27',
+                hasBorder: true,
+                isPrimaryColor: true,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const TodaypassengersScreen()),
+                  );
+                },
+              ),
               const SizedBox(height: 25),
               _buildMetricCard(
                 title: "Start a Poll",
@@ -150,7 +158,9 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                       child: const Text(
                         'Start Journey',
                         style: TextStyle(
-                            fontSize: 18, fontWeight: FontWeight.bold),
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
@@ -180,24 +190,30 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(10.0),
-          border: hasBorder ? Border.all(color: primaryGreen, width: 1.5) : null,
+          border: hasBorder
+              ? Border.all(color: primaryGreen, width: 1.5)
+              : null,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black87,
-                )),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.black87,
+              ),
+            ),
             if (value != null)
-              Text(value,
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: isPrimaryColor ? primaryGreen : Colors.black87,
-                  ))
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: isPrimaryColor ? primaryGreen : Colors.black87,
+                ),
+              )
             else if (icon != null)
               Icon(icon, color: primaryGreen, size: 30),
           ],
@@ -222,7 +238,10 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
           const Text(
             'Payment Reminders',
             style: TextStyle(
-                fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black87),
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: Colors.black87,
+            ),
           ),
           const SizedBox(height: 8),
           RichText(
@@ -231,14 +250,21 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
               children: [
                 TextSpan(
                   text: 'Venuraka ',
-                  style:
-                  TextStyle(fontWeight: FontWeight.bold, color: primaryGreen),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: primaryGreen,
+                  ),
                 ),
-                TextSpan(text: 'has to pay ', style: TextStyle(color: Colors.black54)),
+                TextSpan(
+                  text: 'has to pay ',
+                  style: TextStyle(color: Colors.black54),
+                ),
                 TextSpan(
                   text: 'LKR 1000/=',
-                  style:
-                  TextStyle(fontWeight: FontWeight.bold, color: primaryGreen),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: primaryGreen,
+                  ),
                 ),
               ],
             ),
