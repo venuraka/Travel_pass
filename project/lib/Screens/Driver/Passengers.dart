@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../Components/BottomBar.dart';
+
 
 // Define the primary color used throughout the app
 const Color primaryGreen = Color(0xFF05A664);

@@ -3,9 +3,11 @@ import '../Components/BottomBar.dart';
 import 'Attendance.dart';
 import 'Money.dart';
 import 'Passengers.dart';
+import 'Paymentdetails.dart';
 import 'Poll.dart';
 import 'TodayPassengers.dart';
 import 'Updates.dart';
+
 
 const Color primaryGreen = Color(0xFF05A664);
 const Color textMuted = Color(0xFF121415);
@@ -134,7 +136,20 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                 },
               ),
               const SizedBox(height: 25),
-              _buildPaymentReminderCard(),
+
+              // UPDATED: Payment Reminders using Metric Card style
+              _buildMetricCard(
+                title: "Payment Reminders",
+                icon: Icons.notifications_active_outlined, // Bell icon matches the context
+                hasBorder: true,
+                isPrimaryColor: false,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const PaymentDetailsScreen()),
+                  );
+                },
+              ),
               const SizedBox(height: 100),
 
               // --- Start Journey Button ---
@@ -218,58 +233,6 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
               Icon(icon, color: primaryGreen, size: 30),
           ],
         ),
-      ),
-    );
-  }
-
-  /// Payment Reminder Card
-  Widget _buildPaymentReminderCard() {
-    return Container(
-      padding: const EdgeInsets.all(16.0),
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10.0),
-        border: Border.all(color: primaryGreen),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Payment Reminders',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 8),
-          RichText(
-            text: const TextSpan(
-              style: TextStyle(fontSize: 14, color: Colors.black54),
-              children: [
-                TextSpan(
-                  text: 'Venuraka ',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: primaryGreen,
-                  ),
-                ),
-                TextSpan(
-                  text: 'has to pay ',
-                  style: TextStyle(color: Colors.black54),
-                ),
-                TextSpan(
-                  text: 'LKR 1000/=',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: primaryGreen,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

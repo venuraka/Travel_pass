@@ -14,7 +14,7 @@ class InfoCard extends StatelessWidget {
     required this.subtitle,
     required this.trailing,
     this.showTag = false,
-    this.tagText = "Daily",
+    this.tagText = "Monthly",
     this.onTap,
   });
 

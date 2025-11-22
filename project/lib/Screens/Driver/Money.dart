@@ -1,242 +1,221 @@
 import 'package:flutter/material.dart';
-import '../Components/BottomBar.dart';
+import '../Components/Cards.dart';
 
-// Define the primary color used throughout the app
-const Color primaryGreen = Color(0xFF05A664);
 
 class MoneyScreen extends StatelessWidget {
   const MoneyScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final Color appGreen = const Color(0xFF00C853);
+
     return Scaffold(
       backgroundColor: Colors.white,
-
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        toolbarHeight: 0, // Hide default app bar
-      ),
-
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                child: Column(
+                  children: [
+                    // --- Header ---
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          "Payment details",
+                          style: TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.black,
+                          ),
+                        ),
+                        Icon(Icons.calendar_today_outlined, color: appGreen, size: 28),
+                      ],
+                    ),
 
-                // --- 1. Header: Greeting & Settings Icon ---
-                Padding(
-                  padding: const EdgeInsets.only(top: 16.0, bottom: 20.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Money ',
+                    const SizedBox(height: 20),
+
+                    // --- Late Payment Section ---
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        "Late Payment",
                         style: TextStyle(
-                          fontSize: 25,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF121415),
+                          color: appGreen,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.settings,
-                          color: primaryGreen,
-                          size: 24,
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Late Payment Items (Using custom builder to avoid changing Card.dart)
+                    _buildLatePaymentRow(appGreen, "Vethum Ranasinghe", "Miriswatta"),
+                    _buildLatePaymentRow(appGreen, "Vethum Ranasinghe", "Miriswatta"),
+                    _buildLatePaymentRow(appGreen, "Vethum Ranasinghe", "Miriswatta"),
+
+                    const SizedBox(height: 20),
+
+                    // --- Paid Passengers Section ---
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        "Paid Passengers",
+                        style: TextStyle(
+                          color: appGreen,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
                         ),
-                        onPressed: () {
-                          // Handle settings tap
-                        },
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Paid Passenger 1 (Standard InfoCard works here)
+                    InfoCard(
+                      title: "Vethum Ranasinghe",
+                      subtitle: "Miriswatta",
+                      showTag: true,
+                      trailing: _buildPaidTrailing(appGreen, "Rs 1000", "2 Days Ago"),
+                    ),
+
+                    // Paid Passenger 2
+                    InfoCard(
+                      title: "Vethum Ranasinghe",
+                      subtitle: "Miriswatta",
+                      showTag: false,
+                      trailing: _buildPaidTrailing(appGreen, "Rs 1000", "2 Days Ago"),
+                    ),
+
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            ),
+
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ---------------- Helper Methods ----------------
+
+  // FIXED: Builds a custom card row so we don't need to change InfoCard code
+  Widget _buildLatePaymentRow(Color color, String name, String location) {
+    return Row(
+      children: [
+        // Circular Bell Button
+        Container(
+          margin: const EdgeInsets.only(right: 12),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: color, width: 1),
+            color: Colors.white,
+          ),
+          child: Icon(Icons.notifications_none, color: color, size: 22),
+        ),
+
+        // Custom Card Layout for Late Payments
+        Expanded(
+          child: Container(
+            margin: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.15),
+                  spreadRadius: 2,
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        location,
+                        style: const TextStyle(fontSize: 12, color: Colors.black54),
+                      ),
+                      Text(
+                        "Rs 1000",
+                        style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w500),
+                      ),
+                      Text(
+                        "2 weeks late",
+                        style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w500),
                       ),
                     ],
                   ),
                 ),
-
-                // --- 2. Search Bar ---
-                Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: primaryGreen, width: 1.5),
-                    borderRadius: BorderRadius.circular(10.0),
-                  ),
-                  child: const TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Search',
-                      hintStyle: TextStyle(color: Colors.black54),
-                      prefixIcon: Icon(Icons.search, color: primaryGreen),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(vertical: 14.0),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 70),
-
-                // --- 3. Key Action Cards ---
-                _buildMetricCard(
-                  title: "Today's Passengers",
-                  value: '27',
-                  hasBorder: true,
-                  isPrimaryColor: true,
-                ),
-
-                const SizedBox(height: 25),
-
-                _buildMetricCard(
-                  title: "Start a Poll",
-                  icon: Icons.bar_chart,
-                  hasBorder: true,
-                  isPrimaryColor: false,
-                ),
-
-                const SizedBox(height: 25),
-
-                // Payment Reminder
-                _buildPaymentReminderCard(),
-
-                const SizedBox(height: 100),
-
-                // --- 4. Start Journey Button ---
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 20.0),
-                    child: SizedBox(
-                      width: 300,
-                      height: 55,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          // Handle Start Journey logic
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryGreen,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30.0),
-                          ),
-                          elevation: 5,
-                          shadowColor: primaryGreen.withOpacity(0.5),
-                        ),
-                        child: const Text(
-                          'Start Journey',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+                Icon(Icons.phone, color: color),
               ],
             ),
           ),
         ),
-      ),
-      // bottomNavigationBar: const CustomBottomNavBar(selectedIndex: 1),
+      ],
     );
   }
 
-  // Helper widget for simple metric cards
-  Widget _buildMetricCard({
-    required String title,
-    String? value,
-    IconData? icon,
-    required bool hasBorder,
-    required bool isPrimaryColor,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(20.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10.0),
-        border: hasBorder
-            ? Border.all(
-          color: primaryGreen,
-          width: 1.5,
+  // Builds the Trailing widget for Paid Passengers (Price + Date)
+  Widget _buildPaidTrailing(Color color, String price, String date) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          price,
+          style: TextStyle(color: color, fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          date,
+          style: const TextStyle(
+            fontWeight: FontWeight.w900,
+            fontSize: 14,
+            color: Colors.black,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _navItem(IconData icon, String label, bool isActive, Color color) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          icon,
+          color: isActive ? color : Colors.grey.withOpacity(0.6),
+          size: 26,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 9,
+            color: isActive ? color : Colors.grey.withOpacity(0.6),
+            fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+          ),
         )
-            : null,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: Colors.black87,
-            ),
-          ),
-          if (value != null)
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: isPrimaryColor ? primaryGreen : Colors.black87,
-              ),
-            )
-          else if (icon != null)
-            Icon(
-              icon,
-              color: primaryGreen,
-              size: 30,
-            ),
-        ],
-      ),
-    );
-  }
-
-  // Helper widget for Payment Reminder card
-  Widget _buildPaymentReminderCard() {
-    return Container(
-      padding: const EdgeInsets.all(16.0),
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10.0),
-        border: Border.all(color: primaryGreen),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Payment Reminders',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 8),
-          RichText(
-            text: const TextSpan(
-              style: TextStyle(fontSize: 14, color: Colors.black54),
-              children: [
-                TextSpan(
-                  text: 'Venuraka ',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: primaryGreen,
-                  ),
-                ),
-                TextSpan(
-                  text: 'has to pay ',
-                  style: TextStyle(color: Colors.black54),
-                ),
-                TextSpan(
-                  text: 'LKR 1000/=',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: primaryGreen,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+      ],
     );
   }
 }
