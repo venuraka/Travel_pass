@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 
+import '../Components/AppBar.dart';
+import 'PassengerSummery.dart';
+
 class PollScreen extends StatefulWidget {
   const PollScreen({super.key});
 
@@ -34,19 +37,8 @@ class _PollScreenState extends State<PollScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // --- AppBar modified to match the image style (White background, Green icon) ---
-      appBar: AppBar(
-        title: const Text(
-          'Start a Poll', // Changed text to match image
-          style: TextStyle(
-            color: Colors.black, // Dark title color
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        backgroundColor: Colors.white, // White background
-        elevation: 0, // Removes the shadow for a flat look
-        iconTheme: const IconThemeData(
-            color: Color(0xFF05A664)), // Green back arrow icon
+      appBar: const CustomAppBar(
+        title: 'Start a Poll',
       ),
       body: Column(
         children: [
@@ -66,10 +58,11 @@ class _PollScreenState extends State<PollScreen> {
                   formatButtonVisible: false, // hide 2-week toggle
                   titleCentered: true,
                   titleTextStyle: TextStyle(
-                    color: Color(0xFF05A664), // Green month name
+                    color: Color(0xFF121415), // Green month name
                     fontSize: 20, // Slightly larger font
                     fontWeight: FontWeight.bold,
                   ),
+                  headerMargin: EdgeInsets.only(bottom: 30.0), // Add margin below the month
                 ),
 
                 // Ensure selection predicate uses normalized dates
@@ -77,11 +70,21 @@ class _PollScreenState extends State<PollScreen> {
                   return _selectedDates.contains(
                       DateTime.utc(day.year, day.month, day.day));
                 },
-                onDaySelected: _onDaySelected,
+              onDaySelected: _onDaySelected,
+              onDayLongPressed: (selectedDay, focusedDay) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PassengersummeryScreen(selectedDay: selectedDay),
+                  ),
+                );
+              },
 
                 // --- Calendar Style adjusted for green dates ---
                 calendarStyle: const CalendarStyle(
                   // Style for selected days (green circle)
+                  cellMargin: EdgeInsets.all(4.0), // Add margin around each cell
+                  // increase the size of the calendar days
                   selectedDecoration: BoxDecoration(
                     color: Color(0xFF05A664),
                     shape: BoxShape.circle,
@@ -92,8 +95,22 @@ class _PollScreenState extends State<PollScreen> {
                     shape: BoxShape.circle,
                   ),
                   // Style for the main day numbers (green text as in image)
-                  defaultTextStyle: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-                  weekendTextStyle: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                  defaultTextStyle: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16),
+                  weekendTextStyle: TextStyle(
+                      color: Colors.black,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16),
+                  selectedTextStyle: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16),
+                  todayTextStyle: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16),
                   // Highlight day names and numbers in green
                   rowDecoration: BoxDecoration(),
                 ),
