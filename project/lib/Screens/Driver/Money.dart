@@ -1,14 +1,53 @@
 import 'package:flutter/material.dart';
 import '../Components/Cards.dart';
 
-
-class MoneyScreen extends StatelessWidget {
+// 1. Changed from StatelessWidget to StatefulWidget
+class MoneyScreen extends StatefulWidget {
   const MoneyScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final Color appGreen = const Color(0xFF00C853);
+  State<MoneyScreen> createState() => _MoneyScreenState();
+}
 
+class _MoneyScreenState extends State<MoneyScreen> {
+  final Color appGreen = const Color(0xFF00C853);
+
+  // 2. Variable to store the selected date
+  DateTime _selectedDate = DateTime.now();
+
+  // 3. Function to open the Calendar
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate, // Opens with current selection
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      // Customize the calendar colors to match your appGreen
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: appGreen, // Header background color
+              onPrimary: Colors.white, // Header text color
+              onSurface: Colors.black, // Body text color
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+        // TODO: Add logic here to filter your data based on 'picked' date
+        print("Date Selected: $_selectedDate");
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -23,15 +62,36 @@ class MoneyScreen extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          "Payment details",
-                          style: TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.black,
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "Payment details",
+                              style: TextStyle(
+                                fontSize: 26,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.black,
+                              ),
+                            ),
+                            // Optional: Show the selected date below the title
+                            Text(
+                              "${_selectedDate.toLocal()}".split(' ')[0],
+                              style: TextStyle(fontSize: 12, color: Colors.grey),
+                            ),
+                          ],
+                        ),
+
+                        // 4. Replaced static Icon with IconButton
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade100, // Light background for button
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: IconButton(
+                            icon: Icon(Icons.calendar_today_outlined, color: appGreen, size: 28),
+                            onPressed: () => _selectDate(context), // Calls the calendar
                           ),
                         ),
-                        Icon(Icons.calendar_today_outlined, color: appGreen, size: 28),
                       ],
                     ),
 
@@ -51,7 +111,6 @@ class MoneyScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
 
-                    // Late Payment Items (Using custom builder to avoid changing Card.dart)
                     _buildLatePaymentRow(appGreen, "Vethum Ranasinghe", "Miriswatta"),
                     _buildLatePaymentRow(appGreen, "Vethum Ranasinghe", "Miriswatta"),
                     _buildLatePaymentRow(appGreen, "Vethum Ranasinghe", "Miriswatta"),
@@ -72,7 +131,6 @@ class MoneyScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
 
-                    // Paid Passenger 1 (Standard InfoCard works here)
                     InfoCard(
                       title: "Vethum Ranasinghe",
                       subtitle: "Miriswatta",
@@ -80,7 +138,6 @@ class MoneyScreen extends StatelessWidget {
                       trailing: _buildPaidTrailing(appGreen, "Rs 1000", "2 Days Ago"),
                     ),
 
-                    // Paid Passenger 2
                     InfoCard(
                       title: "Vethum Ranasinghe",
                       subtitle: "Miriswatta",
@@ -93,7 +150,6 @@ class MoneyScreen extends StatelessWidget {
                 ),
               ),
             ),
-
           ],
         ),
       ),
@@ -101,12 +157,11 @@ class MoneyScreen extends StatelessWidget {
   }
 
   // ---------------- Helper Methods ----------------
+  // (These remain exactly the same as your original code)
 
-  // FIXED: Builds a custom card row so we don't need to change InfoCard code
   Widget _buildLatePaymentRow(Color color, String name, String location) {
     return Row(
       children: [
-        // Circular Bell Button
         Container(
           margin: const EdgeInsets.only(right: 12),
           padding: const EdgeInsets.all(12),
@@ -117,8 +172,6 @@ class MoneyScreen extends StatelessWidget {
           ),
           child: Icon(Icons.notifications_none, color: color, size: 22),
         ),
-
-        // Custom Card Layout for Late Payments
         Expanded(
           child: Container(
             margin: const EdgeInsets.symmetric(vertical: 8),
@@ -174,7 +227,6 @@ class MoneyScreen extends StatelessWidget {
     );
   }
 
-  // Builds the Trailing widget for Paid Passengers (Price + Date)
   Widget _buildPaidTrailing(Color color, String price, String date) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.end,
@@ -193,28 +245,6 @@ class MoneyScreen extends StatelessWidget {
             color: Colors.black,
           ),
         ),
-      ],
-    );
-  }
-
-  Widget _navItem(IconData icon, String label, bool isActive, Color color) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          icon,
-          color: isActive ? color : Colors.grey.withOpacity(0.6),
-          size: 26,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 9,
-            color: isActive ? color : Colors.grey.withOpacity(0.6),
-            fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-          ),
-        )
       ],
     );
   }
