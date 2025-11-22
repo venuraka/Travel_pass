@@ -45,7 +45,7 @@ class _TodaypassengersScreenState extends State<TodaypassengersScreen> {
               const SizedBox(height: 10),
               const SizedBox(height: 20),
 
-              // --- Section 2: Not Voted ---
+              // --- Section 1: Not Voted ---
               if (notVoted.isNotEmpty) ...[
                 _buildSectionHeader("Not Voted", appGreen),
 
@@ -90,7 +90,7 @@ class _TodaypassengersScreenState extends State<TodaypassengersScreen> {
               ],
 
 
-              // --- Section 1: Today’s Passengers ---
+              // --- Section 2: Today’s Passengers ---
               _buildSectionHeader("Today's Passengers", appGreen),
 
               for (var passenger in todayPassengers)
