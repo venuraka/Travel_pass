@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import '../Components/BottomBar.dart';
 import 'Attendance.dart';
-import 'Money.dart';
+import 'PaymentDetails.dart';
 import 'Passengers.dart';
-import 'Paymentdetails.dart';
+import 'PaymentReminders.dart';
 import 'Poll.dart';
 import 'TodayPassengers.dart';
 import 'Updates.dart';
@@ -43,7 +43,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
       case 0:
         return const PassengerScreen();
       case 1:
-        return const MoneyScreen();
+        return const PaymentDetailsScreen();
       case 2:
         return _buildDashboardContent();
       case 3:
@@ -146,7 +146,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const PaymentDetailsScreen()),
+                    MaterialPageRoute(builder: (_) => const PaymentRemindersScreen()),
                   );
                 },
               ),

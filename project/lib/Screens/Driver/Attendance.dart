@@ -1,240 +1,175 @@
 import 'package:flutter/material.dart';
+import '../Components/Cards.dart';
+import '../Components/Topic.dart';
 
-// Define the primary color used throughout the app
-const Color primaryGreen = Color(0xFF05A664);
-
-class AttendanceScreen extends StatelessWidget {
+class AttendanceScreen extends StatefulWidget {
   const AttendanceScreen({super.key});
+
+  @override
+  State<AttendanceScreen> createState() => _AttendanceScreenState();
+}
+
+class _AttendanceScreenState extends State<AttendanceScreen> {
+  final Color appGreen = const Color(0xFF05A664);
+
+  // 1. Variable to store selected date
+  DateTime _selectedDate = DateTime.now();
+
+  // Temporary demo lists
+  List<Map<String, dynamic>> todayPassengers = [
+    {"name": "Vethum Ranasinghe", "place": "Miriswatta", "tag": true},
+    {"name": "Vethum Ranasinghe", "place": "Miriswatta", "tag": false},
+    {"name": "Vethum Ranasinghe", "place": "Miriswatta", "tag": true},
+  ];
+
+  List<Map<String, dynamic>> notVoted = [
+    {"name": "Vethum Ranasinghe", "place": "Miriswatta", "tag": true},
+    {"name": "Vethum Ranasinghe", "place": "Miriswatta", "tag": false},
+    {"name": "Vethum Ranasinghe", "place": "Miriswatta", "tag": true},
+  ];
+
+  List<Map<String, dynamic>> absent = [
+    {"name": "Vethum Ranasinghe", "place": "Miriswatta", "tag": true},
+    {"name": "Vethum Ranasinghe", "place": "Miriswatta", "tag": true},
+    {"name": "Vethum Ranasinghe", "place": "Miriswatta", "tag": false},
+  ];
+
+  // 2. Function to show the Date Picker
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2030),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: appGreen,
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+        // Logic to filter passengers by date would go here
+      });
+    }
+  }
+
+  // Helper to format date string
+  String get _dateString => "${_selectedDate.toLocal()}".split(' ')[0];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        toolbarHeight: 0, // Hide default app bar
-      ),
-
       body: SafeArea(
         child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
 
-                // --- 1. Header: Greeting & Settings Icon ---
-                Padding(
-                  padding: const EdgeInsets.only(top: 16.0, bottom: 20.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Attendance ',
-                        style: TextStyle(
-                          fontSize: 25,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF121415),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.settings,
-                          color: primaryGreen,
-                          size: 24,
-                        ),
-                        onPressed: () {
-                          // Handle settings tap
-                        },
-                      ),
-                    ],
+              // --- HEADER ---
+              PageHeader(
+                title: "Attendance History",
+                subtitle: Text(
+                  _dateString,
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+                actions: [
+                  IconButton(
+                    icon: Icon(Icons.calendar_today_outlined, color: appGreen, size: 28),
+                    onPressed: () => _selectDate(context),
                   ),
-                ),
+                ],
+              ),
+              // --------------
 
-                // --- 2. Search Bar ---
-                Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: primaryGreen, width: 1.5),
-                    borderRadius: BorderRadius.circular(10.0),
+              const SizedBox(height: 20),
+
+              // --- Section 1: Not Voted (Renamed to Boarded based on your text) ---
+              if (notVoted.isNotEmpty) ...[
+                _buildSectionHeader("Passengers Boarded on $_dateString", appGreen),
+
+                // REMOVED DISMISSIBLE WRAPPER HERE
+                for (int i = 0; i < notVoted.length; i++)
+                  InfoCard(
+                    title: notVoted[i]["name"],
+                    subtitle: notVoted[i]["place"],
+                    showTag: notVoted[i]["tag"],
+                    trailing: _buildPhoneIcon(appGreen),
                   ),
-                  child: const TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Search',
-                      hintStyle: TextStyle(color: Colors.black54),
-                      prefixIcon: Icon(Icons.search, color: primaryGreen),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(vertical: 14.0),
-                    ),
-                  ),
-                ),
 
-                const SizedBox(height: 70),
-
-                // --- 3. Key Action Cards ---
-                _buildMetricCard(
-                  title: "Today's Passengers",
-                  value: '27',
-                  hasBorder: true,
-                  isPrimaryColor: true,
-                ),
-
-                const SizedBox(height: 25),
-
-                _buildMetricCard(
-                  title: "Start a Poll",
-                  icon: Icons.bar_chart,
-                  hasBorder: true,
-                  isPrimaryColor: false,
-                ),
-
-                const SizedBox(height: 25),
-
-                // Payment Reminder
-                _buildPaymentReminderCard(),
-
-                const SizedBox(height: 100),
-
-                // --- 4. Start Journey Button ---
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 20.0),
-                    child: SizedBox(
-                      width: 300,
-                      height: 55,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          // Handle Start Journey logic
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryGreen,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30.0),
-                          ),
-                          elevation: 5,
-                          shadowColor: primaryGreen.withOpacity(0.5),
-                        ),
-                        child: const Text(
-                          'Start Journey',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+                const SizedBox(height: 30),
               ],
-            ),
+
+              // --- Section 2: Today’s Passengers (Renamed to Absent based on your text) ---
+              _buildSectionHeader("Absent Passengers on $_dateString", appGreen),
+
+              for (var passenger in todayPassengers)
+                InfoCard(
+                  title: passenger["name"],
+                  subtitle: passenger["place"],
+                  showTag: passenger["tag"],
+                  trailing: _buildPhoneIcon(appGreen),
+                ),
+
+              const SizedBox(height: 10),
+
+              // --- Section 3: Absent (Renamed to Not Voted based on your text) ---
+              _buildSectionHeader("Not Voted Passengers on $_dateString", appGreen),
+
+              for (var passenger in absent)
+                InfoCard(
+                  title: passenger["name"],
+                  subtitle: passenger["place"],
+                  showTag: passenger["tag"],
+                  trailing: _buildPhoneIcon(appGreen),
+                ),
+
+              const SizedBox(height: 10),
+            ],
           ),
         ),
       ),
-
     );
   }
 
-  // Helper widget for simple metric cards
-  Widget _buildMetricCard({
-    required String title,
-    String? value,
-    IconData? icon,
-    required bool hasBorder,
-    required bool isPrimaryColor,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(20.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10.0),
-        border: hasBorder
-            ? Border.all(
-          color: primaryGreen,
-          width: 1.5,
-        )
-            : null,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: Colors.black87,
-            ),
-          ),
-          if (value != null)
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: isPrimaryColor ? primaryGreen : Colors.black87,
-              ),
-            )
-          else if (icon != null)
-            Icon(
-              icon,
-              color: primaryGreen,
-              size: 30,
-            ),
-        ],
+  Widget _buildSectionHeader(String title, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Text(
+        title,
+        style: TextStyle(
+          color: color,
+          fontSize: 16,
+          fontWeight: FontWeight.w500,
+        ),
       ),
     );
   }
 
-  // Helper widget for Payment Reminder card
-  Widget _buildPaymentReminderCard() {
-    return Container(
-      padding: const EdgeInsets.all(16.0),
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10.0),
-        border: Border.all(color: primaryGreen),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Payment Reminders',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: Colors.black87,
-            ),
-          ),
-          const SizedBox(height: 8),
-          RichText(
-            text: const TextSpan(
-              style: TextStyle(fontSize: 14, color: Colors.black54),
-              children: [
-                TextSpan(
-                  text: 'Venuraka ',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: primaryGreen,
-                  ),
-                ),
-                TextSpan(
-                  text: 'has to pay ',
-                  style: TextStyle(color: Colors.black54),
-                ),
-                TextSpan(
-                  text: 'LKR 1000/=',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: primaryGreen,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+  Widget _buildPhoneIcon(Color color) {
+    return InkWell(
+      onTap: () {
+        print("Calling passenger...");
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Icon(
+          Icons.phone,
+          color: color,
+          size: 24,
+        ),
       ),
     );
   }
