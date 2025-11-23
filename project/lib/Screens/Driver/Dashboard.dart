@@ -5,6 +5,7 @@ import 'PaymentDetails.dart';
 import 'Passengers.dart';
 import 'PaymentReminders.dart';
 import 'Poll.dart';
+import 'Settings.dart';
 import 'TodayPassengers.dart';
 import 'Updates.dart';
 
@@ -84,7 +85,12 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                         color: primaryGreen,
                         size: 24,
                       ),
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                        );
+                      },
                     ),
                   ],
                 ),
