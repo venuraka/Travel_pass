@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../Components/Header.dart';
 import '../Components/Whitecard.dart';
 // Assuming Header.dart exists, but I will build the specific header shown in the screenshot inline for accuracy.
 
@@ -68,45 +69,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       backgroundColor: darkBg,
       body: Stack(
         children: [
-          // --- 1. Custom Header (Matches Screenshot) ---
-          Positioned(
-            top: 60, // Adjust for SafeArea
-            left: 20,
-            right: 20,
-            child: Column(
-              children: [
-                // Back Button Area
-                Row(
-                  children: [
-                    InkWell(
-                      onTap: () => Navigator.pop(context),
-                      borderRadius: BorderRadius.circular(30),
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: appGreen, width: 1.5),
-                        ),
-                        child: Icon(
-                          Icons.arrow_back,
-                          color: appGreen,
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 150), // Push "Settings" text down to center
-                Text(
-                  'Settings',
-                  style: TextStyle(
-                    color: appGreen,
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
+          const RegistrationHeader(
+            title: 'Travel',
+            subtitle: 'Settings',
+            subtitleColor: Color(0xFF05A664),
+            topPadding: 50,
           ),
 
           // --- 2. White Card Content ---
