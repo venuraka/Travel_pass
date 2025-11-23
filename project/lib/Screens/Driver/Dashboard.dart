@@ -157,7 +157,6 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
               _buildHeroCard(
                 title: "Today's Passengers",
                 value: '27',
-                subtitle: "13 Pending Pickups",
                 onTap: () {
                   Navigator.push(
                     context,
@@ -257,7 +256,6 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   Widget _buildHeroCard({
     required String title,
     required String value,
-    required String subtitle,
     VoidCallback? onTap,
   }) {
     return InkWell(
@@ -305,17 +303,6 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    subtitle,
-                    style: const TextStyle(color: Colors.white, fontSize: 12),
-                  ),
-                )
               ],
             ),
             Container(
