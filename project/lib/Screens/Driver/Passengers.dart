@@ -12,7 +12,7 @@ class PassengerScreen extends StatefulWidget {
 }
 
 class _PassengerScreenState extends State<PassengerScreen> {
-  final Color appGreen = const Color(0xFF00C853);
+  final Color appGreen = const Color(0xFF05A664);
   int _selectedIndex = 0;
 
   // Demo data to replicate the list in the image

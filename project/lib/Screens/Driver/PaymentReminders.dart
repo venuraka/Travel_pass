@@ -6,7 +6,7 @@ class PaymentRemindersScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color appGreen = const Color(0xFF00C853);
+    final Color appGreen = const Color(0xFF05A664);
 
     return Scaffold(
       appBar: const CustomAppBar(

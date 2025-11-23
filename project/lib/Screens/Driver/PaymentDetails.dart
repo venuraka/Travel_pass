@@ -11,7 +11,7 @@ class PaymentDetailsScreen extends StatefulWidget {
 }
 
 class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
-  final Color appGreen = const Color(0xFF00C853);
+  final Color appGreen = const Color(0xFF05A664);
 
   List<Map<String, String>> latePayments = [
     {"name": "Vethum Ranasinghe", "place": "Miriswatta"},
