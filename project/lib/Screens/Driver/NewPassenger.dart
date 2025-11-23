@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../Components/AppBar.dart';
 import '../Components/Cards.dart';
+import 'RegisterPassenger.dart';
 
 class NewPassengerScreen extends StatefulWidget {
   const NewPassengerScreen({super.key});
@@ -79,7 +80,13 @@ class _NewPassengerScreenState extends State<NewPassengerScreen> {
                   visualDensity: VisualDensity.compact,
                   splashRadius: 20,
                   onPressed: () {
-                    // TODO: Handle accept action
+                    // Navigate to RegisterPassengerScreen
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const RegisterPassengerScreen(),
+                      ),
+                    );
                   },
                   icon: Icon(Icons.check_circle_outline, color: appGreen, size: 28),
                   padding: EdgeInsets.zero,

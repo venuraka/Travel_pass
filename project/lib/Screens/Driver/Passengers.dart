@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../Components/Cards.dart';
 import '../Components/Topic.dart';
 import 'NewPassenger.dart';
+import 'EditPassenger.dart'; // Import the EditPassenger screen
 
 class PassengerScreen extends StatefulWidget {
   const PassengerScreen({super.key});
@@ -75,7 +76,16 @@ class _PassengerScreenState extends State<PassengerScreen> {
                       subtitle:
                           "${passenger["place"]!}\n${passenger["price"]!}",
                       showTag: false, // No tag needed as per the image
-                      trailing: Icon(Icons.more_vert, color: appGreen),
+                      trailing: IconButton(
+                        icon: Icon(Icons.more_vert, color: appGreen),
+                        onPressed: () {
+                          // Navigate to EditPassenger screen on tap
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => EditPassengerScreen()),
+                          );
+                        },
+                      ),
                     ),
                   );
                 },
