@@ -1,235 +1,88 @@
 import 'package:flutter/material.dart';
+import '../Components/Cards.dart';
+import '../Components/Topic.dart';
+import 'NewPassenger.dart';
 
-
-// Define the primary color used throughout the app
-const Color primaryGreen = Color(0xFF05A664);
-
-class PassengerScreen extends StatelessWidget {
+class PassengerScreen extends StatefulWidget {
   const PassengerScreen({super.key});
+
+  @override
+  State<PassengerScreen> createState() => _PassengerScreenState();
+}
+
+class _PassengerScreenState extends State<PassengerScreen> {
+  final Color appGreen = const Color(0xFF00C853);
+  int _selectedIndex = 0;
+
+  // Demo data to replicate the list in the image
+  final List<Map<String, String>> passengers = List.generate(
+    7,
+    (index) => {
+      "name": "Vethum Ranasinghe",
+      "place": "Miriswatta",
+      "price": "Rs 1000",
+    },
+  );
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+    // Handle navigation to other screens here
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        toolbarHeight: 0, // Hide default app bar
-      ),
-
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-
-                // --- 1. Header: Greeting & Settings Icon ---
-                Padding(
-                  padding: const EdgeInsets.only(top: 16.0, bottom: 20.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Passengers ',
-                        style: TextStyle(
-                          fontSize: 25,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF121415),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.settings,
-                          color: primaryGreen,
-                          size: 24,
-                        ),
-                        onPressed: () {
-                          // Handle settings tap
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-
-                // --- 2. Search Bar ---
-                Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: primaryGreen, width: 1.5),
-                    borderRadius: BorderRadius.circular(10.0),
-                  ),
-                  child: const TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Search',
-                      hintStyle: TextStyle(color: Colors.black54),
-                      prefixIcon: Icon(Icons.search, color: primaryGreen),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(vertical: 14.0),
+        child: Column(
+          children: [
+            // --- Header using the PageHeader component ---
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+              child: PageHeader(
+                title: "Passenger Details",
+                actions: [
+                  IconButton(
+                    icon: Icon(
+                      Icons.person_add_alt_1,
+                      color: appGreen,
+                      size: 28,
                     ),
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => NewPassengerScreen()));
+                    },
                   ),
-                ),
-
-                const SizedBox(height: 70),
-
-                // --- 3. Key Action Cards ---
-                _buildMetricCard(
-                  title: "Today's Passengers",
-                  value: '27',
-                  hasBorder: true,
-                  isPrimaryColor: true,
-                ),
-
-                const SizedBox(height: 25),
-
-
-
-                const SizedBox(height: 25),
-
-                // Payment Reminder
-                _buildPaymentReminderCard(),
-
-                const SizedBox(height: 100),
-
-                // --- 4. Start Journey Button ---
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 20.0),
-                    child: SizedBox(
-                      width: 300,
-                      height: 55,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          // Handle Start Journey logic
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primaryGreen,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30.0),
-                          ),
-                          elevation: 5,
-                          shadowColor: primaryGreen.withOpacity(0.5),
-                        ),
-                        child: const Text(
-                          'Start Journey',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // Helper widget for simple metric cards
-  Widget _buildMetricCard({
-    required String title,
-    String? value,
-    IconData? icon,
-    required bool hasBorder,
-    required bool isPrimaryColor,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(20.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10.0),
-        border: hasBorder
-            ? Border.all(
-          color: primaryGreen,
-          width: 1.5,
-        )
-            : null,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: Colors.black87,
-            ),
-          ),
-          if (value != null)
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: isPrimaryColor ? primaryGreen : Colors.black87,
+                ],
               ),
-            )
-          else if (icon != null)
-            Icon(
-              icon,
-              color: primaryGreen,
-              size: 30,
             ),
-        ],
-      ),
-    );
-  }
 
-  // Helper widget for Payment Reminder card
-  Widget _buildPaymentReminderCard() {
-    return Container(
-      padding: const EdgeInsets.all(16.0),
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10.0),
-        border: Border.all(color: primaryGreen),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Payment Reminders',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: Colors.black87,
+            // --- Scrollable List of InfoCards ---
+            Expanded(
+              child: ListView.builder(
+                // Add padding around the list itself
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                itemCount: passengers.length,
+                itemBuilder: (context, index) {
+                  final passenger = passengers[index];
+                  return Padding(
+                    // Add space between cards
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: InfoCard(
+                      title: passenger["name"]!,
+                      // Combine place and price with a line break for the subtitle
+                      subtitle:
+                          "${passenger["place"]!}\n${passenger["price"]!}",
+                      showTag: false, // No tag needed as per the image
+                      trailing: Icon(Icons.more_vert, color: appGreen),
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          RichText(
-            text: const TextSpan(
-              style: TextStyle(fontSize: 14, color: Colors.black54),
-              children: [
-                TextSpan(
-                  text: 'Venuraka ',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: primaryGreen,
-                  ),
-                ),
-                TextSpan(
-                  text: 'has to pay ',
-                  style: TextStyle(color: Colors.black54),
-                ),
-                TextSpan(
-                  text: 'LKR 1000/=',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: primaryGreen,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
