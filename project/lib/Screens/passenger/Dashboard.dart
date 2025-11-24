@@ -133,7 +133,7 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
           ),
         ),
         child: const Text(
-          'START JOURNEY',
+          'Track Vehicle',
         ),
       ),
     );
@@ -144,7 +144,7 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Welcome Back,',
+          'Good Morning,',
           style: TextStyle(
             fontSize: 16,
             color: _secondaryGray, // Secondary color for subtle text
