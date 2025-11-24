@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-
+import '../passenger/Updates.dart';
+import '../Driver/PaymentHistory.dart';
 import 'Attendance.dart';
 
 
@@ -87,7 +88,9 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
                   _buildHistoryTile(
                     title: 'Payment History',
                     icon: Icons.account_balance_wallet_outlined,
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => PaymentHistoryScreen()));
+                    },
                   ),
                 ],
               ),
@@ -164,30 +167,38 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
-        _contactIcon(Icons.call_outlined, 'Call'),
-        _contactIcon(Icons.notifications_none, 'Alerts'),
+        _contactIcon(Icons.call_outlined, 'Call', onPressed: () {
+          // TODO: Implement call functionality
+        }),
+        _contactIcon(Icons.notifications_none, 'Alerts', onPressed: () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => UpdatesScreen()));
+        }),
       ],
     );
   }
 
-  Widget _contactIcon(IconData icon, String label) {
-    return Column(
-      children: [
-        Container(
-          width: 60,
-          height: 60,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: _primaryGreen.withOpacity(0.1), // Very light green background
+  Widget _contactIcon(IconData icon, String label, {VoidCallback? onPressed}) {
+    return InkWell(
+      onTap: onPressed,
+      borderRadius: BorderRadius.circular(40), // For a circular ripple effect
+      child: Column(
+        children: [
+          Container(
+            width: 60,
+            height: 60,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: _primaryGreen.withOpacity(0.1), // Very light green background
+            ),
+            child: Icon(icon, color: _primaryGreen, size: 30),
           ),
-          child: Icon(icon, color: _primaryGreen, size: 30),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 13, color: _secondaryGray, fontWeight: FontWeight.w500),
-        ),
-      ],
+          const SizedBox(height: 8),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 13, color: _secondaryGray, fontWeight: FontWeight.w500),
+          ),
+        ],
+      ),
     );
   }
 
