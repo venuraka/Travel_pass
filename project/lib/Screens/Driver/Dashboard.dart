@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import '../Components/BottomBar.dart';
+
 import 'Attendance.dart';
 import 'PaymentDetails.dart';
 import 'Passengers.dart';
 import 'PaymentReminders.dart';
 import 'Poll.dart';
 import 'Settings.dart';
+import 'StartJourney.dart';
 import 'TodayPassengers.dart';
 import 'Updates.dart';
 
@@ -218,7 +220,12 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                   ],
                 ),
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const Startjourney()),
+                    );
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryGreen,
                     foregroundColor: Colors.white,
