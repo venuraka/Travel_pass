@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import 'Attendance.dart';
+
+
 // --- Color Palette (Updated and Finalized for Light Theme) ---
 // 0xFF05A664 -> Primary Green (Action/Accent)
 // 0xFF121415 -> Dark Text (Primary foreground/Text)
@@ -77,7 +80,9 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
                   _buildHistoryTile(
                     title: 'Attendance History',
                     icon: Icons.history_edu_outlined,
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => PassengerAttendaceScreen()));
+                    },
                   ),
                   _buildHistoryTile(
                     title: 'Payment History',
