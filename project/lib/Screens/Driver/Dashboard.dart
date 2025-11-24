@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../Components/BottomBar.dart';
-
 import 'Attendance.dart';
 import 'PaymentDetails.dart';
 import 'Passengers.dart';

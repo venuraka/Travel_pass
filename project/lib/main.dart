@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'Screens/Driver/Dashboard.dart';
+import 'Screens/passenger/Dashboard.dart';
 
 
 
@@ -22,7 +23,8 @@ class MyApp extends StatelessWidget {
       ),
 
       // Initial screen when the app starts
-        home: const DriverDashboardScreen(),
+        home: const PassengerDashboardApp(),
     );
   }
 }
+
