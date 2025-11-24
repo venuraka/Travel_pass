@@ -1,39 +1,54 @@
 import 'package:flutter/material.dart';
 
-// --- Color Palette (Reassigned for Light Theme) ---
-const Color _primaryGreen = Color(0xFF05A664); // Primary action/accent color
-const Color _darkText = Color(0xFF121415); // Primary text/button foreground
-const Color _secondaryGray = Color(0xFF909090); // Minor/Detail text color
-const Color _lightBackground = Color(0xFFF7F9FB); // Very light gray background
-const Color _cardColor = Colors.white;
+// --- Color Palette (Updated and Finalized for Light Theme) ---
+// 0xFF05A664 -> Primary Green (Action/Accent)
+// 0xFF121415 -> Dark Text (Primary foreground/Text)
+// 0xFFF8F9FC -> Very Light Background/Card Color (Unified light mode background)
+const Color _primaryGreen = Color(0xFF05A664);
+const Color _darkText = Color(0xFF121415);
+const Color _secondaryGray = Color(0xFF909090); // Minor/Detail text color (Kept for contrast)
+const Color _lightBackground = Color(0xFFF8F9FC); // Main background
+const Color _cardColor = Colors.white; // Using pure white for cards/surfaces on the light background
 
-class PassengerDashboardApp extends StatelessWidget {
+// --- Mock Data for Attendance Marking (Date-based) ---
+final List<Map<String, String>> todayDateList = [
+  {'id': '2025-11-24', 'label': '2025-11-24', 'status': 'Pending'},
+  {'id': '2025-11-23', 'label': '2025-11-23', 'status': 'Pending'},
+  {'id': '2025-11-22', 'label': '2025-11-22', 'status': 'Pending'},
+];
+
+class PassengerDashboardApp extends StatefulWidget {
   const PassengerDashboardApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Mock data for the attendance list
-    final List<Map<String, dynamic>> attendanceData = [
-      {'date': '2025/11/24', 'status': 'present'},
-      {'date': '2025/11/23', 'status': 'present'},
-      {'date': '2025/11/22', 'status': 'absent'},
-    ];
+  State<PassengerDashboardApp> createState() => _DashboardScreenState();
+}
 
+class _DashboardScreenState extends State<PassengerDashboardApp> {
+  // Use a mutable list of date-based items for state management
+  final List<Map<String, String>> _datesToMark = List.from(todayDateList);
+
+  // Helper method to find the correct index for restoration (crucial for UNDO)
+  int _findOriginalIndex(Map<String, String> item) {
+    return todayDateList.indexWhere((i) => i['id'] == item['id']);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
-      // 1. MODIFICATION: Simple AppBar without title or actions for a cleaner look.
+      // Unified light background color
+      backgroundColor: _lightBackground,
       appBar: AppBar(
-        // The app bar is kept to manage status bar color, but made minimal.
-        backgroundColor: _lightBackground, // Match the background
+        backgroundColor: _lightBackground,
         elevation: 0,
-        toolbarHeight: 0, // Make it invisible (only for status bar management)
+        toolbarHeight: 0,
       ),
       body: SingleChildScrollView(
-        // Padding is moved inside the Column children to handle the top element flush
+        padding: const EdgeInsets.only(top: 15.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            // 2. MODIFICATION: Greeting Card is now the first, primary element.
-            // Padding added here to match the old body padding
+            // Greeting Card
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
               child: _buildGreetingAndStatusCard(),
@@ -46,19 +61,19 @@ class PassengerDashboardApp extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // 3. Primary Action Button
+                  // Primary Action Button
                   _buildFindVehicleButton(context),
                   const SizedBox(height: 30),
 
-                  // 4. Quick Contact Bar
+                  // Quick Contact Bar
                   _buildQuickContactBar(),
                   const SizedBox(height: 30),
 
-                  // 5. Attendance Tracker Card
-                  _buildAttendanceCard(attendanceData),
+                  // ATTENDANCE CARD - NOW DATE-BASED
+                  _buildAttendanceCard(),
                   const SizedBox(height: 30),
 
-                  // 6. History Action Tiles
+                  // History Action Tiles
                   _buildHistoryTile(
                     title: 'Attendance History',
                     icon: Icons.history_edu_outlined,
@@ -78,18 +93,17 @@ class PassengerDashboardApp extends StatelessWidget {
     );
   }
 
-  // --- Widget Builders (Light Theme) ---
+  // --- Widget Builders ---
 
-  // PRIMARY ACTION: Uses the Near-Black for the background to create high contrast.
   Widget _buildFindVehicleButton(BuildContext context) {
     return Container(
+      // Modern, subtle shadow for primary actions
       decoration: BoxDecoration(
         boxShadow: [
           BoxShadow(
-            // Subtle, professional shadow
-            color: _darkText.withOpacity(0.15),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
+            color: _primaryGreen.withOpacity(0.4),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
           ),
         ],
         borderRadius: BorderRadius.circular(16),
@@ -97,37 +111,35 @@ class PassengerDashboardApp extends StatelessWidget {
       child: ElevatedButton(
         onPressed: () {},
         style: ElevatedButton.styleFrom(
-          foregroundColor: _cardColor, // White text on dark button
-          backgroundColor: _darkText, // Near-black for maximum impact
+          backgroundColor: _primaryGreen,
+          foregroundColor: _cardColor, // White text on green button
           padding: const EdgeInsets.symmetric(vertical: 25),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
           elevation: 0,
-        ),
-        child: const Text(
-          'Track Vehicle',
-          style: TextStyle(
+          textStyle: const TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w900,
             letterSpacing: 1.0,
           ),
         ),
+        child: const Text(
+          'START JOURNEY',
+        ),
       ),
     );
   }
 
-  // GREETING/STATUS CARD: Clean white surface with high-contrast text.
   Widget _buildGreetingAndStatusCard() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // New menu icon for a cleaner look without the full AppBar
         const Text(
           'Welcome Back,',
           style: TextStyle(
             fontSize: 16,
-            color: _secondaryGray, // Gray for secondary text
+            color: _secondaryGray, // Secondary color for subtle text
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -136,35 +148,13 @@ class PassengerDashboardApp extends StatelessWidget {
           style: TextStyle(
             fontSize: 32,
             fontWeight: FontWeight.w900,
-            color: _darkText, // Near-black for high contrast
+            color: _darkText, // Primary dark text
           ),
         ),
       ],
     );
   }
 
-  Widget _buildStatusPill({required IconData icon, required String label, required Color color}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1), // Lightest tint of the accent color
-        borderRadius: BorderRadius.circular(30),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16, color: color),
-          const SizedBox(width: 6),
-          Text(
-            label,
-            style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: color),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // QUICK CONTACT: Uses the Green for the icons to draw attention.
   Widget _buildQuickContactBar() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -183,7 +173,7 @@ class PassengerDashboardApp extends StatelessWidget {
           height: 60,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: _primaryGreen.withOpacity(0.1), // Subtle green background
+            color: _primaryGreen.withOpacity(0.1), // Very light green background
           ),
           child: Icon(icon, color: _primaryGreen, size: 30),
         ),
@@ -196,81 +186,211 @@ class PassengerDashboardApp extends StatelessWidget {
     );
   }
 
-  // ATTENDANCE CARD: Clean, structured list on a white card.
-  Widget _buildAttendanceCard(List<Map<String, dynamic>> attendanceData) {
+  Widget _buildAttendanceCard() {
     return Container(
       padding: const EdgeInsets.all(20.0),
       decoration: BoxDecoration(
-        color: _cardColor,
+        color: _cardColor, // Pure white surface
         borderRadius: BorderRadius.circular(16),
+        // Subtle, high-quality shadow for card separation
         boxShadow: [
           BoxShadow(
-            color: _secondaryGray.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
+            color: _darkText.withOpacity(0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Header Row with subtle Add button
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Mark Attendance',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: _darkText),
               ),
             ],
           ),
-          const Divider(height: 25, color: _secondaryGray),
+          // Thinner, lighter divider for separation
+          const Divider(height: 25, thickness: 0.5, color: _secondaryGray),
 
-          // Attendance list items (Max 3 shown for dashboard)
-          ...attendanceData.take(3).map((data) => _buildAttendanceRow(data['date'] as String, data['status'] == 'present')).toList(),
+          // Attendance list items (now date-based and dismissible)
+          ..._datesToMark.map((item) =>
+              _buildAttendanceDismissibleRow(item)
+          ).toList(),
+
+          if (_datesToMark.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 10.0),
+              child: Center(
+                child: Text(
+                  'All attendance marked for recent dates! 🎉',
+                  style: TextStyle(color: _secondaryGray, fontStyle: FontStyle.italic),
+                ),
+              ),
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildAttendanceRow(String date, bool isPresent) {
-    final Color statusColor = isPresent ? _primaryGreen : Colors.red.shade700;
-    final String statusText = isPresent ? 'Present' : 'Absent';
+  Widget _buildAttendanceDismissibleRow(Map<String, String> item) {
+    final Key key = ValueKey(item['id']);
+    final Color presentColor = _primaryGreen;
+    final Color absentColor = Colors.red.shade600;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
+    // Use a unique index for restoration since the list position changes on removal
+    // The original index in the static list is a reliable marker.
+    final int originalIndex = _findOriginalIndex(item);
+    late Map<String, String> dismissedItem = item; // Store dismissed item details
+
+    return Dismissible(
+      key: key,
+      direction: DismissDirection.horizontal,
+      onDismissed: (direction) {
+        String status = '';
+        if (direction == DismissDirection.startToEnd) {
+          status = 'Present';
+        } else if (direction == DismissDirection.endToStart) {
+          status = 'Absent';
+        }
+
+        // Remove the item from the state
+        setState(() {
+          _datesToMark.removeWhere((i) => i['id'] == item['id']);
+        });
+
+        // Show SnackBar with undo action
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${item['label']} marked as $status.'),
+            action: SnackBarAction(
+              label: 'UNDO',
+              textColor: _primaryGreen,
+              onPressed: () {
+                // Restore the item at its original position in the static list
+                setState(() {
+                  // Find the correct insertion point relative to the original static list
+                  int insertIndex = 0;
+                  for (int i = 0; i < todayDateList.length; i++) {
+                    if (i == originalIndex) {
+                      insertIndex = i;
+                      break;
+                    }
+                    if (_datesToMark.contains(todayDateList[i])) {
+                      insertIndex++;
+                    }
+                  }
+
+                  // Insert the item at the calculated position
+                  _datesToMark.insert(insertIndex, dismissedItem);
+                });
+              },
+            ),
+          ),
+        );
+      },
+
+      // Swipe RIGHT (Mark Present)
+      background: Container(
+        decoration: BoxDecoration(
+          color: presentColor,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        alignment: Alignment.centerLeft,
+        padding: const EdgeInsets.only(left: 20),
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        child: const Row(
+          children: [
+            Icon(Icons.check_circle_outline, color: _cardColor),
+            SizedBox(width: 10),
+            Text(
+              'Mark Present',
+              style: TextStyle(color: _cardColor, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+      ),
+
+      // Swipe LEFT (Mark Absent)
+      secondaryBackground: Container(
+        decoration: BoxDecoration(
+          color: absentColor,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        alignment: Alignment.centerRight,
+        padding: const EdgeInsets.only(right: 20),
+        margin: const EdgeInsets.symmetric(vertical: 4),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Text(
+              'Mark Absent',
+              style: TextStyle(color: _cardColor, fontWeight: FontWeight.w600),
+            ),
+            SizedBox(width: 10),
+            Icon(Icons.cancel_outlined, color: _cardColor),
+          ],
+        ),
+      ),
+
+      // The main content of the row
+      child: _buildAttendanceRowContent(
+        dateLabel: item['label']!,
+        status: item['status']!,
+      ),
+    );
+  }
+
+  Widget _buildAttendanceRowContent({
+    required String dateLabel,
+    required String status,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: _cardColor, // Pure white for the content row
+        borderRadius: BorderRadius.circular(12),
+        // Finer border for a cleaner look
+        border: Border.all(color: _secondaryGray.withOpacity(0.1), width: 1),
+      ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          // Display the date/label in YYYY-MM-DD format
           Text(
-            date,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: _darkText),
+            dateLabel,
+            style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: _darkText
+            ),
           ),
-          Row(
-            children: [
-              Icon(
-                isPresent ? Icons.check_circle_rounded : Icons.cancel_rounded,
-                color: statusColor,
-                size: 20,
+
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              // Slightly brighter badge color
+              color: _secondaryGray.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              status,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: _secondaryGray, // Subtle text color for status badge
               ),
-              const SizedBox(width: 8),
-              Text(
-                statusText,
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                  color: statusColor,
-                ),
-              ),
-            ],
+            ),
           ),
         ],
       ),
     );
   }
 
-
-  // HISTORY TILES: Minimalist list with subtle separators.
   Widget _buildHistoryTile({
     required String title,
     required IconData icon,
@@ -278,13 +398,17 @@ class PassengerDashboardApp extends StatelessWidget {
   }) {
     return InkWell(
       onTap: onPressed,
+      // Change background color on tap for feedback
+      splashColor: _primaryGreen.withOpacity(0.05),
+      highlightColor: _primaryGreen.withOpacity(0.02),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 20.0),
         decoration: BoxDecoration(
           border: Border(
+            // Cleaner, thinner bottom border
             bottom: BorderSide(
-              color: _secondaryGray.withOpacity(0.2), // Light gray separator
-              width: 0.5,
+              color: _secondaryGray.withOpacity(0.15),
+              width: 1,
             ),
           ),
         ),
@@ -298,6 +422,7 @@ class PassengerDashboardApp extends StatelessWidget {
                 style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: _darkText),
               ),
             ),
+            // Updated color for arrow icon
             const Icon(Icons.arrow_forward_ios, size: 16, color: _secondaryGray),
           ],
         ),
