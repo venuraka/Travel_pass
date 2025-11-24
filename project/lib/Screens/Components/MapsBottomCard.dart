@@ -2,9 +2,9 @@
 import 'package:flutter/material.dart';
 
 // --- Color Definitions (Approximated from image) ---
-const Color kCardBackgroundColor = Color(0xFF2B2B2B);
-const Color kPrimaryTextColor = Color(0xFF4EE386);
-const Color kSecondaryTextColor = Color(0xFFBDBDBD);
+const Color kCardBackgroundColor = Color(0xFF121415);
+const Color kPrimaryTextColor = Color(0xFF05A664);
+const Color kSecondaryTextColor = Color(0xFFF8F9FC);
 
 class NextPassengerCard extends StatelessWidget {
   final String passengerName;
@@ -51,6 +51,8 @@ class NextPassengerCard extends StatelessWidget {
                 color: Colors.white,
                 fontSize: 20.0,
                 fontWeight: FontWeight.bold,
+                decoration: TextDecoration.underline,
+                decorationColor: Colors.white,
               ),
             ),
           ),
