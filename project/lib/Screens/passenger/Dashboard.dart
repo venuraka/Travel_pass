@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../passenger/Updates.dart';
 import '../passenger/PaymentHistory.dart';
 import 'Attendance.dart';
+import 'TrackVehicle.dart';
 
 
 // --- Color Palette (Updated and Finalized for Light Theme) ---
@@ -117,7 +118,12 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
         borderRadius: BorderRadius.circular(16),
       ),
       child: ElevatedButton(
-        onPressed: () {},
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const TrackVehicle()),
+          );
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: _primaryGreen,
           foregroundColor: _cardColor, // White text on green button
