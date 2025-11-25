@@ -54,50 +54,88 @@ class NextPassengerCard extends StatelessWidget {
             ),
           ),
 
-          // --- Passenger Info Row with Arrows ---
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: <Widget>[
-              // Left Arrow Button
-              IconButton(
-                onPressed: onPreviousPressed,
-                icon: const Icon(
-                  Icons.arrow_back_ios,
-                  color: kPrimaryTextColor,
-                  size: 24,
+          // --- Passenger Info Row with Arrows (FIXED) ---
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: <Widget>[
+                // Left Arrow
+                IconButton(
+                  onPressed: onPreviousPressed,
+                  icon: const Icon(
+                    Icons.arrow_back_ios,
+                    color: kPrimaryTextColor,
+                    size: 20,
+                  ),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                constraints: const BoxConstraints(),
-              ),
 
-              // Centered Passenger Details
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: <Widget>[
-                    Text(passengerName, style: const TextStyle(color: kPrimaryTextColor, fontSize: 18.0, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 4.0),
-                    Text(location, style: const TextStyle(color: kPrimaryTextColor, fontSize: 18.0, fontWeight: FontWeight.w600)),
-                    const SizedBox(height: 8.0),
-                    const Text('On Location', style: TextStyle(color: kPrimaryTextColor, fontSize: 16.0, fontWeight: FontWeight.w500)),
-                    const SizedBox(height: 8.0),
-                    Text(eta, style: const TextStyle(color: kSecondaryTextColor, fontSize: 16.0)),
-                  ],
+                // Passenger Info (Flexible)
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: <Widget>[
+                        Text(
+                          passengerName,
+                          style: const TextStyle(
+                            color: kPrimaryTextColor,
+                            fontSize: 18.0,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4.0),
+                        Text(
+                          location,
+                          style: const TextStyle(
+                            color: kPrimaryTextColor,
+                            fontSize: 18.0,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          textAlign: TextAlign.center,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 2,
+                        ),
+                        const SizedBox(height: 8.0),
+                        const Text(
+                          'On Location',
+                          style: TextStyle(
+                            color: kPrimaryTextColor,
+                            fontSize: 16.0,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 8.0),
+                        Text(
+                          eta,
+                          style: const TextStyle(
+                            color: kSecondaryTextColor,
+                            fontSize: 16.0,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
 
-              // Right Arrow Button
-              IconButton(
-                onPressed: onNextPressed,
-                icon: const Icon(
-                  Icons.arrow_forward_ios,
-                  color: kPrimaryTextColor,
-                  size: 24,
+                // Right Arrow
+                IconButton(
+                  onPressed: onNextPressed,
+                  icon: const Icon(
+                    Icons.arrow_forward_ios,
+                    color: kPrimaryTextColor,
+                    size: 20,
+                  ),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                constraints: const BoxConstraints(),
-              ),
-            ],
+              ],
+            ),
           ),
 
           // --- Divider Space ---
@@ -131,7 +169,7 @@ class NextPassengerCard extends StatelessWidget {
   }
 }
 
-// --- NEW: Journey Info Card ---
+// --- Journey Info Card (No changes needed for this card) ---
 class JourneyInfoCard extends StatelessWidget {
   final String busArrivalTime;
   final String nextStop;
@@ -165,24 +203,14 @@ class JourneyInfoCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: const <Widget>[
-              Icon(
-                Icons.keyboard_arrow_up,
-                color: kSecondaryTextColor,
-                size: 20,
-              ),
-              SizedBox(width: 8.0),
               Text(
-                'Swipe Up If you have come to Pickup spot',
+                'Swipe up if you have arrived at the pickup spot',
                 style: TextStyle(
-                  color: kSecondaryTextColor,
+                  color: kPrimaryTextColor,
                   fontSize: 14.0,
+                  fontWeight: FontWeight.w600,
                 ),
-              ),
-              SizedBox(width: 8.0),
-              Icon(
-                Icons.keyboard_arrow_up,
-                color: kSecondaryTextColor,
-                size: 20,
+                textAlign: TextAlign.center,
               ),
             ],
           ),
