@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../passenger/Updates.dart';
 import '../passenger/PaymentHistory.dart';
 import 'Attendance.dart';
+import 'EditDetails.dart';
 import 'TrackVehicle.dart';
 
 
@@ -146,28 +147,44 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
   }
 
   Widget _buildGreetingAndStatusCard() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        const Text(
-          'Good Morning,',
-          style: TextStyle(
-            fontSize: 16,
-            color: _secondaryGray, // Secondary color for subtle text
-            fontWeight: FontWeight.w500,
-          ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: const [
+            Text(
+              'Good Morning,',
+              style: TextStyle(
+                fontSize: 16,
+                color: _secondaryGray,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            Text(
+              'Venuraka',
+              style: TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.w900,
+                color: _darkText,
+              ),
+            ),
+          ],
         ),
-        const Text(
-          'Venuraka',
-          style: TextStyle(
-            fontSize: 32,
-            fontWeight: FontWeight.w900,
-            color: _darkText, // Primary dark text
-          ),
+
+        IconButton(
+          icon: const Icon(Icons.settings_outlined, color: _darkText, size: 28),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const EditDetailsScreen()),
+            );
+          },
         ),
       ],
     );
   }
+
 
   Widget _buildQuickContactBar() {
     return Row(
