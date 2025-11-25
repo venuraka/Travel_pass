@@ -217,7 +217,7 @@ class _PassengerAttendaceScreenState extends State<PassengerAttendaceScreen> {
 
           // --- Legend for Attendance Status ---
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(40.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
@@ -225,15 +225,6 @@ class _PassengerAttendaceScreenState extends State<PassengerAttendaceScreen> {
                 _buildLegendItem('Absent', Colors.red),
                 _buildLegendItem('Today', const Color(0xFF121415)),
               ],
-            ),
-          ),
-
-          // --- 'Add Poll' button is removed and replaced with a descriptive text/empty space ---
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16.0, 10.0, 16.0, 30.0),
-            child: Text(
-              'Attendance data is loaded from the backend.',
-              style: TextStyle(color: Colors.grey[600]),
             ),
           ),
         ],
