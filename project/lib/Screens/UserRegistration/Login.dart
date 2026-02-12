@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-// import 'package:firebase_auth/firebase_auth.dart'; // Uncomment when dependency is added
-// import 'package:google_sign_in/google_sign_in.dart'; // Uncomment when dependency is added
-import 'GoogleSignUp.dart';
+
+import '../../controllers/AuthService.dart';
+import '../../utils/AuthExceptionHandler.dart';
+import 'SignUp.dart';
+import 'UserSelection.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -11,7 +13,17 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  final AuthService _authService = AuthService();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   Future<void> _signInWithGoogle() async {
     setState(() {
@@ -19,17 +31,20 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      // Placeholder logic matching GoogleSignUpPage
-      await Future.delayed(const Duration(seconds: 2));
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Google Login Logic needs google_sign_in package')),
-      );
-
+      final user = await _authService.signInWithGoogle();
+      if (user != null && mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const UserSelectionScreen()),
+        );
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+        SnackBar(
+          content: Text(AuthExceptionHandler.handleException(e)),
+          backgroundColor: Colors.redAccent,
+        ),
       );
     } finally {
       if (mounted) {
@@ -40,6 +55,43 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  Future<void> _handleEmailLogin() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Please fill all fields"),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final user = await _authService.loginWithEmail(email, password);
+      if (user != null && mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const UserSelectionScreen()),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AuthExceptionHandler.handleException(e)),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -47,10 +99,6 @@ class _LoginPageState extends State<LoginPage> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF121415)),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -72,10 +120,7 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 10),
                 const Text(
                   'Welcome back!',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFF05A664),
-                  ),
+                  style: TextStyle(fontSize: 16, color: Color(0xFF05A664)),
                 ),
                 const SizedBox(height: 40),
 
@@ -104,17 +149,14 @@ class _LoginPageState extends State<LoginPage> {
                 const SizedBox(height: 20),
 
                 // Terms of Service Footer
-                 const Padding(
-                    padding: EdgeInsets.only(bottom: 20.0),
-                    child: Text(
-                      'By continuing, you agree to our Terms of Service',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 14,
-                          color: Color(0xFF05A664),
-                      ),
-                    ),
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 20.0),
+                  child: Text(
+                    'By continuing, you agree to our Terms of Service',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 14, color: Color(0xFF05A664)),
                   ),
+                ),
               ],
             ),
           ),
@@ -147,12 +189,14 @@ class _LoginPageState extends State<LoginPage> {
             if (_isLoading)
               const Center(
                 child: SizedBox(
-                   height: 24,
-                   width: 24,
-                   child: CircularProgressIndicator(
-                     valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF05A664)),
-                     strokeWidth: 2,
-                   ),
+                  height: 24,
+                  width: 24,
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      Color(0xFF05A664),
+                    ),
+                    strokeWidth: 2,
+                  ),
                 ),
               )
             else
@@ -189,21 +233,24 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildEmailForm() {
     return Column(
       children: [
-        _buildTextField(label: 'Email', keyboardType: TextInputType.emailAddress),
+        _buildTextField(
+          label: 'Email',
+          controller: _emailController,
+          keyboardType: TextInputType.emailAddress,
+        ),
         const SizedBox(height: 15),
-        _buildTextField(label: 'Password', obscureText: true),
+        _buildTextField(
+          label: 'Password',
+          controller: _passwordController,
+          obscureText: true,
+        ),
         const SizedBox(height: 30),
-        
+
         SizedBox(
           width: double.infinity,
           height: 55,
           child: ElevatedButton(
-            onPressed: () {
-               // Placeholder for Email Login
-               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Email Login Logic Placeholder')),
-              );
-            },
+            onPressed: _isLoading ? null : _handleEmailLogin,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF05A664),
               shape: RoundedRectangleBorder(
@@ -211,45 +258,65 @@ class _LoginPageState extends State<LoginPage> {
               ),
               elevation: 0,
             ),
-            child: const Text(
-              'Login',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
+            child: _isLoading
+                ? const SizedBox(
+                    height: 24,
+                    width: 24,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : const Text(
+                    'Login',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
           ),
         ),
-         const SizedBox(height: 15),
-         Row(
+        const SizedBox(height: 15),
+        Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-             const Text("Don't have an account? ", style: TextStyle(color: Color(0xFF121415))),
-             GestureDetector(
-               onTap: () {
-                 // Navigate to Sign Up
-                 Navigator.push(
-                   context,
-                   MaterialPageRoute(builder: (context) => const GoogleSignUpPage()),
-                 );
-               },
-               child: const Text(
-                 "Sign Up",
-                 style: TextStyle(
-                   color: Color(0xFF05A664),
-                   fontWeight: FontWeight.bold,
-                 ),
-               ),
-             ),
+            const Text(
+              "Don't have an account? ",
+              style: TextStyle(color: Color(0xFF121415)),
+            ),
+            GestureDetector(
+              onTap: () {
+                // Navigate to Sign Up
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const GoogleSignUpPage(),
+                  ),
+                );
+              },
+              child: const Text(
+                "Sign Up",
+                style: TextStyle(
+                  color: Color(0xFF05A664),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
           ],
-         )
+        ),
       ],
     );
   }
 
-  Widget _buildTextField({required String label, bool obscureText = false, TextInputType keyboardType = TextInputType.text}) {
+  Widget _buildTextField({
+    required String label,
+    required TextEditingController controller,
+    bool obscureText = false,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
     return TextField(
+      controller: controller,
       obscureText: obscureText,
       keyboardType: keyboardType,
       decoration: InputDecoration(
