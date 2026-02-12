@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart'; // Required for initialization
 import 'Screens/Driver/Dashboard.dart';
+import 'Screens/UserRegistration/DriverRegistration.dart';
 import 'Screens/UserRegistration/SignUp.dart';
 import 'Screens/UserRegistration/UserSelection.dart';
 import 'Screens/passenger/Dashboard.dart';
@@ -33,7 +34,7 @@ class MyApp extends StatelessWidget {
         scaffoldBackgroundColor: Colors.white,
       ),
       // Set the initial route to your corrected SignUp Page
-      home: const GoogleSignUpPage(),
+      home: const DriverRegistrationScreen(),
     );
   }
 }
