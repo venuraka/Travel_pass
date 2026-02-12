@@ -9,7 +9,7 @@ class DatabaseService {
 
   Future<void> saveDriverData(DriverModel driver) async {
     try {
-      await _db.collection('drivers').doc(driver.uid).set(driver.toMap());
+      await _db.collection('routes').doc(driver.uid).set(driver.toMap());
     } catch (e) {
       print("Error saving driver: $e");
       rethrow;

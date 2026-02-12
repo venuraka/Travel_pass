@@ -5,7 +5,7 @@ import '../Components/InputTexts.dart';
 import '../Components/Whitecard.dart';
 import '../Components/Header.dart';
 import '';
-import '../Database.dart';
+import '../../services/Database.dart';
 import 'VehicleRegistration.dart';
 
 class DriverRegistrationScreen extends StatefulWidget {
