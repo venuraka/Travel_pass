@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'Screens/UserRegistration/AddRoute.dart';
+import 'Screens/UserRegistration/UserSelection.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -31,7 +31,7 @@ class MyApp extends StatelessWidget {
       ),
 
       // Set the initial route to your corrected SignUp Page
-      home: const AddRouteScreen(),
+      home: const UserSelectionScreen(),
     );
   }
 }

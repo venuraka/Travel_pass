@@ -1,0 +1,65 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+class PassengerModel {
+  final String uid;
+  final String name;
+  final String vehiclePlate;
+  final String driverId;
+  final String address;
+  final String email;
+  final String phone;
+  final String otherPhone;
+  final String paymentType;
+  final String pickupLocation;
+  final String role;
+  final Timestamp createdAt;
+
+  PassengerModel({
+    required this.uid,
+    required this.name,
+    required this.vehiclePlate,
+    required this.driverId,
+    required this.address,
+    required this.email,
+    required this.phone,
+    required this.otherPhone,
+    required this.paymentType,
+    required this.pickupLocation,
+    this.role = 'passenger',
+    required this.createdAt,
+  });
+
+  Map<String, dynamic> toMap() {
+    return {
+      'uid': uid,
+      'name': name,
+      'vehiclePlate': vehiclePlate,
+      'driverId': driverId,
+      'address': address,
+      'email': email,
+      'phone': phone,
+      'otherPhone': otherPhone,
+      'paymentType': paymentType,
+      'pickupLocation': pickupLocation,
+      'role': role,
+      'createdAt': createdAt,
+    };
+  }
+
+  factory PassengerModel.fromMap(Map<String, dynamic> map) {
+    return PassengerModel(
+      uid: map['uid'] ?? '',
+      name: map['name'] ?? '',
+      vehiclePlate: map['vehiclePlate'] ?? '',
+      driverId: map['driverId'] ?? '',
+      address: map['address'] ?? '',
+      email: map['email'] ?? '',
+      phone: map['phone'] ?? '',
+      otherPhone: map['otherPhone'] ?? '',
+      paymentType: map['paymentType'] ?? '',
+      pickupLocation: map['pickupLocation'] ?? '',
+      role: map['role'] ?? 'passenger',
+      createdAt: map['createdAt'] ?? Timestamp.now(),
+    );
+  }
+}
