@@ -46,8 +46,53 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
       return;
     }
 
-    if (_nameController.text.isEmpty || _plateController.text.isEmpty) {
-      CustomSnackBar.showError(context, "Please fill in all required fields.");
+    String name = _nameController.text.trim();
+    String plate = _plateController.text.trim();
+    String phone = _phoneController.text.trim();
+    String email = _emailController.text.trim();
+
+    if (name.isEmpty) {
+      CustomSnackBar.showError(context, "Name is required.");
+      return;
+    }
+
+    // Name validation: Letters only
+    final nameRegex = RegExp(r'^[a-zA-Z\s]+$');
+    if (!nameRegex.hasMatch(name)) {
+      CustomSnackBar.showError(context, "Name must contain only letters.");
+      return;
+    }
+
+    if (plate.isEmpty) {
+      CustomSnackBar.showError(context, "Vehicle plate number is required.");
+      return;
+    }
+
+    // Plate validation: Max 8 chars
+    if (plate.length > 8) {
+      CustomSnackBar.showError(
+        context,
+        "Vehicle plate must be 8 characters or less.",
+      );
+      return;
+    }
+
+    // Phone validation: 10-11 digits, optional leading +
+    // User requested: "allow only 10 numbers if we add country code it can be 11 maximum but it only can be add + symble only"
+    // Interpreted as: Optional +, followed by 10 to 11 digits.
+    final phoneRegex = RegExp(r'^\+?[0-9]{10,11}$');
+    if (!phoneRegex.hasMatch(phone)) {
+      CustomSnackBar.showError(
+        context,
+        "Phone must be 10-11 digits (allows '+').",
+      );
+      return;
+    }
+
+    // Email validation
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$');
+    if (!emailRegex.hasMatch(email)) {
+      CustomSnackBar.showError(context, "Please enter a valid email address.");
       return;
     }
 

@@ -48,14 +48,6 @@ class InputTextField extends StatelessWidget {
             width: 2.0,
           ),
         ),
-
-        // Optional trailing icon support
-        suffixIcon: showTrailingIcon
-            ? const Icon(
-          Icons.edit,
-          color: Color(0xFF05A664),
-        )
-            : null,
       ),
     );
   }

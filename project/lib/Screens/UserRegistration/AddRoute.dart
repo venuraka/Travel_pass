@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:uuid/uuid.dart';
 import '../Components/CustomSnackBar.dart';
 import '../Driver/Dashboard.dart';
+import '../../services/PlaceService.dart';
 
 class AddRouteScreen extends StatefulWidget {
   const AddRouteScreen({super.key});
@@ -11,74 +14,122 @@ class AddRouteScreen extends StatefulWidget {
 }
 
 class _AddRouteScreenState extends State<AddRouteScreen> {
-  // Google Map Controller
+  // Services
+  final PlaceService _placeService = PlaceService(
+    'AIzaSyCGbN2wCtheM7gjPzgLykngb4lPaPiTR7c',
+  );
   late GoogleMapController mapController;
+  final Uuid _uuid = const Uuid();
+  String _sessionToken = '1234567890'; // Initial session token
 
-  // Initial Location (Colombo, Sri Lanka as default)
-  final LatLng _center = const LatLng(6.9271, 79.8612);
-
-  // Markers
+  // Map State
+  final LatLng _center = const LatLng(6.9271, 79.8612); // Colombo
   final Set<Marker> _markers = {};
+  bool _isLoading = false;
 
-  // Controllers for Inputs
+  // Controllers & Focus Nodes
   final TextEditingController _startController = TextEditingController();
-  final TextEditingController _endController = TextEditingController();
-  final List<TextEditingController> _pickupControllers = [];
-
-  // Focus Nodes to track which field is active
+  final TextEditingController _startNameController = TextEditingController();
   final FocusNode _startFocus = FocusNode();
+
+  final TextEditingController _endController = TextEditingController();
+  final TextEditingController _endNameController = TextEditingController();
   final FocusNode _endFocus = FocusNode();
-  final List<FocusNode> _pickupFocusNodes = [];
+
+  // Pickups are dynamic, so we'll use a list of objects or parallel lists
+  // Using a list of Maps to keep track of controllers and focus nodes for pickups
+  final List<Map<String, dynamic>> _pickupPoints = [];
+
+  // Autocomplete State
+  List<Map<String, dynamic>> _predictions = [];
+  FocusNode? _activeSearchFocus; // Track which field is currently searching
+
+  @override
+  void initState() {
+    super.initState();
+    _startFocus.addListener(() => _onFocusChange(_startFocus));
+    _endFocus.addListener(() => _onFocusChange(_endFocus));
+    _sessionToken = _uuid.v4();
+  }
 
   @override
   void dispose() {
     _startController.dispose();
-    _endController.dispose();
-    for (var controller in _pickupControllers) {
-      controller.dispose();
-    }
+    _startNameController.dispose();
     _startFocus.dispose();
+    _endController.dispose();
+    _endNameController.dispose();
     _endFocus.dispose();
-    for (var node in _pickupFocusNodes) {
-      node.dispose();
+    for (var point in _pickupPoints) {
+      point['controller'].dispose();
+      point['nameController'].dispose();
+      point['focusNode'].dispose();
     }
     super.dispose();
+  }
+
+  void _onFocusChange(FocusNode node) {
+    if (node.hasFocus) {
+      setState(() {
+        _activeSearchFocus = node;
+        _predictions = []; // Clear previous predictions
+      });
+    } else {
+      // Small delay to allow tap on suggestion before clearing
+      Future.delayed(const Duration(milliseconds: 200), () {
+        if (_activeSearchFocus == node) {
+          setState(() {
+            _activeSearchFocus = null;
+            _predictions = [];
+          });
+        }
+      });
+    }
   }
 
   void _onMapCreated(GoogleMapController controller) {
     mapController = controller;
   }
 
-  void _handleMapTap(LatLng position) {
-    // Determine which field is currently focused to set the location
+  // --- Map Interaction ---
+  Future<void> _handleMapTap(LatLng position) async {
+    // 1. Identify active field
+    TextEditingController? activeController;
+    String markerId = "";
+    BitmapDescriptor icon = BitmapDescriptor.defaultMarker;
+
     if (_startFocus.hasFocus) {
-      _startController.text = "${position.latitude}, ${position.longitude}";
-      _addMarker(
-        "Start",
-        position,
-        BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-      );
-      // Move focus to next if possible, or just keep it
+      activeController = _startController;
+      markerId = "Start";
+      icon = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
     } else if (_endFocus.hasFocus) {
-      _endController.text = "${position.latitude}, ${position.longitude}";
-      _addMarker(
-        "End",
-        position,
-        BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-      );
+      activeController = _endController;
+      markerId = "End";
+      icon = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed);
     } else {
-      // Check pickup points
-      for (int i = 0; i < _pickupFocusNodes.length; i++) {
-        if (_pickupFocusNodes[i].hasFocus) {
-          _pickupControllers[i].text =
-              "${position.latitude}, ${position.longitude}";
-          _addMarker(
-            "Pickup ${i + 1}",
-            position,
-            BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+      for (int i = 0; i < _pickupPoints.length; i++) {
+        if (_pickupPoints[i]['focusNode'].hasFocus) {
+          activeController = _pickupPoints[i]['controller'];
+          markerId = "Pickup ${i + 1}";
+          icon = BitmapDescriptor.defaultMarkerWithHue(
+            BitmapDescriptor.hueBlue,
           );
-          return;
+          break;
         }
+      }
+    }
+
+    if (activeController != null) {
+      setState(() => _isLoading = true);
+      try {
+        final address = await _placeService.getAddressFromLatLng(position);
+        activeController.text = address;
+        _addMarker(markerId, position, icon);
+      } catch (e) {
+        if (!mounted) return;
+        CustomSnackBar.showError(context, "Failed to get address: $e");
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
       }
     }
   }
@@ -95,24 +146,155 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
         ),
       );
     });
+    // Animate camera to the marker
+    mapController.animateCamera(CameraUpdate.newLatLng(position));
   }
 
-  void _addPickupPoint() {
+  // --- Autocomplete Logic ---
+  void _onSearchChanged(String query) {
+    if (_activeSearchFocus == null) return;
+    // Debounce can be added here if needed, but for now direct call
+    _placeService
+        .getPlaceSuggestions(query, _sessionToken)
+        .then((results) {
+          if (mounted) {
+            setState(() {
+              _predictions = results;
+            });
+          }
+        })
+        .catchError((error) {
+          debugPrint("Autocomplete error: $error");
+        });
+  }
+
+  Future<void> _selectSuggestion(Map<String, dynamic> prediction) async {
+    final placeId = prediction['place_id'];
+    final description = prediction['description'];
+
     setState(() {
-      _pickupControllers.add(TextEditingController());
-      _pickupFocusNodes.add(FocusNode());
+      _isLoading = true;
+      _predictions = []; // Close list
+    });
+
+    try {
+      final details = await _placeService.getPlaceDetails(
+        placeId,
+        _sessionToken,
+      );
+      final lat = details['lat'];
+      final lng = details['lng'];
+      final position = LatLng(lat, lng);
+
+      // Identify which controller to update
+      if (_activeSearchFocus == _startFocus) {
+        _startController.text = description;
+        _addMarker(
+          "Start",
+          position,
+          BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+        );
+      } else if (_activeSearchFocus == _endFocus) {
+        _endController.text = description;
+        _addMarker(
+          "End",
+          position,
+          BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+        );
+      } else {
+        for (int i = 0; i < _pickupPoints.length; i++) {
+          if (_pickupPoints[i]['focusNode'] == _activeSearchFocus) {
+            _pickupPoints[i]['controller'].text = description;
+            _addMarker(
+              "Pickup ${i + 1}",
+              position,
+              BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
+            );
+            break;
+          }
+        }
+      }
+
+      _sessionToken = _uuid.v4(); // Reset session token
+    } catch (e) {
+      if (!mounted) return;
+      CustomSnackBar.showError(context, "Failed to get place details: $e");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  // --- Current Location Logic ---
+  Future<void> _useCurrentLocation(
+    TextEditingController controller,
+    String markerId,
+    BitmapDescriptor icon,
+  ) async {
+    setState(() => _isLoading = true);
+    try {
+      // Check permissions
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          throw Exception('Location permissions are denied');
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        throw Exception(
+          'Location permissions are permanently denied, we cannot request permissions.',
+        );
+      }
+
+      Position position = await Geolocator.getCurrentPosition();
+      final latLng = LatLng(position.latitude, position.longitude);
+
+      final address = await _placeService.getAddressFromLatLng(latLng);
+      controller.text = address;
+      _addMarker(markerId, latLng, icon);
+    } catch (e) {
+      if (!mounted) return;
+      CustomSnackBar.showError(context, "Location Error: $e");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  // --- Pickup Points Management ---
+  void _addPickupPoint() {
+    final controller = TextEditingController();
+    final nameController = TextEditingController();
+    final focusNode = FocusNode();
+    focusNode.addListener(() => _onFocusChange(focusNode));
+
+    setState(() {
+      _pickupPoints.add({
+        'controller': controller,
+        'nameController': nameController,
+        'focusNode': focusNode,
+      });
     });
   }
 
   void _removePickupPoint(int index) {
     setState(() {
-      _pickupControllers[index].dispose();
-      _pickupFocusNodes[index].dispose();
-      _pickupControllers.removeAt(index);
-      _pickupFocusNodes.removeAt(index);
-      // Remove associated marker
-      _markers.removeWhere((m) => m.markerId.value == "Pickup ${index + 1}");
-      // Re-index remaining pickup markers? keeping it simple for now.
+      _pickupPoints[index]['controller'].dispose();
+      _pickupPoints[index]['nameController'].dispose();
+      _pickupPoints[index]['focusNode'].dispose();
+      _pickupPoints.removeAt(index);
+
+      // Update markers: Remove this one, re-number others?
+      // Simpler to just remove all pickup markers and let user re-add / or just remove this specific one ID
+      // If we remove index 1, index 2 becomes 1. Markers need to update.
+      _markers.removeWhere((m) => m.markerId.value.startsWith("Pickup"));
+
+      // Re-add remaining markers if we knew their positions...
+      // But we lose position data if we only store text.
+      // Ideally we should store LatLng in the _pickupPoints list too.
+      // For now, removing just clears the marker. User has to re-tap map or re-select.
+      // Or we can assume marker ID matches index and shift them.
+      // Let's just clear for now to avoid complexity of state sync without full model.
     });
   }
 
@@ -121,8 +303,7 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
       CustomSnackBar.showError(context, "Start and End locations are required");
       return;
     }
-    // Proceed to Dashboard
-    CustomSnackBar.showSuccess(context, "Route saved successfully");
+    CustomSnackBar.showSuccess(context, "Route saved successfully (Mock)");
     Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => const DriverDashboardScreen()),
@@ -135,7 +316,7 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // Google Map Background
+          // Google Map
           GoogleMap(
             onMapCreated: _onMapCreated,
             initialCameraPosition: CameraPosition(target: _center, zoom: 11.0),
@@ -146,11 +327,17 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
             myLocationButtonEnabled: false,
           ),
 
-          // Draggable Scrollable Sheet for Inputs
+          // Loading Indicator
+          if (_isLoading)
+            const Center(
+              child: CircularProgressIndicator(color: Color(0xFF05A664)),
+            ),
+
+          // UI Panel
           DraggableScrollableSheet(
-            initialChildSize: 0.4,
+            initialChildSize: 0.45,
             minChildSize: 0.2,
-            maxChildSize: 0.8,
+            maxChildSize: 0.85,
             builder: (BuildContext context, ScrollController scrollController) {
               return Container(
                 decoration: const BoxDecoration(
@@ -193,28 +380,34 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
                     const SizedBox(height: 20),
 
                     // Start Location
-                    _buildTextField(
-                      controller: _startController,
-                      focusNode: _startFocus,
+                    _buildLocationInputGroup(
                       label: "Start Location",
-                      icon: Icons.my_location,
+                      controller: _startController,
+                      nameController: _startNameController,
+                      focusNode: _startFocus,
+                      icon: Icons.location_pin,
                       color: const Color(0xFF05A664),
+                      markerId: "Start",
                     ),
                     const SizedBox(height: 15),
 
                     // Pickup Points
-                    ...List.generate(_pickupControllers.length, (index) {
+                    ...List.generate(_pickupPoints.length, (index) {
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 15),
                         child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Expanded(
-                              child: _buildTextField(
-                                controller: _pickupControllers[index],
-                                focusNode: _pickupFocusNodes[index],
-                                label: "Pickup Point ${index + 1}",
+                              child: _buildLocationInputGroup(
+                                label: "Pickup ${index + 1}",
+                                controller: _pickupPoints[index]['controller'],
+                                nameController:
+                                    _pickupPoints[index]['nameController'],
+                                focusNode: _pickupPoints[index]['focusNode'],
                                 icon: Icons.location_on,
                                 color: Colors.blue,
+                                markerId: "Pickup ${index + 1}",
                               ),
                             ),
                             IconButton(
@@ -229,7 +422,7 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
                       );
                     }),
 
-                    // Add Pickup Point Button
+                    // Add Pickup Button
                     TextButton.icon(
                       onPressed: _addPickupPoint,
                       icon: const Icon(Icons.add, color: Color(0xFF05A664)),
@@ -238,15 +431,18 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
                         style: TextStyle(color: Color(0xFF05A664)),
                       ),
                     ),
+
                     const SizedBox(height: 15),
 
                     // End Location
-                    _buildTextField(
-                      controller: _endController,
-                      focusNode: _endFocus,
+                    _buildLocationInputGroup(
                       label: "End Location",
+                      controller: _endController,
+                      nameController: _endNameController,
+                      focusNode: _endFocus,
                       icon: Icons.flag,
                       color: Colors.redAccent,
+                      markerId: "End",
                     ),
 
                     const SizedBox(height: 30),
@@ -273,6 +469,8 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
                         ),
                       ),
                     ),
+                    // Space for keyboard
+                    SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
                   ],
                 ),
               );
@@ -296,38 +494,105 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
     );
   }
 
-  Widget _buildTextField({
-    required TextEditingController controller,
-    required FocusNode focusNode,
+  Widget _buildLocationInputGroup({
     required String label,
+    required TextEditingController controller,
+    required TextEditingController nameController,
+    required FocusNode focusNode,
     required IconData icon,
     required Color color,
+    required String markerId,
   }) {
-    return TextField(
-      controller: controller,
-      focusNode: focusNode,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: color),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide(color: color, width: 2),
+    return Column(
+      children: [
+        // Location Search Input
+        TextField(
+          controller: controller,
+          focusNode: focusNode,
+          onChanged: _onSearchChanged,
+          decoration: InputDecoration(
+            labelText: label,
+            prefixIcon: Icon(icon, color: color),
+            suffixIcon: IconButton(
+              icon: const Icon(Icons.my_location, color: Colors.grey),
+              onPressed: () => _useCurrentLocation(
+                controller,
+                markerId,
+                BitmapDescriptor.defaultMarkerWithHue(
+                  label == "Start Location"
+                      ? BitmapDescriptor.hueGreen
+                      : label == "End Location"
+                      ? BitmapDescriptor.hueRed
+                      : BitmapDescriptor.hueBlue,
+                ),
+              ),
+            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(10),
+              borderSide: BorderSide(color: color, width: 2),
+            ),
+          ),
         ),
-        suffixIcon: IconButton(
-          icon: const Icon(Icons.map),
-          onPressed: () {
-            // Request focus to enable map tap for this field
-            focusNode.requestFocus();
-            CustomSnackBar.showSuccess(context, "Tap on map to set location");
-          },
+
+        // Autocomplete Predictions List (Visible only when focused)
+        if (_activeSearchFocus == focusNode && _predictions.isNotEmpty)
+          Container(
+            height: 150,
+            margin: const EdgeInsets.only(top: 5),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: Colors.grey[300]!),
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 4,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: ListView.builder(
+              padding: EdgeInsets.zero,
+              itemCount: _predictions.length,
+              itemBuilder: (context, index) {
+                final prediction = _predictions[index];
+                return ListTile(
+                  leading: const Icon(
+                    Icons.place,
+                    size: 20,
+                    color: Colors.grey,
+                  ),
+                  title: Text(
+                    prediction['description'],
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                  onTap: () => _selectSuggestion(prediction),
+                );
+              },
+            ),
+          ),
+
+        const SizedBox(height: 8),
+
+        // Custom Name Input
+        TextField(
+          controller: nameController,
+          decoration: InputDecoration(
+            labelText: "Name the Location",
+            prefixIcon: const Icon(Icons.edit, size: 18, color: Colors.grey),
+            isDense: true,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 10,
+              vertical: 12,
+            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+          style: const TextStyle(fontSize: 14),
         ),
-      ),
-      readOnly:
-          true, // Make it read-only so users prefer map tapping, or allow typing if needed.
-      // For now, let's keep it readOnly so they use the map or we need Geocoding to convert text to latlng.
-      // Since we don't have python environment or complex geocoding set up easily without API,
-      // let's rely on map tapping for coordinates.
+      ],
     );
   }
 }

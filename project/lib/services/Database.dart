@@ -14,4 +14,22 @@ class DatabaseService {
       rethrow;
     }
   }
+
+  Future<void> updateDriverVehicleDetails({
+    required String uid,
+    required String vehicleModel,
+    required int seatCount,
+    required String vehicleType,
+  }) async {
+    try {
+      await _db.collection('driver').doc(uid).update({
+        'vehicleModel': vehicleModel,
+        'seatCount': seatCount,
+        'vehicleType': vehicleType,
+      });
+    } catch (e) {
+      print("Error updating driver vehicle details: $e");
+      rethrow;
+    }
+  }
 }

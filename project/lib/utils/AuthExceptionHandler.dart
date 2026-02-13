@@ -27,6 +27,9 @@ class AuthExceptionHandler {
         default:
           return 'Authentication failed: ${e.message ?? "Unknown error"}';
       }
+    } else if (e.toString().contains('GoogleSignInException') &&
+        e.toString().contains('canceled')) {
+      return 'Sign in cancelled.';
     } else {
       return 'An error occurred: ${e.toString()}';
     }
