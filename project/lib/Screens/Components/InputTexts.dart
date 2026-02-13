@@ -6,6 +6,7 @@ class InputTextField extends StatelessWidget {
   final TextInputType keyboardType;
   final bool showTrailingIcon;
   final String? hintText;
+  final Function(String)? onChanged; // Add this
 
   const InputTextField({
     super.key,
@@ -14,6 +15,7 @@ class InputTextField extends StatelessWidget {
     this.keyboardType = TextInputType.text,
     this.showTrailingIcon = true,
     this.hintText,
+    this.onChanged, // Add this
   });
 
   @override
@@ -21,6 +23,7 @@ class InputTextField extends StatelessWidget {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
+      onChanged: onChanged, // Add this
       decoration: InputDecoration(
         labelText: labelText,
         hintText: hintText,
@@ -30,23 +33,14 @@ class InputTextField extends StatelessWidget {
           fontWeight: FontWeight.w500,
         ),
 
-        hintStyle: const TextStyle(
-          color: Colors.grey,
-          fontSize: 14,
-        ),
+        hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
 
         enabledBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(
-            color: Color(0xFF05A664),
-            width: 1.0,
-          ),
+          borderSide: BorderSide(color: Color(0xFF05A664), width: 1.0),
         ),
 
         focusedBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(
-            color: Color(0xFF05A664),
-            width: 2.0,
-          ),
+          borderSide: BorderSide(color: Color(0xFF05A664), width: 2.0),
         ),
       ),
     );

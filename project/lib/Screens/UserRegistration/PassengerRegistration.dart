@@ -1,3 +1,4 @@
+import 'dart:async'; // Add import for Timer
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -35,8 +36,14 @@ class _PassengerRegistrationScreenState
   final TextEditingController _otherPhoneController = TextEditingController();
   final DatabaseService _dbService = DatabaseService();
 
+  Timer? _debounce;
+  bool _isChecking = false;
+  String? _checkStatusMessage;
+  Color _statusColor = Colors.grey;
+
   @override
   void dispose() {
+    _debounce?.cancel();
     _nameController.dispose();
     _plateController.dispose();
     _addressController.dispose();
@@ -46,72 +53,80 @@ class _PassengerRegistrationScreenState
     super.dispose();
   }
 
+  /// Real-time check for vehicle plate
+  void _onPlateChanged(String value) {
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      _checkVehiclePlate(value);
+    });
+  }
+
   /// Checks if the entered vehicle plate exists in the driver collection.
   /// If found, populates pickup locations.
-  /// If not, shows an error.
-  Future<void> _checkVehiclePlate() async {
-    final plate = _plateController.text.trim();
+  Future<void> _checkVehiclePlate(String plateInput) async {
+    final plate = plateInput.trim();
     if (plate.isEmpty) {
-      CustomSnackBar.showError(context, "Please enter a vehicle number plate");
+      setState(() {
+        _checkStatusMessage = null;
+        _pickupLocations = [];
+        _selectedLocation = null;
+        _matchedDriverId = null;
+      });
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isChecking = true;
+      _checkStatusMessage = "Checking...";
+      _statusColor = Colors.orange;
+    });
 
     try {
-      final driverData = await _dbService.getDriverByPlate(plate);
+      // Assuming plates are standardized to uppercase for search if case insensitive logic is needed
+      // Note: Firestore queries are case-sensitive.
+      // If we want "wp ca" to match "WP CA", we must query with the case that is in DB.
+      // Usually plates are Uppercase. Let's try converting to uppercase.
+      final driverData = await _dbService.getDriverByPlate(plate.toUpperCase());
+
       if (driverData != null) {
         _matchedDriverId = driverData['uid'];
         final route = driverData['route'] as List<dynamic>?;
 
         if (route != null && route.isNotEmpty) {
           setState(() {
-            // Extract names of pickup points (and Start/End if allowed as pickups)
-            // Filtering for 'pickup' role specifically, or all points?
-            // Requirement says "pickup locations on pickup location dropdown"
-            // Let's include all points that have a name.
+            // Filter: Exclude 'end' role, Include 'start' and 'pickup'
             _pickupLocations = route
+                .where((point) => point['role'] != 'end')
                 .map((point) => point['name'] as String? ?? "Unknown Point")
                 .toList();
             _selectedLocation = null; // Reset selection
+            _checkStatusMessage = "Vehicle Found";
+            _statusColor = const Color(0xFF05A664);
           });
-          if (mounted) {
-            CustomSnackBar.showSuccess(
-              context,
-              "Vehicle found! Select a pickup location.",
-            );
-          }
         } else {
-          if (mounted) {
-            CustomSnackBar.showError(
-              context,
-              "Vehicle found, but no route defined.",
-            );
-          }
           setState(() {
+            _checkStatusMessage = "Vehicle found, no route.";
+            _statusColor = Colors.red;
             _pickupLocations = [];
             _matchedDriverId = null;
           });
         }
       } else {
-        if (mounted) {
-          CustomSnackBar.showError(
-            context,
-            "Vehicle matches not found for plate: $plate",
-          );
-        }
         setState(() {
+          _checkStatusMessage = "Vehicle not found";
+          _statusColor = Colors.red;
           _pickupLocations = [];
           _matchedDriverId = null;
           _selectedLocation = null;
         });
       }
     } catch (e) {
-      if (mounted) {
-        CustomSnackBar.showError(context, "Error checking vehicle: $e");
-      }
+      setState(() {
+        _checkStatusMessage = "Error checking";
+        _statusColor = Colors.red;
+      });
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) setState(() => _isChecking = false);
     }
   }
 
@@ -128,13 +143,34 @@ class _PassengerRegistrationScreenState
     if (_matchedDriverId == null || _pickupLocations.isEmpty) {
       CustomSnackBar.showError(
         context,
-        "Please verify vehicle number plate first",
+        "Please enter a valid vehicle number plate",
       );
       return;
     }
 
     if (_selectedLocation == null) {
       CustomSnackBar.showError(context, "Please select a pickup location");
+      return;
+    }
+
+    // Phone validation: 10-11 digits, optional leading +
+    final phoneRegex = RegExp(r'^\+?[0-9]{10,11}$');
+    String phone = _phoneController.text.trim();
+    String otherPhone = _otherPhoneController.text.trim();
+
+    if (!phoneRegex.hasMatch(phone)) {
+      CustomSnackBar.showError(
+        context,
+        "Phone must be 10-11 digits (allows '+').",
+      );
+      return;
+    }
+
+    if (otherPhone.isNotEmpty && !phoneRegex.hasMatch(otherPhone)) {
+      CustomSnackBar.showError(
+        context,
+        "Other Phone must be 10-11 digits (allows '+').",
+      );
       return;
     }
 
@@ -157,7 +193,9 @@ class _PassengerRegistrationScreenState
       final newPassenger = PassengerModel(
         uid: user.uid,
         name: _nameController.text.trim(),
-        vehiclePlate: _plateController.text.trim(),
+        vehiclePlate: _plateController.text
+            .trim()
+            .toUpperCase(), // Save normalized
         driverId: _matchedDriverId!,
         address: _addressController.text.trim(),
         email: _emailController.text.trim(),
@@ -212,42 +250,48 @@ class _PassengerRegistrationScreenState
                     controller: _nameController,
                   ),
                   const SizedBox(height: 30),
-                  Row(
+                  // Vehicle Plate Input with Status
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: InputTextField(
-                          labelText: 'Vehicle Number Plate',
-                          keyboardType: TextInputType.text,
-                          controller: _plateController,
-                        ),
+                      InputTextField(
+                        labelText: 'Vehicle Number Plate',
+                        keyboardType: TextInputType.text,
+                        controller: _plateController,
+                        onChanged: _onPlateChanged,
                       ),
-                      const SizedBox(width: 10),
-                      ElevatedButton(
-                        onPressed: _isLoading ? null : _checkVehiclePlate,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF05A664),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 15,
-                          ),
-                        ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
+                      if (_checkStatusMessage != null)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 5, left: 5),
+                          child: Row(
+                            children: [
+                              if (_isChecking)
+                                const SizedBox(
+                                  width: 12,
+                                  height: 12,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              else
+                                Icon(
+                                  _statusColor == Colors.red
+                                      ? Icons.error
+                                      : Icons.check_circle,
+                                  size: 16,
+                                  color: _statusColor,
                                 ),
-                              )
-                            : const Text(
-                                "Check",
-                                style: TextStyle(color: Colors.white),
+                              const SizedBox(width: 5),
+                              Text(
+                                _checkStatusMessage!,
+                                style: TextStyle(
+                                  color: _statusColor,
+                                  fontSize: 12,
+                                ),
                               ),
-                      ),
+                            ],
+                          ),
+                        ),
                     ],
                   ),
                   const SizedBox(height: 30),
