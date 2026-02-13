@@ -32,4 +32,16 @@ class DatabaseService {
       rethrow;
     }
   }
+
+  Future<void> updateDriverRoute(
+    String uid,
+    List<Map<String, dynamic>> route,
+  ) async {
+    try {
+      await _db.collection('driver').doc(uid).update({'route': route});
+    } catch (e) {
+      print("Error updating driver route: $e");
+      rethrow;
+    }
+  }
 }

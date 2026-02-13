@@ -7,6 +7,7 @@ class DriverModel {
   final String? vehicleModel;
   final int? seatCount;
   final String? vehicleType;
+  final List<Map<String, dynamic>>? route;
 
   DriverModel({
     required this.uid,
@@ -17,6 +18,7 @@ class DriverModel {
     this.vehicleModel,
     this.seatCount,
     this.vehicleType,
+    this.route,
   });
 
   Map<String, dynamic> toMap() {
@@ -29,7 +31,8 @@ class DriverModel {
       'vehicleModel': vehicleModel,
       'seatCount': seatCount,
       'vehicleType': vehicleType,
-      'role': 'driver', // Helpful for role-based login later
+      'role': 'driver',
+      'route': route,
     };
   }
 }

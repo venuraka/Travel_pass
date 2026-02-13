@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:uuid/uuid.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // Added
 import '../Components/CustomSnackBar.dart';
 import '../Driver/Dashboard.dart';
 import '../../services/PlaceService.dart';
+import '../../services/Database.dart'; // Added
 
 class AddRouteScreen extends StatefulWidget {
   const AddRouteScreen({super.key});
@@ -25,6 +27,7 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
   // Map State
   final LatLng _center = const LatLng(6.9271, 79.8612); // Colombo
   final Set<Marker> _markers = {};
+  final Set<Polyline> _polylines = {};
   bool _isLoading = false;
 
   // Controllers & Focus Nodes
@@ -148,6 +151,9 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
     });
     // Animate camera to the marker
     mapController.animateCamera(CameraUpdate.newLatLng(position));
+
+    // Attempt to draw route if we have enough points
+    _getRoute();
   }
 
   // --- Autocomplete Logic ---
@@ -284,31 +290,183 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
       _pickupPoints[index]['focusNode'].dispose();
       _pickupPoints.removeAt(index);
 
-      // Update markers: Remove this one, re-number others?
-      // Simpler to just remove all pickup markers and let user re-add / or just remove this specific one ID
-      // If we remove index 1, index 2 becomes 1. Markers need to update.
-      _markers.removeWhere((m) => m.markerId.value.startsWith("Pickup"));
+      // Use coordinates from text controller if possible, otherwise rely on map markers
+      // But since we don't store LatLng in controllers, we need to look up markers
+      // or just re-fetch address...
+      // A better way is to store the LatLng in the _pickupPoints map.
+      // For now, let's just re-draw if we have markers for Start and End.
+      _getRoute();
 
-      // Re-add remaining markers if we knew their positions...
-      // But we lose position data if we only store text.
-      // Ideally we should store LatLng in the _pickupPoints list too.
-      // For now, removing just clears the marker. User has to re-tap map or re-select.
-      // Or we can assume marker ID matches index and shift them.
-      // Let's just clear for now to avoid complexity of state sync without full model.
+      // Update markers: Remove this one
+      _markers.removeWhere((m) => m.markerId.value == "Pickup ${index + 1}");
+
+      // Rename subsequent pickup markers to keep sequence correct?
+      // Complex without a proper model. Let's just remove logic for now.
     });
   }
 
-  void _saveRoute() {
+  Future<void> _getRoute() async {
+    // Check if we have at least Start and End markers
+    LatLng? startPos;
+    LatLng? endPos;
+    List<LatLng> waypoints = [];
+
+    for (var marker in _markers) {
+      if (marker.markerId.value == "Start") {
+        startPos = marker.position;
+      } else if (marker.markerId.value == "End") {
+        endPos = marker.position;
+      } else if (marker.markerId.value.startsWith("Pickup")) {
+        waypoints.add(marker.position);
+      }
+    }
+
+    if (startPos != null && endPos != null) {
+      setState(() => _isLoading = true);
+      try {
+        final routePoints = await _placeService.getDirections(
+          startPos,
+          endPos,
+          waypoints,
+        );
+        setState(() {
+          _polylines.add(
+            Polyline(
+              polylineId: const PolylineId("route"),
+              points: routePoints,
+              color: const Color(0xFF121415),
+              width: 5,
+            ),
+          );
+        });
+
+        // Fit bounds
+        _fitBounds(routePoints);
+      } catch (e) {
+        if (!mounted) return;
+        CustomSnackBar.showError(context, "Failed to get route: $e");
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    } else {
+      // Clear polylines if start or end is removed
+      setState(() {
+        _polylines.clear();
+      });
+    }
+  }
+
+  void _fitBounds(List<LatLng> points) {
+    if (points.isEmpty) return;
+    double minLat = points.first.latitude;
+    double maxLat = points.first.latitude;
+    double minLng = points.first.longitude;
+    double maxLng = points.first.longitude;
+
+    for (var point in points) {
+      if (point.latitude < minLat) minLat = point.latitude;
+      if (point.latitude > maxLat) maxLat = point.latitude;
+      if (point.longitude < minLng) minLng = point.longitude;
+      if (point.longitude > maxLng) maxLng = point.longitude;
+    }
+
+    mapController.animateCamera(
+      CameraUpdate.newLatLngBounds(
+        LatLngBounds(
+          southwest: LatLng(minLat, minLng),
+          northeast: LatLng(maxLat, maxLng),
+        ),
+        50, // padding
+      ),
+    );
+  }
+
+  Future<void> _saveRoute() async {
     if (_startController.text.isEmpty || _endController.text.isEmpty) {
       CustomSnackBar.showError(context, "Start and End locations are required");
       return;
     }
-    CustomSnackBar.showSuccess(context, "Route saved successfully (Mock)");
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => const DriverDashboardScreen()),
-      (route) => false,
-    );
+
+    setState(() => _isLoading = true);
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw Exception("User not logged in");
+      }
+
+      // Construct Route Data
+      List<Map<String, dynamic>> routeData = [];
+
+      // 1. Start Point
+      LatLng? startPos;
+      for (var m in _markers) {
+        if (m.markerId.value == "Start") startPos = m.position;
+      }
+      routeData.add({
+        'role': 'start',
+        'address': _startController.text,
+        'name': _startNameController.text.isNotEmpty
+            ? _startNameController.text
+            : "Start Location",
+        'lat': startPos?.latitude ?? 0.0,
+        'lng': startPos?.longitude ?? 0.0,
+      });
+
+      // 2. Pickup Points
+      for (int i = 0; i < _pickupPoints.length; i++) {
+        final point = _pickupPoints[i];
+        LatLng? pickupPos;
+        for (var m in _markers) {
+          if (m.markerId.value == "Pickup ${i + 1}") pickupPos = m.position;
+        }
+        routeData.add({
+          'role': 'pickup',
+          'address': point['controller'].text,
+          'name': point['nameController'].text.isNotEmpty
+              ? point['nameController'].text
+              : "Pickup ${i + 1}",
+          'lat': pickupPos?.latitude ?? 0.0,
+          'lng': pickupPos?.longitude ?? 0.0,
+        });
+      }
+
+      // 3. End Point
+      LatLng? endPos;
+      for (var m in _markers) {
+        if (m.markerId.value == "End") endPos = m.position;
+      }
+      routeData.add({
+        'role': 'end',
+        'address': _endController.text,
+        'name': _endNameController.text.isNotEmpty
+            ? _endNameController.text
+            : "End Location",
+        'lat': endPos?.latitude ?? 0.0,
+        'lng': endPos?.longitude ?? 0.0,
+      });
+
+      // Save to Firestore
+      final dbService = DatabaseService();
+      await dbService.updateDriverRoute(user.uid, routeData);
+
+      if (mounted) {
+        CustomSnackBar.showSuccess(context, "Route saved successfully!");
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const DriverDashboardScreen(),
+          ),
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        CustomSnackBar.showError(context, "Failed to save route: $e");
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -321,6 +479,7 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
             onMapCreated: _onMapCreated,
             initialCameraPosition: CameraPosition(target: _center, zoom: 11.0),
             markers: _markers,
+            polylines: _polylines,
             onTap: _handleMapTap,
             zoomControlsEnabled: false,
             myLocationEnabled: true,

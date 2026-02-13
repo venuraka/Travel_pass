@@ -116,4 +116,87 @@ class PlaceService {
     }
     return "Unknown Location";
   }
+
+  /// Fetches directions between origin and destination with optional waypoints.
+  /// Uses the Directions API.
+  Future<List<LatLng>> getDirections(
+    LatLng origin,
+    LatLng destination,
+    List<LatLng> waypoints,
+  ) async {
+    // Construct waypoints string
+    String waypointsString = '';
+    if (waypoints.isNotEmpty) {
+      final List<String> waypointList = waypoints
+          .map((point) => '${point.latitude},${point.longitude}')
+          .toList();
+      // optimize:true reorders waypoints to minimize time/distance
+      waypointsString = 'optimize:true|${waypointList.join('|')}';
+    }
+
+    final queryParameters = {
+      'origin': '${origin.latitude},${origin.longitude}',
+      'destination': '${destination.latitude},${destination.longitude}',
+      'key': apiKey,
+    };
+
+    if (waypointsString.isNotEmpty) {
+      queryParameters['waypoints'] = waypointsString;
+    }
+
+    final uri = Uri.https(
+      'maps.googleapis.com',
+      '/maps/api/directions/json',
+      queryParameters,
+    );
+
+    debugPrint("PlaceService: Fetching directions...");
+    final response = await http.get(uri);
+
+    if (response.statusCode == 200) {
+      final result = json.decode(response.body);
+      if (result['status'] == 'OK') {
+        // Decode polyline
+        final points = result['routes'][0]['overview_polyline']['points'];
+        return _decodePolyline(points);
+      }
+      debugPrint("PlaceService: Directions Error: ${result['error_message']}");
+      throw Exception(result['error_message']);
+    } else {
+      debugPrint("PlaceService: HTTP Error: ${response.body}");
+      throw Exception('Failed to load directions');
+    }
+  }
+
+  /// Decodes a Google Maps encoded polyline string into a list of LatLng.
+  /// Simple variable-length integer decoding.
+  List<LatLng> _decodePolyline(String encoded) {
+    List<LatLng> polyline = [];
+    int index = 0, len = encoded.length;
+    int lat = 0, lng = 0;
+
+    while (index < len) {
+      int b, shift = 0, result = 0;
+      do {
+        b = encoded.codeUnitAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      int dlat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+      lat += dlat;
+
+      shift = 0;
+      result = 0;
+      do {
+        b = encoded.codeUnitAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+      lng += dlng;
+
+      polyline.add(LatLng((lat / 1E5).toDouble(), (lng / 1E5).toDouble()));
+    }
+    return polyline;
+  }
 }
