@@ -7,7 +7,8 @@ class RegisterPassengerScreen extends StatefulWidget {
   const RegisterPassengerScreen({super.key});
 
   @override
-  State<RegisterPassengerScreen> createState() => _RegisterPassengerScreenState();
+  State<RegisterPassengerScreen> createState() =>
+      _RegisterPassengerScreenState();
 }
 
 class _RegisterPassengerScreenState extends State<RegisterPassengerScreen> {
@@ -116,11 +117,12 @@ class _RegisterPassengerScreenState extends State<RegisterPassengerScreen> {
                     // --- UPDATED DROPDOWN SECTION ---
                     // Replaced Container with DropdownButtonFormField to match InputTextField style
                     DropdownButtonFormField<String>(
-                      value: _selectedLocation,
+                      initialValue: _selectedLocation,
                       icon: Icon(Icons.keyboard_arrow_down, color: appGreen),
                       isExpanded: true,
                       decoration: InputDecoration(
-                        labelText: 'Pickup Location', // Matches InputTextField label style
+                        labelText:
+                            'Pickup Location', // Matches InputTextField label style
                         labelStyle: const TextStyle(color: Colors.grey),
                         floatingLabelStyle: TextStyle(color: appGreen),
                         // Mimics standard InputTextField underline style
@@ -143,8 +145,8 @@ class _RegisterPassengerScreenState extends State<RegisterPassengerScreen> {
                         });
                       },
                     ),
-                    // --------------------------------
 
+                    // --------------------------------
                     const SizedBox(height: 50),
 
                     // Register Button

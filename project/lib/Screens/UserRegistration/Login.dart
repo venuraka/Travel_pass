@@ -4,6 +4,7 @@ import '../../controllers/AuthService.dart';
 import '../../utils/AuthExceptionHandler.dart';
 import 'SignUp.dart';
 import 'UserSelection.dart';
+import '../Components/CustomSnackBar.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -40,11 +41,10 @@ class _LoginPageState extends State<LoginPage> {
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AuthExceptionHandler.handleException(e)),
-          backgroundColor: Colors.redAccent,
-        ),
+      if (!mounted) return;
+      CustomSnackBar.showError(
+        context,
+        AuthExceptionHandler.handleException(e),
       );
     } finally {
       if (mounted) {
@@ -60,12 +60,7 @@ class _LoginPageState extends State<LoginPage> {
     final password = _passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please fill all fields"),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+      CustomSnackBar.showError(context, "Please fill all fields");
       return;
     }
 
@@ -80,11 +75,9 @@ class _LoginPageState extends State<LoginPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AuthExceptionHandler.handleException(e)),
-            backgroundColor: Colors.redAccent,
-          ),
+        CustomSnackBar.showError(
+          context,
+          AuthExceptionHandler.handleException(e),
         );
       }
     } finally {
@@ -96,10 +89,7 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
+      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(

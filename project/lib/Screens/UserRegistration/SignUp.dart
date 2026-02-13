@@ -3,6 +3,7 @@ import '../../controllers/AuthService.dart';
 import '../../utils/AuthExceptionHandler.dart';
 import 'Login.dart';
 import 'UserSelection.dart';
+import '../Components/CustomSnackBar.dart';
 
 class GoogleSignUpPage extends StatefulWidget {
   const GoogleSignUpPage({super.key});
@@ -47,11 +48,10 @@ class _GoogleSignUpPageState extends State<GoogleSignUpPage> {
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(AuthExceptionHandler.handleException(e)),
-          backgroundColor: Colors.redAccent,
-        ),
+      if (!mounted) return;
+      CustomSnackBar.showError(
+        context,
+        AuthExceptionHandler.handleException(e),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -65,22 +65,12 @@ class _GoogleSignUpPageState extends State<GoogleSignUpPage> {
     final confirm = _confirmPasswordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please fill all fields"),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+      CustomSnackBar.showError(context, "Please fill all fields");
       return;
     }
 
     if (password != confirm) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Passwords do not match"),
-          backgroundColor: Colors.redAccent,
-        ),
-      );
+      CustomSnackBar.showError(context, "Passwords do not match");
       return;
     }
 
@@ -96,11 +86,9 @@ class _GoogleSignUpPageState extends State<GoogleSignUpPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(AuthExceptionHandler.handleException(e)),
-            backgroundColor: Colors.redAccent,
-          ),
+        CustomSnackBar.showError(
+          context,
+          AuthExceptionHandler.handleException(e),
         );
       }
     } finally {

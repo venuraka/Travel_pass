@@ -1,4 +1,3 @@
-// lib/models/driver_model.dart
 class DriverModel {
   final String uid;
   final String name;

@@ -116,11 +116,12 @@ class _EditPassengerScreenState extends State<EditPassengerScreen> {
                     // --- UPDATED DROPDOWN SECTION ---
                     // Replaced Container with DropdownButtonFormField to match InputTextField style
                     DropdownButtonFormField<String>(
-                      value: _selectedLocation,
+                      initialValue: _selectedLocation,
                       icon: Icon(Icons.keyboard_arrow_down, color: appGreen),
                       isExpanded: true,
                       decoration: InputDecoration(
-                        labelText: 'Pickup Location', // Matches InputTextField label style
+                        labelText:
+                            'Pickup Location', // Matches InputTextField label style
                         labelStyle: const TextStyle(color: Colors.grey),
                         floatingLabelStyle: TextStyle(color: appGreen),
                         // Mimics standard InputTextField underline style
@@ -143,8 +144,8 @@ class _EditPassengerScreenState extends State<EditPassengerScreen> {
                         });
                       },
                     ),
-                    // --------------------------------
 
+                    // --------------------------------
                     const SizedBox(height: 50),
 
                     // Register Button

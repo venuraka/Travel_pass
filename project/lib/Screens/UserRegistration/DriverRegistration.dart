@@ -4,15 +4,16 @@ import '../../models/DriverModel.dart';
 import '../Components/InputTexts.dart';
 import '../Components/Whitecard.dart';
 import '../Components/Header.dart';
-import '';
 import '../../services/Database.dart';
 import 'VehicleRegistration.dart';
+import '../Components/CustomSnackBar.dart';
 
 class DriverRegistrationScreen extends StatefulWidget {
   const DriverRegistrationScreen({super.key});
 
   @override
-  State<DriverRegistrationScreen> createState() => _DriverRegistrationScreenState();
+  State<DriverRegistrationScreen> createState() =>
+      _DriverRegistrationScreenState();
 }
 
 class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
@@ -38,16 +39,15 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("User not authenticated. Please sign in again.")),
+      CustomSnackBar.showError(
+        context,
+        "User not authenticated. Please sign in again.",
       );
       return;
     }
 
     if (_nameController.text.isEmpty || _plateController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please fill in all required fields.")),
-      );
+      CustomSnackBar.showError(context, "Please fill in all required fields.");
       return;
     }
 
@@ -67,12 +67,14 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
       if (mounted) {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const VehicleRegistrationScreen()),
+          MaterialPageRoute(
+            builder: (context) => const VehicleRegistrationScreen(),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+        CustomSnackBar.showError(context, e.toString());
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -126,18 +128,31 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
                     onPressed: _isLoading ? null : _handleRegistration,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF05A664),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10.0),
+                      ),
                     ),
                     child: _isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
                         : const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text('Register', style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
-                        SizedBox(width: 10),
-                        Icon(Icons.arrow_forward, color: Colors.white, size: 20),
-                      ],
-                    ),
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Register',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(width: 10),
+                              Icon(
+                                Icons.arrow_forward,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ],
+                          ),
                   ),
                 ),
                 const SizedBox(height: 50),

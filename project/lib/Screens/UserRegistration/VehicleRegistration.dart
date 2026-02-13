@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../Components/InputTexts.dart';
 import '../Components/Whitecard.dart';
 import '../Components/Header.dart';
-import '../Driver/Dashboard.dart';
+import 'AddRoute.dart';
 
 class VehicleRegistrationScreen extends StatefulWidget {
   const VehicleRegistrationScreen({super.key});
@@ -12,10 +12,9 @@ class VehicleRegistrationScreen extends StatefulWidget {
       _DriverRegistration2ScreenState();
 }
 
-class _DriverRegistration2ScreenState
-    extends State<VehicleRegistrationScreen> {
+class _DriverRegistration2ScreenState extends State<VehicleRegistrationScreen> {
   String? selectedVehicle;
-  final List<String> vehicleTypes = ['Car', 'Mini Van', 'Mini Bus','Bus'];
+  final List<String> vehicleTypes = ['Car', 'Mini Van', 'Mini Bus', 'Bus'];
 
   @override
   Widget build(BuildContext context) {
@@ -66,23 +65,16 @@ class _DriverRegistration2ScreenState
                       value: selectedVehicle,
                       hint: const Text(
                         'Vehicle Type',
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 16,
-                        ),
+                        style: TextStyle(color: Colors.grey, fontSize: 16),
                       ),
-                      icon: const Icon(Icons.arrow_drop_down,
-                          color: Color(0xFF05A664)), // green dropdown arrow
+                      icon: const Icon(
+                        Icons.arrow_drop_down,
+                        color: Color(0xFF05A664),
+                      ), // green dropdown arrow
                       isExpanded: true,
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 16,
-                      ),
+                      style: const TextStyle(color: Colors.black, fontSize: 16),
                       items: vehicleTypes.map((type) {
-                        return DropdownMenuItem(
-                          value: type,
-                          child: Text(type),
-                        );
+                        return DropdownMenuItem(value: type, child: Text(type));
                       }).toList(),
                       onChanged: (value) {
                         setState(() {
@@ -102,7 +94,9 @@ class _DriverRegistration2ScreenState
                     onPressed: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const DriverDashboardScreen()),
+                        MaterialPageRoute(
+                          builder: (context) => const AddRouteScreen(),
+                        ),
                       );
                     },
                     style: ElevatedButton.styleFrom(

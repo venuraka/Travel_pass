@@ -5,16 +5,18 @@ import 'Attendance.dart';
 import 'EditDetails.dart';
 import 'TrackVehicle.dart';
 
-
 // --- Color Palette (Updated and Finalized for Light Theme) ---
 // 0xFF05A664 -> Primary Green (Action/Accent)
 // 0xFF121415 -> Dark Text (Primary foreground/Text)
 // 0xFFF8F9FC -> Very Light Background/Card Color (Unified light mode background)
 const Color _primaryGreen = Color(0xFF05A664);
 const Color _darkText = Color(0xFF121415);
-const Color _secondaryGray = Color(0xFF909090); // Minor/Detail text color (Kept for contrast)
+const Color _secondaryGray = Color(
+  0xFF909090,
+); // Minor/Detail text color (Kept for contrast)
 const Color _lightBackground = Color(0xFFF8F9FC); // Main background
-const Color _cardColor = Colors.white; // Using pure white for cards/surfaces on the light background
+const Color _cardColor =
+    Colors.white; // Using pure white for cards/surfaces on the light background
 
 // --- Mock Data for Attendance Marking (Date-based) ---
 final List<Map<String, String>> todayDateList = [
@@ -84,14 +86,24 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
                     title: 'Attendance History',
                     icon: Icons.history_edu_outlined,
                     onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => PassengerAttendaceScreen()));
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PassengerAttendaceScreen(),
+                        ),
+                      );
                     },
                   ),
                   _buildHistoryTile(
                     title: 'Payment History',
                     icon: Icons.account_balance_wallet_outlined,
                     onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => PaymentHistoryScreen()));
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PaymentHistoryScreen(),
+                        ),
+                      );
                     },
                   ),
                 ],
@@ -139,9 +151,7 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
             letterSpacing: 1.0,
           ),
         ),
-        child: const Text(
-          'Track Vehicle',
-        ),
+        child: const Text('Track Vehicle'),
       ),
     );
   }
@@ -185,17 +195,27 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
     );
   }
 
-
   Widget _buildQuickContactBar() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
-        _contactIcon(Icons.call_outlined, 'Call', onPressed: () {
-          // TODO: Implement call functionality
-        }),
-        _contactIcon(Icons.notifications_none, 'Alerts', onPressed: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => UpdatesScreen()));
-        }),
+        _contactIcon(
+          Icons.call_outlined,
+          'Call',
+          onPressed: () {
+            // TODO: Implement call functionality
+          },
+        ),
+        _contactIcon(
+          Icons.notifications_none,
+          'Alerts',
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => UpdatesScreen()),
+            );
+          },
+        ),
       ],
     );
   }
@@ -211,14 +231,20 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
             height: 60,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: _primaryGreen.withOpacity(0.1), // Very light green background
+              color: _primaryGreen.withOpacity(
+                0.1,
+              ), // Very light green background
             ),
             child: Icon(icon, color: _primaryGreen, size: 30),
           ),
           const SizedBox(height: 8),
           Text(
             label,
-            style: const TextStyle(fontSize: 13, color: _secondaryGray, fontWeight: FontWeight.w500),
+            style: const TextStyle(
+              fontSize: 13,
+              color: _secondaryGray,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ],
       ),
@@ -248,7 +274,11 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
             children: [
               Text(
                 'Mark Attendance',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: _darkText),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: _darkText,
+                ),
               ),
             ],
           ),
@@ -256,9 +286,7 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
           const Divider(height: 25, thickness: 0.5, color: _secondaryGray),
 
           // Attendance list items (now date-based and dismissible)
-          ..._datesToMark.map((item) =>
-              _buildAttendanceDismissibleRow(item)
-          ).toList(),
+          ..._datesToMark.map((item) => _buildAttendanceDismissibleRow(item)),
 
           if (_datesToMark.isEmpty)
             const Padding(
@@ -266,7 +294,10 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
               child: Center(
                 child: Text(
                   'All attendance marked for recent dates! 🎉',
-                  style: TextStyle(color: _secondaryGray, fontStyle: FontStyle.italic),
+                  style: TextStyle(
+                    color: _secondaryGray,
+                    fontStyle: FontStyle.italic,
+                  ),
                 ),
               ),
             ),
@@ -283,7 +314,8 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
     // Use a unique index for restoration since the list position changes on removal
     // The original index in the static list is a reliable marker.
     final int originalIndex = _findOriginalIndex(item);
-    late Map<String, String> dismissedItem = item; // Store dismissed item details
+    late Map<String, String> dismissedItem =
+        item; // Store dismissed item details
 
     return Dismissible(
       key: key,
@@ -403,9 +435,9 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
           Text(
             dateLabel,
             style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: _darkText
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: _darkText,
             ),
           ),
 
@@ -458,11 +490,19 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: _darkText),
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: _darkText,
+                ),
               ),
             ),
             // Updated color for arrow icon
-            const Icon(Icons.arrow_forward_ios, size: 16, color: _secondaryGray),
+            const Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: _secondaryGray,
+            ),
           ],
         ),
       ),

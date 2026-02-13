@@ -3,7 +3,6 @@ import 'package:intl/intl.dart';
 
 // Assuming Topic.dart contains PageHeader or similar components
 // Keeping the import but replacing its usage with a custom Row for the back button
-import '../Components/Topic.dart';
 
 class UpdatesScreen extends StatefulWidget {
   const UpdatesScreen({super.key});
@@ -37,7 +36,8 @@ class _UpdatesScreenState extends State<UpdatesScreen> {
     {
       "role": "admin",
       "label": "You",
-      "content": "Vestibulum quam purus, scelerisque vitae lorem et, congue ultrices purus.",
+      "content":
+          "Vestibulum quam purus, scelerisque vitae lorem et, congue ultrices purus.",
       "time": DateTime.now().subtract(const Duration(minutes: 15)),
     },
   ];
@@ -63,7 +63,11 @@ class _UpdatesScreenState extends State<UpdatesScreen> {
           children: [
             // 1. Go Back Arrow
             IconButton(
-              icon: const Icon(Icons.arrow_back_ios, color: Colors.black, size: 20),
+              icon: const Icon(
+                Icons.arrow_back_ios,
+                color: Colors.black,
+                size: 20,
+              ),
               onPressed: () {
                 Navigator.pop(context); // Navigates back
               },
@@ -77,9 +81,9 @@ class _UpdatesScreenState extends State<UpdatesScreen> {
                 const Text(
                   "Updates",
                   style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
                   ),
                 ),
                 Text(
@@ -101,7 +105,10 @@ class _UpdatesScreenState extends State<UpdatesScreen> {
                 color: Colors.white,
                 child: ListView.builder(
                   controller: _scrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 20,
+                  ),
                   itemCount: _announcements.length,
                   itemBuilder: (context, index) {
                     final item = _announcements[index];
@@ -113,10 +120,14 @@ class _UpdatesScreenState extends State<UpdatesScreen> {
 
                     // Format the time
                     final DateTime msgTime = item['time'] ?? DateTime.now();
-                    final String timeString = DateFormat('h:mm a, MMM d').format(msgTime);
+                    final String timeString = DateFormat(
+                      'h:mm a, MMM d',
+                    ).format(msgTime);
 
                     return Align(
-                      alignment: isMe ? Alignment.centerLeft : Alignment.centerRight,
+                      alignment: isMe
+                          ? Alignment.centerLeft
+                          : Alignment.centerRight,
                       child: Padding(
                         padding: const EdgeInsets.only(bottom: 24.0),
                         child: Column(
@@ -128,9 +139,10 @@ class _UpdatesScreenState extends State<UpdatesScreen> {
                             if (item['label'] != "")
                               Padding(
                                 padding: EdgeInsets.only(
-                                    bottom: 6.0,
-                                    left: isMe ? 4 : 0,
-                                    right: isMe ? 0 : 4),
+                                  bottom: 6.0,
+                                  left: isMe ? 4 : 0,
+                                  right: isMe ? 0 : 4,
+                                ),
                                 child: Text(
                                   item['label'],
                                   style: TextStyle(
@@ -150,7 +162,10 @@ class _UpdatesScreenState extends State<UpdatesScreen> {
                             // Date & Time (Bottom)
                             Padding(
                               padding: EdgeInsets.only(
-                                  top: 6.0, left: isMe ? 4 : 0, right: isMe ? 0 : 4),
+                                top: 6.0,
+                                left: isMe ? 4 : 0,
+                                right: isMe ? 0 : 4,
+                              ),
                               child: Text(
                                 timeString,
                                 style: TextStyle(
@@ -210,7 +225,10 @@ class _AnnouncementBubble extends StatelessWidget {
         child: Text(
           text,
           style: const TextStyle(
-              color: Colors.white, fontSize: 14, height: 1.4),
+            color: Colors.white,
+            fontSize: 14,
+            height: 1.4,
+          ),
         ),
       ),
     );
