@@ -382,10 +382,85 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
   }
 
   Future<void> _saveRoute() async {
+    // --- Validation Checks ---
+
+    // 1. Check for basic Start/End existence (Pre-existing check)
     if (_startController.text.isEmpty || _endController.text.isEmpty) {
       CustomSnackBar.showError(context, "Start and End locations are required");
       return;
     }
+
+    // 2. Check at least one pickup point exist
+    if (_pickupPoints.isEmpty) {
+      CustomSnackBar.showError(
+        context,
+        "At least one pickup point is required",
+      );
+      return;
+    }
+
+    // 3. Helper to find marker position by ID
+    LatLng? getMarkerPos(String id) {
+      for (var m in _markers) {
+        if (m.markerId.value == id) return m.position;
+      }
+      return null;
+    }
+
+    // 4. Validate Start Point (Name, Address, LatLng)
+    final startPos = getMarkerPos("Start");
+    if (startPos == null) {
+      CustomSnackBar.showError(
+        context,
+        "Please select a valid Start Location on the map",
+      );
+      return;
+    }
+    if (_startNameController.text.trim().isEmpty) {
+      CustomSnackBar.showError(context, "Please name the Start Location");
+      return;
+    }
+
+    // 5. Validate End Point (Name, Address, LatLng)
+    final endPos = getMarkerPos("End");
+    if (endPos == null) {
+      CustomSnackBar.showError(
+        context,
+        "Please select a valid End Location on the map",
+      );
+      return;
+    }
+    if (_endNameController.text.trim().isEmpty) {
+      CustomSnackBar.showError(context, "Please name the End Location");
+      return;
+    }
+
+    // 6. Validate Pickup Points (Name, Address, LatLng for EACH)
+    for (int i = 0; i < _pickupPoints.length; i++) {
+      final point = _pickupPoints[i];
+      final id = "Pickup ${i + 1}";
+      final pos = getMarkerPos(
+        id,
+      ); // Assuming marker IDs are consistent with index logic
+
+      if (point['controller'].text.isEmpty) {
+        CustomSnackBar.showError(context, "Address missing for $id");
+        return;
+      }
+      if (point['nameController'].text.trim().isEmpty) {
+        CustomSnackBar.showError(context, "Please name $id");
+        return;
+      }
+      if (pos == null) {
+        CustomSnackBar.showError(
+          context,
+          "Please select a valid location on map for $id",
+        );
+        return;
+      }
+    }
+
+    // --- End Validation ---
 
     setState(() => _isLoading = true);
 
@@ -399,51 +474,37 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
       List<Map<String, dynamic>> routeData = [];
 
       // 1. Start Point
-      LatLng? startPos;
-      for (var m in _markers) {
-        if (m.markerId.value == "Start") startPos = m.position;
-      }
       routeData.add({
         'role': 'start',
         'address': _startController.text,
-        'name': _startNameController.text.isNotEmpty
-            ? _startNameController.text
-            : "Start Location",
-        'lat': startPos?.latitude ?? 0.0,
-        'lng': startPos?.longitude ?? 0.0,
+        'name': _startNameController.text,
+        'lat': startPos.latitude,
+        'lng': startPos.longitude,
       });
 
       // 2. Pickup Points
       for (int i = 0; i < _pickupPoints.length; i++) {
         final point = _pickupPoints[i];
-        LatLng? pickupPos;
-        for (var m in _markers) {
-          if (m.markerId.value == "Pickup ${i + 1}") pickupPos = m.position;
-        }
+        final id = "Pickup ${i + 1}";
+        // Position is guaranteed valid by validation above
+        final pickupPos = getMarkerPos(id)!;
+
         routeData.add({
           'role': 'pickup',
           'address': point['controller'].text,
-          'name': point['nameController'].text.isNotEmpty
-              ? point['nameController'].text
-              : "Pickup ${i + 1}",
-          'lat': pickupPos?.latitude ?? 0.0,
-          'lng': pickupPos?.longitude ?? 0.0,
+          'name': point['nameController'].text,
+          'lat': pickupPos.latitude,
+          'lng': pickupPos.longitude,
         });
       }
 
       // 3. End Point
-      LatLng? endPos;
-      for (var m in _markers) {
-        if (m.markerId.value == "End") endPos = m.position;
-      }
       routeData.add({
         'role': 'end',
         'address': _endController.text,
-        'name': _endNameController.text.isNotEmpty
-            ? _endNameController.text
-            : "End Location",
-        'lat': endPos?.latitude ?? 0.0,
-        'lng': endPos?.longitude ?? 0.0,
+        'name': _endNameController.text,
+        'lat': endPos.latitude,
+        'lng': endPos.longitude,
       });
 
       // Save to Firestore
