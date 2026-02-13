@@ -34,27 +34,33 @@ class _DriverRegistration2ScreenState extends State<VehicleRegistrationScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
+
+                /// ✅ Vehicle Model Field
                 const InputTextField(
-                  labelText: 'Add Route Stop',
+                  labelText: 'Vehicle Model',
+                  hintText: 'Yutong Bus',
                   keyboardType: TextInputType.text,
-                  showTrailingIcon: true,
+                  showTrailingIcon: false,
                 ),
+
                 const SizedBox(height: 30),
 
+                /// Seat Count Field
                 const InputTextField(
                   labelText: 'Seat Count',
                   keyboardType: TextInputType.number,
                   showTrailingIcon: false,
                 ),
+
                 const SizedBox(height: 30),
 
-                // ✅ Vehicle Type Dropdown with Green Border
+                /// Vehicle Type Dropdown
                 Container(
                   height: 55,
                   decoration: BoxDecoration(
                     color: Colors.white,
                     border: Border.all(
-                      color: const Color(0xFF05A664), // green border
+                      color: const Color(0xFF05A664),
                       width: 1.5,
                     ),
                     borderRadius: BorderRadius.circular(10),
@@ -70,11 +76,17 @@ class _DriverRegistration2ScreenState extends State<VehicleRegistrationScreen> {
                       icon: const Icon(
                         Icons.arrow_drop_down,
                         color: Color(0xFF05A664),
-                      ), // green dropdown arrow
+                      ),
                       isExpanded: true,
-                      style: const TextStyle(color: Colors.black, fontSize: 16),
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 16,
+                      ),
                       items: vehicleTypes.map((type) {
-                        return DropdownMenuItem(value: type, child: Text(type));
+                        return DropdownMenuItem(
+                          value: type,
+                          child: Text(type),
+                        );
                       }).toList(),
                       onChanged: (value) {
                         setState(() {
@@ -87,6 +99,7 @@ class _DriverRegistration2ScreenState extends State<VehicleRegistrationScreen> {
 
                 const SizedBox(height: 60),
 
+                /// Add Route Button
                 SizedBox(
                   width: double.infinity,
                   height: 55,
@@ -114,7 +127,7 @@ class _DriverRegistration2ScreenState extends State<VehicleRegistrationScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          'Register',
+                          'Add Route',
                           style: TextStyle(
                             fontSize: 18,
                             color: Colors.white,
