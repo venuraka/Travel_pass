@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart'; // Add import
 import 'package:project/Screens/Driver/Dashboard.dart';
-import 'package:project/Screens/passenger/Dashboard.dart';
-import 'Screens/UserRegistration/UserSelection.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -36,8 +34,9 @@ class MyApp extends StatelessWidget {
       ),
 
       // Set the initial route to your corrected SignUp Page
-      //home: const DriverDashboardScreen(),
-      home: const PassengerDashboardApp(),
+      // home: const PassengerRegistrationScreen(),
+      // home: const PassengerDashboardApp(),
+      home: const DriverDashboardScreen(),
     );
   }
 }

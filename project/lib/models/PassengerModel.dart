@@ -12,7 +12,9 @@ class PassengerModel {
   final String paymentType;
   final String pickupLocation;
   final String role;
+  final bool registered;
   final Timestamp createdAt;
+  final String paymentAmount; // Added field
 
   PassengerModel({
     required this.uid,
@@ -26,7 +28,9 @@ class PassengerModel {
     required this.paymentType,
     required this.pickupLocation,
     this.role = 'passenger',
+    this.registered = false,
     required this.createdAt,
+    this.paymentAmount = '', // Default empty
   });
 
   Map<String, dynamic> toMap() {
@@ -42,7 +46,9 @@ class PassengerModel {
       'paymentType': paymentType,
       'pickupLocation': pickupLocation,
       'role': role,
+      'registered': registered,
       'createdAt': createdAt,
+      'paymentAmount': paymentAmount, // Added
     };
   }
 
@@ -59,7 +65,9 @@ class PassengerModel {
       paymentType: map['paymentType'] ?? '',
       pickupLocation: map['pickupLocation'] ?? '',
       role: map['role'] ?? 'passenger',
+      registered: map['registered'] ?? false,
       createdAt: map['createdAt'] ?? Timestamp.now(),
+      paymentAmount: map['paymentAmount'] ?? '', // Added
     );
   }
 }

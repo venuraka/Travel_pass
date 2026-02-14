@@ -113,6 +113,9 @@ class DatabaseService {
           vehiclePlate: data['vehiclePlate'] ?? '',
           phone: data['phone'] ?? '',
           email: data['email'] ?? '',
+          route: (data['route'] as List<dynamic>?)
+              ?.map((item) => item as Map<String, dynamic>)
+              .toList(),
           // ... other fields can be null or defaults
         );
       }
@@ -158,6 +161,26 @@ class DatabaseService {
       await _db.collection('polls').doc(docId).delete();
     } catch (e) {
       debugPrint("Error deleting poll: $e");
+      rethrow;
+    }
+  }
+
+  /// Fetches passengers where registered == false for a specific vehicle plate.
+  Future<List<PassengerModel>> getUnregisteredPassengers(
+    String vehiclePlate,
+  ) async {
+    try {
+      final querySnapshot = await _db
+          .collection('passenger')
+          .where('vehiclePlate', isEqualTo: vehiclePlate)
+          .where('registered', isEqualTo: false)
+          .get();
+
+      return querySnapshot.docs
+          .map((doc) => PassengerModel.fromMap(doc.data()))
+          .toList();
+    } catch (e) {
+      debugPrint("Error fetching unregistered passengers: $e");
       rethrow;
     }
   }

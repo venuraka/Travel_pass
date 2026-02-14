@@ -2,9 +2,18 @@ import 'package:flutter/material.dart';
 import '../Components/InputTexts.dart';
 import '../Components/Whitecard.dart';
 import '../Components/Header.dart';
+import '../../models/PassengerModel.dart';
+import '../../controllers/RegisterPassengerController.dart';
 
 class RegisterPassengerScreen extends StatefulWidget {
-  const RegisterPassengerScreen({super.key});
+  final PassengerModel passenger;
+  final List<String>? pickupLocations; // Added parameter
+
+  const RegisterPassengerScreen({
+    super.key,
+    required this.passenger,
+    this.pickupLocations,
+  });
 
   @override
   State<RegisterPassengerScreen> createState() =>
@@ -16,10 +25,82 @@ class _RegisterPassengerScreenState extends State<RegisterPassengerScreen> {
   String _paymentFrequency = 'Daily';
   String? _selectedLocation;
 
+  // Controllers
+  late TextEditingController _nameController;
+  late TextEditingController _paymentAmountController;
+  late TextEditingController _phoneController;
+
+  final RegisterPassengerController _controller = RegisterPassengerController();
+  bool _isLoading = false;
+
   // List for the dropdown
-  final List<String> pickupLocations = ['Colombo', 'Gampaha', 'Kandy', 'Galle'];
+  late List<String> pickupLocations;
 
   final Color appGreen = const Color(0xFF05A664);
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Initialize pickup locations
+    if (widget.pickupLocations != null && widget.pickupLocations!.isNotEmpty) {
+      pickupLocations = widget.pickupLocations!;
+    } else {
+      // Default fallback if no route data
+      pickupLocations = ['Colombo', 'Gampaha', 'Kandy', 'Galle'];
+    }
+
+    // Initialize controllers with passenger data
+    _nameController = TextEditingController(text: widget.passenger.name);
+    _paymentAmountController = TextEditingController(
+      text: widget.passenger.paymentAmount,
+    );
+    _phoneController = TextEditingController(text: widget.passenger.phone);
+
+    // Set selected location
+    _selectedLocation =
+        widget.passenger.pickupLocation.isNotEmpty &&
+            pickupLocations.contains(widget.passenger.pickupLocation)
+        ? widget.passenger.pickupLocation
+        : null;
+
+    // Set payment frequency if it matches (or keep default Daily)
+    if (widget.passenger.paymentType == 'Monthly') {
+      _paymentFrequency = 'Monthly';
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _paymentAmountController.dispose();
+    _phoneController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleRegister() async {
+    setState(() => _isLoading = true);
+
+    try {
+      await _controller.registerPassenger(
+        context: context,
+        passenger: widget.passenger,
+        name: _nameController.text.trim(),
+        paymentAmount: _paymentAmountController.text.trim(),
+        phone: _phoneController.text.trim(),
+        paymentType: _paymentFrequency,
+        pickupLocation: _selectedLocation ?? widget.passenger.pickupLocation,
+      );
+
+      if (mounted) {
+        Navigator.pop(context, true); // Return true to indicate success
+      }
+    } catch (e) {
+      // Error is handled in controller
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -52,23 +133,26 @@ class _RegisterPassengerScreenState extends State<RegisterPassengerScreen> {
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
                     // Name Field
-                    const InputTextField(
+                    InputTextField(
                       labelText: 'Name',
                       keyboardType: TextInputType.name,
+                      controller: _nameController,
                     ),
                     const SizedBox(height: 30),
 
                     // Payment Amount Field
-                    const InputTextField(
+                    InputTextField(
                       labelText: 'Payment Amount',
                       keyboardType: TextInputType.number,
+                      controller: _paymentAmountController,
                     ),
                     const SizedBox(height: 30),
 
                     // Phone Number Field
-                    const InputTextField(
+                    InputTextField(
                       labelText: 'Phone Number',
                       keyboardType: TextInputType.phone,
+                      controller: _phoneController,
                     ),
                     const SizedBox(height: 30),
 
@@ -117,7 +201,7 @@ class _RegisterPassengerScreenState extends State<RegisterPassengerScreen> {
                     // --- UPDATED DROPDOWN SECTION ---
                     // Replaced Container with DropdownButtonFormField to match InputTextField style
                     DropdownButtonFormField<String>(
-                      initialValue: _selectedLocation,
+                      value: _selectedLocation,
                       icon: Icon(Icons.keyboard_arrow_down, color: appGreen),
                       isExpanded: true,
                       decoration: InputDecoration(
@@ -154,12 +238,7 @@ class _RegisterPassengerScreenState extends State<RegisterPassengerScreen> {
                       width: double.infinity,
                       height: 55,
                       child: ElevatedButton(
-                        onPressed: () {
-                          // Handle Registration Logic (e.g., API call)
-
-                          // Then pop back to previous screen
-                          Navigator.pop(context);
-                        },
+                        onPressed: _isLoading ? null : _handleRegister,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: appGreen,
                           shape: RoundedRectangleBorder(
@@ -167,21 +246,28 @@ class _RegisterPassengerScreenState extends State<RegisterPassengerScreen> {
                           ),
                           elevation: 0,
                         ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Register',
-                              style: TextStyle(
-                                fontSize: 18,
+                        child: _isLoading
+                            ? const CircularProgressIndicator(
                                 color: Colors.white,
-                                fontWeight: FontWeight.bold,
+                              )
+                            : const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Register',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  SizedBox(width: 10),
+                                  Icon(
+                                    Icons.arrow_forward,
+                                    color: Colors.white,
+                                  ),
+                                ],
                               ),
-                            ),
-                            SizedBox(width: 10),
-                            Icon(Icons.arrow_forward, color: Colors.white),
-                          ],
-                        ),
                       ),
                     ),
                     const SizedBox(height: 50),
