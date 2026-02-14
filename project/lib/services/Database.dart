@@ -4,7 +4,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/DriverModel.dart';
 import '../models/PassengerModel.dart';
-import '../models/PollModel.dart'; // Added
+import '../models/PollModel.dart';
+import '../models/UpdateModel.dart'; // Added
 
 class DatabaseService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -202,5 +203,38 @@ class DatabaseService {
       debugPrint("Error fetching registered passengers: $e");
       rethrow;
     }
+  }
+
+  // --- Updates Methods ---
+
+  /// Saves a new update/announcement to Firestore.
+  Future<void> saveUpdate(UpdateModel update) async {
+    try {
+      await _db.collection('updates').doc(update.id).set(update.toMap());
+    } catch (e) {
+      debugPrint("Error saving update: $e");
+      rethrow;
+    }
+  }
+
+  /// Streams updates for a specific driver, ordered by timestamp descending.
+  Stream<List<UpdateModel>> getUpdates(String driverId) {
+    return _db
+        .collection('updates')
+        .where('driverId', isEqualTo: driverId)
+        // .orderBy('timestamp', descending: true) // Removed to avoid Index requirement
+        .snapshots()
+        .map((snapshot) {
+          debugPrint(
+            "Fetched ${snapshot.docs.length} updates for driver: $driverId",
+          );
+          final updates = snapshot.docs
+              .map((doc) => UpdateModel.fromMap(doc.data(), doc.id))
+              .toList();
+
+          // Sort client-side
+          updates.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+          return updates;
+        });
   }
 }

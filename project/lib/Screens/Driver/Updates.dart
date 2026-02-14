@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // Ensure you have this for date formatting
-import '../Components/Topic.dart'; // Keeping your import
+import 'package:intl/intl.dart';
+import '../Components/Topic.dart';
+import '../../controllers/UpdatesController.dart';
+import '../../models/UpdateModel.dart';
 
 class UpdatesScreen extends StatefulWidget {
   const UpdatesScreen({super.key});
@@ -12,33 +14,19 @@ class UpdatesScreen extends StatefulWidget {
 class _UpdatesScreenState extends State<UpdatesScreen> {
   final TextEditingController _textController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final UpdatesController _updatesController = UpdatesController();
+  late Stream<List<UpdateModel>> _updatesStream;
 
   String get _dateString {
     final now = DateTime.now();
     return DateFormat.yMMMd().format(now);
   }
 
-  // Mutable list to simulate adding messages with Timestamps
-  final List<Map<String, dynamic>> _announcements = [
-    {
-      "role": "admin",
-      "label": "",
-      "content": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
-      "time": DateTime.now().subtract(const Duration(hours: 2)),
-    },
-    {
-      "role": "other",
-      "label": "Passenger",
-      "content": "Vestibulum quam purus, scelerisque vitae lorem et.",
-      "time": DateTime.now().subtract(const Duration(hours: 1, minutes: 30)),
-    },
-    {
-      "role": "admin",
-      "label": "You",
-      "content": "Vestibulum quam purus, scelerisque vitae lorem et, congue ultrices purus.",
-      "time": DateTime.now().subtract(const Duration(minutes: 15)),
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _updatesStream = _updatesController.getUpdates();
+  }
 
   @override
   void dispose() {
@@ -47,23 +35,17 @@ class _UpdatesScreenState extends State<UpdatesScreen> {
     super.dispose();
   }
 
-  void _handleSend() {
-    if (_textController.text.trim().isEmpty) return;
+  Future<void> _handleSend() async {
+    final content = _textController.text.trim();
+    if (content.isEmpty) return;
 
-    setState(() {
-      _announcements.add({
-        "role": "admin",
-        "label": "You",
-        "content": _textController.text.trim(),
-        "time": DateTime.now(), // Capture current time
-      });
-      _textController.clear();
-    });
+    _textController.clear();
+    await _updatesController.sendUpdate(content, context);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
+          0.0, // Scroll to top because list is reversed
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeOut,
         );
@@ -94,60 +76,105 @@ class _UpdatesScreenState extends State<UpdatesScreen> {
             Expanded(
               child: Container(
                 color: Colors.white,
-                child: ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-                  itemCount: _announcements.length,
-                  itemBuilder: (context, index) {
-                    final item = _announcements[index];
-                    final bool isMe = item['role'] == 'admin';
+                child: StreamBuilder<List<UpdateModel>>(
+                  stream: _updatesStream,
+                  builder: (context, snapshot) {
+                    if (snapshot.hasError) {
+                      return Center(child: Text('Error: ${snapshot.error}'));
+                    }
+                    if (!snapshot.hasData) {
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          color: Color(0xFF05A664),
+                        ),
+                      );
+                    }
 
-                    // Format the time
-                    final DateTime msgTime = item['time'] ?? DateTime.now();
-                    final String timeString = DateFormat('MMM d, h:mm a').format(msgTime);
+                    final updates = snapshot.data!;
+                    if (updates.isEmpty) {
+                      return const Center(child: Text("No updates yet."));
+                    }
 
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 24.0),
-                      child: Column(
-                        crossAxisAlignment: isMe
-                            ? CrossAxisAlignment.start
-                            : CrossAxisAlignment.end,
-                        children: [
-                          // Label (Top)
-                          if (item['label'] != "")
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                  bottom: 6.0, left: 4, right: 4),
-                              child: Text(
-                                item['label'],
-                                style: TextStyle(
-                                  color: Colors.grey[600],
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
+                    return ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 20,
+                      ),
+                      itemCount: updates.length,
+                      reverse:
+                          true, // Show newest at the bottom naturally if we insert nicely,
+                      // actually Firestore query is descending by timestamp (newest first).
+                      // If we want chat-like specific behavior (bottom up), we might need reverse: true
+                      // and the list order to match.
+                      // Let's assume standard list for now, but usually for "updates" newest on top is fine,
+                      // or newest at bottom like chat.
+                      // Given the screenshot/mock had newest at bottom? No, typically feeds are top-down.
+                      // But the Mock had current time at bottom. So it's chat-like.
+                      // Let's do reverse: true and ensure data comes in Correct Order.
+                      // Firestore: Newest First (Desc).
+                      // Reverse ListView: Index 0 is bottom.
+                      // So updates[0] (Newest) will be at bottom. YES.
+                      itemBuilder: (context, index) {
+                        final item = updates[index];
+                        final bool isMe = item.role == 'admin';
+
+                        final String timeString = DateFormat(
+                          'MMM d, h:mm a',
+                        ).format(item.timestamp);
+
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 24.0),
+                          child: Column(
+                            crossAxisAlignment: isMe
+                                ? CrossAxisAlignment
+                                      .end // Changed to End for "Me"
+                                : CrossAxisAlignment.start,
+                            children: [
+                              // Label (Top)
+                              if (item.label.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    bottom: 6.0,
+                                    left: 4,
+                                    right: 4,
+                                  ),
+                                  child: Text(
+                                    item.label,
+                                    style: TextStyle(
+                                      color: Colors.grey[600],
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+
+                              // Bubble (Middle)
+                              _AnnouncementBubble(
+                                text: item.content,
+                                isMe: isMe,
+                              ),
+
+                              // Date & Time (Bottom)
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  top: 6.0,
+                                  left: 4,
+                                  right: 4,
+                                ),
+                                child: Text(
+                                  timeString,
+                                  style: TextStyle(
+                                    color: Colors.grey[400],
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w400,
+                                  ),
                                 ),
                               ),
-                            ),
-
-                          // Bubble (Middle)
-                          _AnnouncementBubble(
-                            text: item['content'],
-                            isMe: isMe,
+                            ],
                           ),
-
-                          // Date & Time (Bottom)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 6.0, left: 4, right: 4),
-                            child: Text(
-                              timeString,
-                              style: TextStyle(
-                                color: Colors.grey[400],
-                                fontSize: 10,
-                                fontWeight: FontWeight.w400,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                        );
+                      },
                     );
                   },
                 ),
@@ -164,7 +191,7 @@ class _UpdatesScreenState extends State<UpdatesScreen> {
                     color: Colors.black.withOpacity(0.05),
                     offset: const Offset(0, -4),
                     blurRadius: 10,
-                  )
+                  ),
                 ],
               ),
               child: Row(
@@ -178,7 +205,9 @@ class _UpdatesScreenState extends State<UpdatesScreen> {
                         filled: true,
                         fillColor: const Color(0xFFF5F5F5),
                         contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 20, vertical: 12),
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(30),
                           borderSide: BorderSide.none,
@@ -197,8 +226,11 @@ class _UpdatesScreenState extends State<UpdatesScreen> {
                         color: Color(0xFF05A664),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.send_rounded,
-                          color: Colors.white, size: 22),
+                      child: const Icon(
+                        Icons.send_rounded,
+                        color: Colors.white,
+                        size: 22,
+                      ),
                     ),
                   ),
                 ],
@@ -236,14 +268,17 @@ class _AnnouncementBubble extends StatelessWidget {
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(12),
             topRight: const Radius.circular(12),
-            bottomLeft: isMe ? Radius.zero : const Radius.circular(12),
-            bottomRight: isMe ? const Radius.circular(12) : Radius.zero,
+            bottomLeft: isMe ? const Radius.circular(12) : Radius.zero,
+            bottomRight: isMe ? Radius.zero : const Radius.circular(12),
           ),
         ),
         child: Text(
           text,
           style: const TextStyle(
-              color: Colors.white, fontSize: 14, height: 1.4),
+            color: Colors.white,
+            fontSize: 14,
+            height: 1.4,
+          ),
         ),
       ),
     );
@@ -262,14 +297,14 @@ class _BubbleTailPainter extends CustomPainter {
     final path = Path();
 
     if (isMe) {
-      path.moveTo(0, size.height - 10);
-      path.lineTo(-8, size.height);
-      path.lineTo(10, size.height);
-      path.close();
-    } else {
       path.moveTo(size.width, size.height - 10);
       path.lineTo(size.width + 8, size.height);
       path.lineTo(size.width - 10, size.height);
+      path.close();
+    } else {
+      path.moveTo(0, size.height - 10);
+      path.lineTo(-8, size.height);
+      path.lineTo(10, size.height);
       path.close();
     }
 
