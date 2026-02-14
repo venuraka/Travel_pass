@@ -117,9 +117,39 @@ class _PassengerScreenState extends State<PassengerScreen> {
                           padding: const EdgeInsets.only(bottom: 10),
                           child: InfoCard(
                             title: passenger.name,
-                            // Combine place and price with a line break for the subtitle
-                            subtitle:
-                                "${passenger.pickupLocation}\n${passenger.paymentAmount}",
+                            subtitleWidget: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  passenger.pickupLocation,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.black54,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(
+                                      0xFFE8F5E9,
+                                    ), // Light Green
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    "Rs ${passenger.paymentAmount}",
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: appGreen,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                             showTag: passenger.paymentType == 'Monthly',
                             tagText: 'Monthly',
                             trailing: IconButton(

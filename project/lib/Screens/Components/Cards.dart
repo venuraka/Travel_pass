@@ -65,7 +65,7 @@ class InfoCard extends StatelessWidget {
                               color: Colors.black87,
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 2),
                           subtitleWidget ??
                               Text(
                                 subtitle ?? '',
