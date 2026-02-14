@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart'; // Add import
+import 'package:project/Screens/Driver/Dashboard.dart';
 import 'Screens/UserRegistration/UserSelection.dart';
 import 'firebase_options.dart';
 
@@ -34,7 +35,7 @@ class MyApp extends StatelessWidget {
       ),
 
       // Set the initial route to your corrected SignUp Page
-      home: const UserSelectionScreen(),
+      home: const DriverDashboardScreen(),
     );
   }
 }
