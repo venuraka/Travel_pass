@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'UpdateRoute.dart'; // Add import at top
+
 import '../Components/Header.dart';
 import '../Components/Whitecard.dart';
 // Assuming Header.dart exists, but I will build the specific header shown in the screenshot inline for accuracy.
@@ -104,7 +106,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               fontWeight: FontWeight.w600,
                             ),
                           ),
-                          Icon(Icons.calendar_today_outlined, color: appGreen, size: 20),
+                          Icon(
+                            Icons.calendar_today_outlined,
+                            color: appGreen,
+                            size: 20,
+                          ),
                         ],
                       ),
                     ),
@@ -157,6 +163,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                     const SizedBox(height: 50),
 
+                    // --- Update Route Button ---
+                    SizedBox(
+                      width: double.infinity,
+                      height: 55,
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const UpdateRouteScreen(),
+                            ),
+                          );
+                        },
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: appGreen, width: 2),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                          ),
+                        ),
+                        child: Text(
+                          'Update Route',
+                          style: TextStyle(
+                            fontSize: 18,
+                            color: appGreen,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+
                     // --- Done Button ---
                     SizedBox(
                       width: double.infinity,
@@ -195,7 +232,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   // Helper widget for the circular Plus/Minus buttons
-  Widget _buildCounterButton({required IconData icon, required VoidCallback onTap}) {
+  Widget _buildCounterButton({
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(30),
@@ -205,11 +245,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           shape: BoxShape.circle,
           border: Border.all(color: appGreen, width: 1.2),
         ),
-        child: Icon(
-          icon,
-          color: appGreen,
-          size: 20,
-        ),
+        child: Icon(icon, color: appGreen, size: 20),
       ),
     );
   }
