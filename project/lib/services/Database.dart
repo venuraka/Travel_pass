@@ -180,7 +180,26 @@ class DatabaseService {
           .map((doc) => PassengerModel.fromMap(doc.data()))
           .toList();
     } catch (e) {
-      debugPrint("Error fetching unregistered passengers: $e");
+      rethrow;
+    }
+  }
+
+  /// Fetches passengers where registered == true for a specific vehicle plate.
+  Future<List<PassengerModel>> getRegisteredPassengers(
+    String vehiclePlate,
+  ) async {
+    try {
+      final querySnapshot = await _db
+          .collection('passenger')
+          .where('vehiclePlate', isEqualTo: vehiclePlate)
+          .where('registered', isEqualTo: true)
+          .get();
+
+      return querySnapshot.docs
+          .map((doc) => PassengerModel.fromMap(doc.data()))
+          .toList();
+    } catch (e) {
+      debugPrint("Error fetching registered passengers: $e");
       rethrow;
     }
   }

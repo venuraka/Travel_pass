@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 
 class InfoCard extends StatelessWidget {
   final String title;
-  final String subtitle;
+  final String? subtitle;
+  final Widget? subtitleWidget;
   final bool showTag; // To toggle the "Daily" ribbon
   final String tagText;
   final Widget trailing; // This is the "Slot" for the Icon or the Price/Date
@@ -11,7 +12,8 @@ class InfoCard extends StatelessWidget {
   const InfoCard({
     super.key,
     required this.title,
-    required this.subtitle,
+    this.subtitle,
+    this.subtitleWidget,
     required this.trailing,
     this.showTag = false,
     this.tagText = "Monthly",
@@ -52,7 +54,9 @@ class InfoCard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          SizedBox(height: showTag ? 12 : 0), // Spacing if tag exists
+                          SizedBox(
+                            height: showTag ? 12 : 0,
+                          ), // Spacing if tag exists
                           Text(
                             title,
                             style: const TextStyle(
@@ -62,13 +66,14 @@ class InfoCard extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Text(
-                            subtitle,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.black54,
-                            ),
-                          ),
+                          subtitleWidget ??
+                              Text(
+                                subtitle ?? '',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.black54,
+                                ),
+                              ),
                         ],
                       ),
                     ),
@@ -84,7 +89,10 @@ class InfoCard extends StatelessWidget {
                   top: 0,
                   left: 0,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
                     decoration: const BoxDecoration(
                       color: Colors.black,
                       borderRadius: BorderRadius.only(
