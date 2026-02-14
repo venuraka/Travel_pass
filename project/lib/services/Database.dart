@@ -237,4 +237,60 @@ class DatabaseService {
           return updates;
         });
   }
+
+  // --- Settings Methods ---
+
+  Future<void> updateDriverSettings(
+    String uid,
+    DateTime? paymentDate,
+    String monthlyAmount,
+    String dailyAmount,
+  ) async {
+    try {
+      await _db.collection('driver').doc(uid).update({
+        'paymentDate': paymentDate != null
+            ? Timestamp.fromDate(paymentDate)
+            : null,
+        'monthlyPaymentAmount': monthlyAmount,
+        'dailyPaymentAmount': dailyAmount,
+      });
+    } catch (e) {
+      debugPrint("Error updating driver settings: $e");
+      rethrow;
+    }
+  }
+
+  Future<void> adjustPassengerPaymentAmounts(
+    String driverId,
+    int delta,
+    String paymentType,
+  ) async {
+    try {
+      final querySnapshot = await _db
+          .collection('passenger')
+          .where('driverId', isEqualTo: driverId)
+          .where('paymentType', isEqualTo: paymentType)
+          .get();
+
+      if (querySnapshot.docs.isEmpty) return;
+
+      final batch = _db.batch();
+      for (var doc in querySnapshot.docs) {
+        final data = doc.data();
+        final currentStr = data['paymentAmount'] as String? ?? '0';
+        final currentVal = int.tryParse(currentStr) ?? 0;
+        final newVal = currentVal + delta;
+
+        batch.update(doc.reference, {'paymentAmount': newVal.toString()});
+      }
+
+      await batch.commit();
+      debugPrint(
+        "Adjusted payment amount by $delta for ${querySnapshot.docs.length} $paymentType passengers.",
+      );
+    } catch (e) {
+      debugPrint("Error batch adjusting $paymentType passengers: $e");
+      rethrow;
+    }
+  }
 }

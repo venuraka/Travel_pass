@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'UpdateRoute.dart'; // Add import at top
+import '../../controllers/SettingsController.dart'; // Import Controller
+import '../Components/CustomSnackBar.dart'; // Import CustomSnackBar
+import 'UpdateRoute.dart';
 
 import '../Components/Header.dart';
 import '../Components/Whitecard.dart';
@@ -16,21 +18,55 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // Style Constants based on your code
   final Color appGreen = const Color(0xFF05A664);
   final Color darkBg = const Color(0xFF121415);
+  final SettingsController _controller =
+      SettingsController(); // Controller Instance
 
   // State Variables
-  int _amount = 1000;
+  int _monthlyAmount = 0;
+  int _dailyAmount = 0;
   DateTime? _selectedDate;
+  bool _isLoading = false; // Loading state
 
-  // Logic to change amount
-  void _incrementAmount() {
-    setState(() {
-      _amount += 100; // Adjust increment step as needed
-    });
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
   }
 
-  void _decrementAmount() {
+  Future<void> _loadSettings() async {
+    setState(() => _isLoading = true);
+    try {
+      final driver = await _controller.getSettings();
+      if (driver != null) {
+        if (mounted) {
+          setState(() {
+            _selectedDate = driver.paymentDate;
+            if (driver.monthlyPaymentAmount != null &&
+                driver.monthlyPaymentAmount!.isNotEmpty) {
+              _monthlyAmount = int.tryParse(driver.monthlyPaymentAmount!) ?? 0;
+            }
+            if (driver.dailyPaymentAmount != null &&
+                driver.dailyPaymentAmount!.isNotEmpty) {
+              _dailyAmount = int.tryParse(driver.dailyPaymentAmount!) ?? 0;
+            }
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint("Error loading settings: $e");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  // Logic to change amounts
+  void _updateAmount(bool isMonthly, int change) {
     setState(() {
-      if (_amount > 0) _amount -= 100;
+      if (isMonthly) {
+        _monthlyAmount += change;
+      } else {
+        _dailyAmount += change;
+      }
     });
   }
 
@@ -38,7 +74,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
+      initialDate: _selectedDate ?? DateTime.now(),
       firstDate: DateTime.now(),
       lastDate: DateTime(2101),
       builder: (context, child) {
@@ -61,11 +97,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  Future<void> _saveSettings() async {
+    setState(() => _isLoading = true);
+    try {
+      await _controller.saveSettings(
+        paymentDate: _selectedDate,
+        monthlyAmount: _monthlyAmount.toString(),
+        dailyAmount: _dailyAmount.toString(),
+      );
+      if (mounted) {
+        CustomSnackBar.showSuccess(
+          context,
+          "Settings saved & Passengers updated!",
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        CustomSnackBar.showError(context, "Failed to save settings: $e");
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Determine height to make the card look like a bottom sheet (approx 50-60% down)
     final double screenHeight = MediaQuery.of(context).size.height;
-    final double cardTopPadding = screenHeight * 0.5;
+    final double cardTopPadding = screenHeight * 0.4; // Giving more space
 
     return Scaffold(
       backgroundColor: darkBg,
@@ -81,153 +141,169 @@ class _SettingsScreenState extends State<SettingsScreen> {
           // --- 2. White Card Content ---
           WhiteCard(
             topPadding: cardTopPadding,
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const SizedBox(height: 20),
-
-                    // --- Date Selection Row ---
-                    InkWell(
-                      onTap: () => _selectDate(context),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(color: Color(0xFF05A664)),
+                  )
+                : SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Text(
-                            _selectedDate == null
-                                ? 'Set Payment Date'
-                                : 'Date: ${_selectedDate!.toLocal().toString().split(' ')[0]}',
-                            style: TextStyle(
-                              color: appGreen,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
+                          const SizedBox(height: 20),
+
+                          // --- Date Selection Row ---
+                          InkWell(
+                            onTap: () => _selectDate(context),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  _selectedDate == null
+                                      ? 'Set Payment Date'
+                                      : 'Date: ${_selectedDate!.toLocal().toString().split(' ')[0]}',
+                                  style: TextStyle(
+                                    color: appGreen,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Icon(
+                                  Icons.calendar_today_outlined,
+                                  color: appGreen,
+                                  size: 20,
+                                ),
+                              ],
                             ),
                           ),
-                          Icon(
-                            Icons.calendar_today_outlined,
-                            color: appGreen,
-                            size: 20,
+
+                          const SizedBox(height: 30),
+
+                          // --- Monthly Payment Section ---
+                          _buildAmountSection(
+                            "Monthly Payment",
+                            _monthlyAmount,
+                            true,
                           ),
+
+                          const SizedBox(height: 20),
+
+                          // --- Daily Payment Section ---
+                          _buildAmountSection(
+                            "Daily Payment",
+                            _dailyAmount,
+                            false,
+                          ),
+
+                          const SizedBox(height: 40),
+
+                          // --- Update Route Button ---
+                          SizedBox(
+                            width: double.infinity,
+                            height: 55,
+                            child: OutlinedButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        const UpdateRouteScreen(),
+                                  ),
+                                );
+                              },
+                              style: OutlinedButton.styleFrom(
+                                side: BorderSide(color: appGreen, width: 2),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10.0),
+                                ),
+                              ),
+                              child: Text(
+                                'Update Route',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: appGreen,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 15),
+
+                          // --- Done Button ---
+                          SizedBox(
+                            width: double.infinity,
+                            height: 55,
+                            child: ElevatedButton(
+                              onPressed: _saveSettings, // Call save method
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: appGreen,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10.0),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: const Text(
+                                'Done',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 30),
                         ],
                       ),
                     ),
-
-                    const SizedBox(height: 40),
-
-                    // --- Payment Label ---
-                    Text(
-                      'Change Payment Amount For All Passengers',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: appGreen,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // --- Counter Row (Minus / Value / Plus) ---
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        // Minus Button
-                        _buildCounterButton(
-                          icon: Icons.remove,
-                          onTap: _decrementAmount,
-                        ),
-
-                        // Amount Text
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 30.0),
-                          child: Text(
-                            'Rs $_amount',
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-
-                        // Plus Button
-                        _buildCounterButton(
-                          icon: Icons.add,
-                          onTap: _incrementAmount,
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 50),
-
-                    // --- Update Route Button ---
-                    SizedBox(
-                      width: double.infinity,
-                      height: 55,
-                      child: OutlinedButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const UpdateRouteScreen(),
-                            ),
-                          );
-                        },
-                        style: OutlinedButton.styleFrom(
-                          side: BorderSide(color: appGreen, width: 2),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10.0),
-                          ),
-                        ),
-                        child: Text(
-                          'Update Route',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: appGreen,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 15),
-
-                    // --- Done Button ---
-                    SizedBox(
-                      width: double.infinity,
-                      height: 55,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          // Save settings logic here
-                          Navigator.pop(context);
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: appGreen,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10.0),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: const Text(
-                          'Done',
-                          style: TextStyle(
-                            fontSize: 18,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 30),
-                  ],
-                ),
-              ),
-            ),
+                  ),
           ),
         ],
       ),
+    );
+  }
+
+  // Improved Reusable Widget for Amount Sections
+  Widget _buildAmountSection(String title, int amount, bool isMonthly) {
+    return Column(
+      children: [
+        Text(
+          title,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: appGreen,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _buildCounterButton(
+              icon: Icons.remove,
+              onTap: () => _updateAmount(isMonthly, -100),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 30.0),
+              child: Text(
+                'Rs $amount',
+                style: const TextStyle(
+                  color: Colors.black,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            _buildCounterButton(
+              icon: Icons.add,
+              onTap: () => _updateAmount(isMonthly, 100),
+            ),
+          ],
+        ),
+      ],
     );
   }
 

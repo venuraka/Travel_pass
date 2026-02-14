@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 class DriverModel {
   final String uid;
   final String name;
@@ -8,6 +10,9 @@ class DriverModel {
   final int? seatCount;
   final String? vehicleType;
   final List<Map<String, dynamic>>? route;
+  final DateTime? paymentDate;
+  final String? monthlyPaymentAmount;
+  final String? dailyPaymentAmount;
 
   DriverModel({
     required this.uid,
@@ -19,6 +24,9 @@ class DriverModel {
     this.seatCount,
     this.vehicleType,
     this.route,
+    this.paymentDate,
+    this.monthlyPaymentAmount,
+    this.dailyPaymentAmount,
   });
 
   Map<String, dynamic> toMap() {
@@ -33,6 +41,11 @@ class DriverModel {
       'vehicleType': vehicleType,
       'role': 'driver',
       'route': route,
+      'paymentDate': paymentDate != null
+          ? Timestamp.fromDate(paymentDate!)
+          : null,
+      'monthlyPaymentAmount': monthlyPaymentAmount,
+      'dailyPaymentAmount': dailyPaymentAmount,
     };
   }
 }
