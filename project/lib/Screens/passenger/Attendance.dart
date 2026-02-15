@@ -232,22 +232,34 @@ class _PassengerAttendaceScreenState extends State<PassengerAttendaceScreen> {
                         },
                         // Ensure 'Today' also respects the attendance status, or use a combination
                         todayBuilder: (context, day, focusedDay) {
-                          final isAttendanceRecorded =
-                              _attendanceStatus[DateTime.utc(
-                                day.year,
-                                day.month,
-                                day.day,
-                              )] !=
-                              null;
+                          final normalizedDay = DateTime.utc(
+                            day.year,
+                            day.month,
+                            day.day,
+                          );
+                          final status = _attendanceStatus[normalizedDay];
+
+                          Color borderColor = Colors.transparent;
+                          if (status == 'Present') {
+                            borderColor = const Color(0xFF05A664);
+                          } else if (status == 'Absent') {
+                            borderColor = Colors.red;
+                          } else if (status == 'Not Marked') {
+                            borderColor = Colors.orange;
+                          }
+
                           return Center(
                             child: Container(
-                              // If attendance is recorded, use that color; otherwise use the 'today' color
-                              decoration: isAttendanceRecorded
-                                  ? _getDayDecoration(day)
-                                  : const BoxDecoration(
-                                      color: Color(0xFF121415), // Today's color
-                                      shape: BoxShape.circle,
-                                    ),
+                              // Today's color with status border
+                              decoration: BoxDecoration(
+                                color: const Color(
+                                  0xFF121415,
+                                ), // Today's fill color
+                                shape: BoxShape.circle,
+                                border: status != null || status == 'Not Marked'
+                                    ? Border.all(color: borderColor, width: 3.0)
+                                    : null,
+                              ),
                               width: 40,
                               height: 40,
                               alignment: Alignment.center,
@@ -280,14 +292,23 @@ class _PassengerAttendaceScreenState extends State<PassengerAttendaceScreen> {
 
           // --- Legend for Attendance Status ---
           Padding(
-            padding: const EdgeInsets.all(40.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            padding: const EdgeInsets.symmetric(
+              horizontal: 20.0,
+              vertical: 30.0,
+            ),
+            child: Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 20.0,
+              runSpacing: 10.0,
               children: [
                 _buildLegendItem('Present', const Color(0xFF05A664)),
                 _buildLegendItem('Absent', Colors.red),
                 _buildLegendItem('Not Marked', Colors.orange),
-                _buildLegendItem('Today', const Color(0xFF121415)),
+                _buildLegendItem(
+                  'Today',
+                  const Color(0xFF121415),
+                  isToday: true,
+                ),
               ],
             ),
           ),
@@ -297,16 +318,28 @@ class _PassengerAttendaceScreenState extends State<PassengerAttendaceScreen> {
   }
 
   // Helper widget to build the legend items
-  Widget _buildLegendItem(String title, Color color) {
+  Widget _buildLegendItem(String title, Color color, {bool isToday = false}) {
     return Row(
+      mainAxisSize: MainAxisSize.min, // Use min size for Wrap
       children: [
         Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          width: 14,
+          height: 14,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            border: isToday ? Border.all(color: Colors.grey, width: 2) : null,
+          ),
         ),
         const SizedBox(width: 8),
-        Text(title, style: const TextStyle(fontSize: 14)),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Color(0xFF121415),
+          ),
+        ),
       ],
     );
   }
