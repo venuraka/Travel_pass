@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../passenger/Updates.dart';
 import '../passenger/PaymentHistory.dart';
 import 'Attendance.dart';
@@ -38,6 +39,7 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
   PassengerModel? _passenger;
   List<Map<String, dynamic>> _datesToMark = [];
   int _unreadAlertsCount = 0;
+  String? _driverPhone;
 
   @override
   void initState() {
@@ -64,6 +66,7 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
           _passenger = data['passenger'] as PassengerModel;
           _datesToMark = List<Map<String, dynamic>>.from(data['datesToMark']);
           _unreadAlertsCount = data['unreadCount'] as int? ?? 0;
+          _driverPhone = data['driverPhone'] as String?;
           // We can also store the attendanceDoc if needed for history view
           _isLoading = false;
         });
@@ -242,8 +245,33 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
         _contactIcon(
           Icons.call_outlined,
           'Call',
-          onPressed: () {
-            // TODO: Implement call functionality
+          onPressed: () async {
+            if (_driverPhone != null && _driverPhone!.isNotEmpty) {
+              final Uri launchUri = Uri(scheme: 'tel', path: _driverPhone!);
+              try {
+                if (await canLaunchUrl(launchUri)) {
+                  await launchUrl(launchUri);
+                } else {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Could not launch dialer.")),
+                    );
+                  }
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text("Error launching call: $e")),
+                  );
+                }
+              }
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Driver phone number not available."),
+                ),
+              );
+            }
           },
         ),
         _contactIcon(

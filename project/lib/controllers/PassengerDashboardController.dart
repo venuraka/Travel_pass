@@ -117,11 +117,21 @@ class PassengerDashboardController {
         // Non-critical, continue
       }
 
+      // 6. Get Driver Phone Number
+      String? driverPhone;
+      try {
+        final driverData = await _dbService.getDriverData(passenger.driverId);
+        driverPhone = driverData?.phone;
+      } catch (e) {
+        debugPrint("Error fetching driver phone: $e");
+      }
+
       return {
         'passenger': passenger,
         'datesToMark': datesToMark,
         'attendanceDoc': attendanceDoc,
         'unreadCount': unreadCount,
+        'driverPhone': driverPhone,
       };
     } catch (e) {
       debugPrint("Error loading dashboard data: $e");
