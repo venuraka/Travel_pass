@@ -5,6 +5,7 @@ import 'Screens/Driver/Dashboard.dart';
 import 'Screens/UserRegistration/SignUp.dart';
 import 'Screens/passenger/Dashboard.dart';
 import 'firebase_options.dart';
+import 'utils/AuthWrapper.dart';
 
 void main() async {
   // 1. Ensures Flutter widgets are ready before initializing Firebase
