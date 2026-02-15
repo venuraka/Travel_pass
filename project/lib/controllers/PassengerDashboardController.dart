@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -95,10 +96,32 @@ class PassengerDashboardController {
       // The View expects a list for history? The previous view code for 'Attendance History' screen likely needs this.
       // But for Dashboard, we just return the attendanceDoc.
 
+      // 5. Get Alert Unread Count
+      int unreadCount = 0;
+      try {
+        // Fetch updates (taking the latest ones from the stream snapshot)
+        final updatesStream = _dbService.getUpdates(passenger.driverId);
+        final updates = await updatesStream.first; // Get first batch
+
+        final prefs = await SharedPreferences.getInstance();
+        final lastCheckMillis = prefs.getInt('lastAlertCheckTime') ?? 0;
+        final lastCheckTime = DateTime.fromMillisecondsSinceEpoch(
+          lastCheckMillis,
+        );
+
+        unreadCount = updates
+            .where((u) => u.timestamp.isAfter(lastCheckTime))
+            .length;
+      } catch (e) {
+        debugPrint("Error fetching unread count: $e");
+        // Non-critical, continue
+      }
+
       return {
         'passenger': passenger,
         'datesToMark': datesToMark,
         'attendanceDoc': attendanceDoc,
+        'unreadCount': unreadCount,
       };
     } catch (e) {
       debugPrint("Error loading dashboard data: $e");
@@ -117,5 +140,13 @@ class PassengerDashboardController {
 
   DateTime _normalizeDate(DateTime dt) {
     return DateTime.utc(dt.year, dt.month, dt.day);
+  }
+
+  Future<void> markAlertsAsRead() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(
+      'lastAlertCheckTime',
+      DateTime.now().millisecondsSinceEpoch,
+    );
   }
 }

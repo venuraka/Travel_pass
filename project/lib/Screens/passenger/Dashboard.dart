@@ -37,6 +37,7 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
 
   PassengerModel? _passenger;
   List<Map<String, dynamic>> _datesToMark = [];
+  int _unreadAlertsCount = 0;
 
   @override
   void initState() {
@@ -62,6 +63,7 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
         setState(() {
           _passenger = data['passenger'] as PassengerModel;
           _datesToMark = List<Map<String, dynamic>>.from(data['datesToMark']);
+          _unreadAlertsCount = data['unreadCount'] as int? ?? 0;
           // We can also store the attendanceDoc if needed for history view
           _isLoading = false;
         });
@@ -247,33 +249,74 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
         _contactIcon(
           Icons.notifications_none,
           'Alerts',
-          onPressed: () {
-            Navigator.push(
+          badgeCount: _unreadAlertsCount,
+          onPressed: () async {
+            await Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => UpdatesScreen()),
+              MaterialPageRoute(
+                builder: (context) =>
+                    UpdatesScreen(driverId: _passenger?.driverId),
+              ),
             );
+            // Refresh data when returning to update badge
+            _loadData();
           },
         ),
       ],
     );
   }
 
-  Widget _contactIcon(IconData icon, String label, {VoidCallback? onPressed}) {
+  Widget _contactIcon(
+    IconData icon,
+    String label, {
+    VoidCallback? onPressed,
+    int badgeCount = 0,
+  }) {
     return InkWell(
       onTap: onPressed,
       borderRadius: BorderRadius.circular(40), // For a circular ripple effect
       child: Column(
         children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: _primaryGreen.withOpacity(
-                0.1,
-              ), // Very light green background
-            ),
-            child: Icon(icon, color: _primaryGreen, size: 30),
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _primaryGreen.withOpacity(
+                    0.1,
+                  ), // Very light green background
+                ),
+                child: Icon(icon, color: _primaryGreen, size: 30),
+              ),
+              if (badgeCount > 0)
+                Positioned(
+                  right: -2,
+                  top: -2,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 22,
+                      minHeight: 22,
+                    ),
+                    child: Text(
+                      badgeCount.toString(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(height: 8),
           Text(

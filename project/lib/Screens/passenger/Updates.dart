@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
-// Assuming Topic.dart contains PageHeader or similar components
-// Keeping the import but replacing its usage with a custom Row for the back button
+import '../../services/Database.dart';
+import '../../models/UpdateModel.dart';
+import '../../controllers/PassengerDashboardController.dart';
 
 class UpdatesScreen extends StatefulWidget {
-  const UpdatesScreen({super.key});
+  final String? driverId;
+  const UpdatesScreen({super.key, this.driverId});
 
   @override
   State<UpdatesScreen> createState() => _UpdatesScreenState();
@@ -13,34 +14,29 @@ class UpdatesScreen extends StatefulWidget {
 
 class _UpdatesScreenState extends State<UpdatesScreen> {
   final ScrollController _scrollController = ScrollController();
+  final DatabaseService _dbService = DatabaseService();
+  final PassengerDashboardController _controller =
+      PassengerDashboardController();
+
+  Stream<List<UpdateModel>>? _updatesStream;
 
   String get _dateString {
     final now = DateTime.now();
     return DateFormat.yMMMd().format(now);
   }
 
-  // Mutable list to simulate adding messages with Timestamps
-  final List<Map<String, dynamic>> _announcements = [
-    {
-      "role": "admin",
-      "label": "",
-      "content": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
-      "time": DateTime.now().subtract(const Duration(hours: 2)),
-    },
-    {
-      "role": "other",
-      "label": "Passenger",
-      "content": "Vestibulum quam purus, scelerisque vitae lorem et.",
-      "time": DateTime.now().subtract(const Duration(hours: 1, minutes: 30)),
-    },
-    {
-      "role": "admin",
-      "label": "You",
-      "content":
-          "Vestibulum quam purus, scelerisque vitae lorem et, congue ultrices purus.",
-      "time": DateTime.now().subtract(const Duration(minutes: 15)),
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    if (widget.driverId != null) {
+      _updatesStream = _dbService.getUpdates(widget.driverId!);
+    }
+    _markAsRead();
+  }
+
+  Future<void> _markAsRead() async {
+    await _controller.markAlertsAsRead();
+  }
 
   @override
   void dispose() {
@@ -103,84 +99,120 @@ class _UpdatesScreenState extends State<UpdatesScreen> {
             Expanded(
               child: Container(
                 color: Colors.white,
-                child: ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 20,
-                  ),
-                  itemCount: _announcements.length,
-                  itemBuilder: (context, index) {
-                    final item = _announcements[index];
-                    // IMPORTANT: Swapped logic for 'isMe' alignment.
-                    // If 'role' is 'admin' (which is 'You' in your data), it should align to the RIGHT.
-                    // If 'role' is 'other' ('Passenger'), it should align to the LEFT.
-                    // I will stick to your original logic: isMe = 'admin' aligns to CrossAxisAlignment.start (left)
-                    final bool isMe = item['role'] == 'admin';
+                child: _updatesStream == null
+                    ? const Center(child: Text("No driver assigned."))
+                    : StreamBuilder<List<UpdateModel>>(
+                        stream: _updatesStream,
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const Center(
+                              child: CircularProgressIndicator(
+                                color: Color(0xFF05A664),
+                              ),
+                            );
+                          }
 
-                    // Format the time
-                    final DateTime msgTime = item['time'] ?? DateTime.now();
-                    final String timeString = DateFormat(
-                      'h:mm a, MMM d',
-                    ).format(msgTime);
+                          if (snapshot.hasError) {
+                            return Center(
+                              child: Text('Error: ${snapshot.error}'),
+                            );
+                          }
 
-                    return Align(
-                      alignment: isMe
-                          ? Alignment.centerLeft
-                          : Alignment.centerRight,
-                      child: Padding(
-                        padding: const EdgeInsets.only(bottom: 24.0),
-                        child: Column(
-                          crossAxisAlignment: isMe
-                              ? CrossAxisAlignment.start
-                              : CrossAxisAlignment.end,
-                          children: [
-                            // Label (Top)
-                            if (item['label'] != "")
-                              Padding(
-                                padding: EdgeInsets.only(
-                                  bottom: 6.0,
-                                  left: isMe ? 4 : 0,
-                                  right: isMe ? 0 : 4,
-                                ),
-                                child: Text(
-                                  item['label'],
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w500,
+                          final updates = snapshot.data ?? [];
+
+                          if (updates.isEmpty) {
+                            return const Center(
+                              child: Text(
+                                "No updates yet.",
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                            );
+                          }
+
+                          return ListView.builder(
+                            controller: _scrollController,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 20,
+                            ),
+                            itemCount: updates.length,
+                            itemBuilder: (context, index) {
+                              final item = updates[index];
+                              // Logic: 'admin' (driver) is the sender.
+                              // If role == 'passenger', it is "me".
+                              final bool isMe = item.role == 'passenger';
+
+                              // Format the time
+                              final String timeString = DateFormat(
+                                'h:mm a, MMM d',
+                              ).format(item.timestamp);
+
+                              // Label logic
+                              String label = item.label;
+                              if (item.role == 'admin') {
+                                label = "Driver";
+                              }
+
+                              return Align(
+                                alignment: isMe
+                                    ? Alignment.centerRight
+                                    : Alignment.centerLeft,
+                                child: Padding(
+                                  padding: const EdgeInsets.only(bottom: 24.0),
+                                  child: Column(
+                                    crossAxisAlignment: isMe
+                                        ? CrossAxisAlignment.end
+                                        : CrossAxisAlignment.start,
+                                    children: [
+                                      // Label (Top)
+                                      if (label.isNotEmpty)
+                                        Padding(
+                                          padding: EdgeInsets.only(
+                                            bottom: 6.0,
+                                            left: isMe ? 0 : 4,
+                                            right: isMe ? 4 : 0,
+                                          ),
+                                          child: Text(
+                                            label,
+                                            style: TextStyle(
+                                              color: Colors.grey[600],
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ),
+
+                                      // Bubble (Middle)
+                                      _AnnouncementBubble(
+                                        text: item.content,
+                                        isMe: isMe,
+                                      ),
+
+                                      // Date & Time (Bottom)
+                                      Padding(
+                                        padding: EdgeInsets.only(
+                                          top: 6.0,
+                                          left: isMe ? 0 : 4,
+                                          right: isMe ? 4 : 0,
+                                        ),
+                                        child: Text(
+                                          timeString,
+                                          style: TextStyle(
+                                            color: Colors.grey[400],
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w400,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ),
-
-                            // Bubble (Middle)
-                            _AnnouncementBubble(
-                              text: item['content'],
-                              isMe: isMe,
-                            ),
-
-                            // Date & Time (Bottom)
-                            Padding(
-                              padding: EdgeInsets.only(
-                                top: 6.0,
-                                left: isMe ? 4 : 0,
-                                right: isMe ? 0 : 4,
-                              ),
-                              child: Text(
-                                timeString,
-                                style: TextStyle(
-                                  color: Colors.grey[400],
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w400,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                              );
+                            },
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
               ),
             ),
             // *** The input/typing area is now completely absent from the Column's children. ***
