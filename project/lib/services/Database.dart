@@ -206,6 +206,23 @@ class DatabaseService {
     }
   }
 
+  /// Fetches all passengers assigned to a specific driver.
+  Future<List<PassengerModel>> getPassengersByDriver(String driverId) async {
+    try {
+      final querySnapshot = await _db
+          .collection('passenger')
+          .where('driverId', isEqualTo: driverId)
+          .get();
+
+      return querySnapshot.docs
+          .map((doc) => PassengerModel.fromMap(doc.data()))
+          .toList();
+    } catch (e) {
+      debugPrint("Error fetching passengers by driver: $e");
+      rethrow;
+    }
+  }
+
   // --- Updates Methods ---
 
   /// Saves a new update/announcement to Firestore.
