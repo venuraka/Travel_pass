@@ -68,7 +68,15 @@ class PassengerDashboardController {
       // Filter and Sort
       List<DateTime> sortedDates = allPollDates.toList()..sort();
 
+      // Current UTC date for comparison
+      final today = _normalizeDate(DateTime.now());
+
       for (var date in sortedDates) {
+        // Exclude past dates from the "To Mark" list
+        if (date.isBefore(today)) {
+          continue;
+        }
+
         final dateKey =
             "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
 
