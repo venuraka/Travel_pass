@@ -9,11 +9,12 @@ import 'Settings.dart';
 import 'StartJourney.dart';
 import 'TodayPassengers.dart';
 import 'Updates.dart';
+import '../../controllers/DriverDashboardController.dart'; // Added
 
 const Color primaryGreen = Color(0xFF05A664);
 const Color textDark = Color(0xFF121415);
 const Color textGrey = Color(0xFF909090);
-const Color bgOffWhite = Color(0xFFF8F9FC); // New background color for contrast
+const Color bgOffWhite = Color(0xFFF8F9FC);
 
 class DriverDashboardScreen extends StatefulWidget {
   const DriverDashboardScreen({super.key});
@@ -24,11 +25,31 @@ class DriverDashboardScreen extends StatefulWidget {
 
 class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   int _selectedIndex = 2;
+  final DriverDashboardController _controller =
+      DriverDashboardController(); // Added
+  int _todayPassengerCount = 0; // Added state variable
+  bool _isLoadingCount = true;
+
+  @override // Added initState
+  void initState() {
+    super.initState();
+    _loadDashboardData();
+  }
+
+  Future<void> _loadDashboardData() async {
+    final count = await _controller.getTodayPassengerCount();
+    if (mounted) {
+      setState(() {
+        _todayPassengerCount = count;
+        _isLoadingCount = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bgOffWhite, // Sets a canvas for the cards to sit on
+      backgroundColor: bgOffWhite,
       body: _getSelectedScreen(),
       bottomNavigationBar: CustomBottomNavBar(
         selectedIndex: _selectedIndex,
@@ -43,12 +64,18 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
 
   Widget _getSelectedScreen() {
     switch (_selectedIndex) {
-      case 0: return const PassengerScreen();
-      case 1: return const PaymentDetailsScreen();
-      case 2: return _buildDashboardContent();
-      case 3: return const UpdatesScreen();
-      case 4: return const AttendanceScreen();
-      default: return _buildDashboardContent();
+      case 0:
+        return const PassengerScreen();
+      case 1:
+        return const PaymentDetailsScreen();
+      case 2:
+        return _buildDashboardContent();
+      case 3:
+        return const UpdatesScreen();
+      case 4:
+        return const AttendanceScreen();
+      default:
+        return _buildDashboardContent();
     }
   }
 
@@ -56,7 +83,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     return SafeArea(
       child: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0), // Increased padding for breathing room
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -102,11 +129,16 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                       ],
                     ),
                     child: IconButton(
-                      icon: const Icon(Icons.settings_outlined, color: textDark),
+                      icon: const Icon(
+                        Icons.settings_outlined,
+                        color: textDark,
+                      ),
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const SettingsScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => const SettingsScreen(),
+                          ),
                         );
                       },
                     ),
@@ -132,7 +164,10 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                 child: const TextField(
                   decoration: InputDecoration(
                     hintText: 'Search',
-                    hintStyle: TextStyle(color: Color(0xFFB0B0B0), fontSize: 14),
+                    hintStyle: TextStyle(
+                      color: Color(0xFFB0B0B0),
+                      fontSize: 14,
+                    ),
                     prefixIcon: Icon(Icons.search, color: primaryGreen),
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.symmetric(vertical: 16.0),
@@ -154,14 +189,17 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
               const SizedBox(height: 15),
 
               // --- Hero Card (Today's Passengers) ---
-              // This gets special treatment because it's the most important data point
               _buildHeroCard(
                 title: "Today's Passengers",
-                value: '27',
+                value: _isLoadingCount
+                    ? '...'
+                    : '$_todayPassengerCount', // Updated
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const TodaypassengersScreen()),
+                    MaterialPageRoute(
+                      builder: (_) => const TodaypassengersScreen(),
+                    ),
                   );
                 },
               ),
@@ -194,7 +232,9 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const PaymentRemindersScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => const PaymentRemindersScreen(),
+                          ),
                         );
                       },
                     ),
@@ -245,7 +285,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                         ),
                       ),
                       SizedBox(width: 10),
-                      Icon(Icons.arrow_forward_rounded)
+                      Icon(Icons.arrow_forward_rounded),
                     ],
                   ),
                 ),
@@ -317,7 +357,11 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                 color: Colors.white.withOpacity(0.2),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.people_alt_rounded, color: Colors.white, size: 28),
+              child: const Icon(
+                Icons.people_alt_rounded,
+                color: Colors.white,
+                size: 28,
+              ),
             ),
           ],
         ),
@@ -371,10 +415,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
             const SizedBox(height: 4),
             const Text(
               "Tap to view",
-              style: TextStyle(
-                fontSize: 12,
-                color: textGrey,
-              ),
+              style: TextStyle(fontSize: 12, color: textGrey),
             ),
           ],
         ),
