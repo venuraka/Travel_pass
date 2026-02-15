@@ -5,7 +5,7 @@ import '../../utils/AuthExceptionHandler.dart';
 import 'SignUp.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../controllers/AccessController.dart';
-import '../passenger/Updates.dart';
+import '../passenger/Dashboard.dart';
 import '../passenger/PendingApproval.dart';
 import '../UserRegistration/UserSelection.dart';
 import '../Components/CustomSnackBar.dart';
@@ -79,7 +79,7 @@ class _LoginPageState extends State<LoginPage> {
     if (isApproved) {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const UpdatesScreen()),
+        MaterialPageRoute(builder: (context) => const PassengerDashboardApp()),
       );
     } else {
       // If not approved (or not found as driver/passenger yet - e.g. new user)
@@ -109,7 +109,9 @@ class _LoginPageState extends State<LoginPage> {
         if (isPassenger.data()?['registered'] == true) {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => const UpdatesScreen()),
+            MaterialPageRoute(
+              builder: (context) => const PassengerDashboardApp(),
+            ),
           );
         } else {
           Navigator.pushReplacement(

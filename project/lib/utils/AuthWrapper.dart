@@ -2,7 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import '../Screens/UserRegistration/Login.dart';
 import '../Screens/UserRegistration/UserSelection.dart';
-import '../Screens/passenger/Updates.dart';
+import '../Screens/passenger/Dashboard.dart';
 import '../Screens/passenger/PendingApproval.dart';
 import '../controllers/AccessController.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -65,7 +65,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
               return const UserSelectionScreen();
             } else if (role == 'passenger') {
               if (isApproved) {
-                return const UpdatesScreen();
+                return const PassengerDashboardApp();
               } else {
                 return const PendingApprovalScreen();
               }
