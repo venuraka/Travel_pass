@@ -1,0 +1,113 @@
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+import '../services/Database.dart';
+import '../models/PassengerModel.dart';
+import '../models/PollModel.dart';
+import '../models/AttendanceModel.dart';
+
+class PassengerDashboardController {
+  final DatabaseService _dbService = DatabaseService();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  // Observable state (simplified for this architecture)
+  // In a full GetX/Provider setup, these would be reactive.
+  // Here, the View will call methods and setState based on Future results.
+
+  Future<Map<String, dynamic>> loadDashboardData() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        return {'error': 'User not logged in'};
+      }
+
+      // 1. Get Passenger Details
+      DocumentSnapshot passengerDoc = await FirebaseFirestore.instance
+          .collection('passenger')
+          .doc(user.uid)
+          .get();
+
+      if (!passengerDoc.exists) {
+        return {'error': 'Passenger profile not found'};
+      }
+
+      PassengerModel passenger = PassengerModel.fromMap(
+        passengerDoc.data() as Map<String, dynamic>,
+      );
+
+      if (passenger.driverId.isEmpty) {
+        return {'error': 'No driver assigned'};
+      }
+
+      // 2. Get Driver's Polls
+      List<PollModel> polls = await _dbService.getPollsByDriver(
+        passenger.driverId,
+      );
+
+      // 3. Get Existing Attendance (Single Document)
+      AttendanceModel? attendanceDoc = await _dbService.getPassengerAttendance(
+        user.uid,
+      );
+
+      // 4. Calculate "Dates to Mark"
+      List<Map<String, dynamic>> datesToMark = [];
+
+      // Get the map of marked dates: Key='YYYY-MM-DD', Value=Status
+      Map<String, String> markedMap = attendanceDoc?.records ?? {};
+
+      // Flatten all poll active dates
+      Set<DateTime> allPollDates = {};
+      for (var poll in polls) {
+        for (var date in poll.activeDates) {
+          allPollDates.add(_normalizeDate(date));
+        }
+      }
+
+      // Filter and Sort
+      List<DateTime> sortedDates = allPollDates.toList()..sort();
+
+      for (var date in sortedDates) {
+        final dateKey =
+            "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+
+        // If NOT in the marked map
+        if (!markedMap.containsKey(dateKey)) {
+          datesToMark.add({
+            'id': date.toIso8601String(), // unique key
+            'date': date,
+            'label': dateKey,
+            'status': 'Pending',
+          });
+        }
+      }
+
+      // For history, we just pass the map or convert it if needed.
+      // The View expects a list for history? The previous view code for 'Attendance History' screen likely needs this.
+      // But for Dashboard, we just return the attendanceDoc.
+
+      return {
+        'passenger': passenger,
+        'datesToMark': datesToMark,
+        'attendanceDoc': attendanceDoc,
+      };
+    } catch (e) {
+      debugPrint("Error loading dashboard data: $e");
+      return {'error': e.toString()};
+    }
+  }
+
+  Future<void> markAttendance({
+    required String passengerId,
+    required String driverId,
+    required DateTime date,
+    required String status,
+  }) async {
+    await _dbService.updateAttendance(passengerId, driverId, date, status);
+  }
+
+  DateTime _normalizeDate(DateTime dt) {
+    return DateTime.utc(dt.year, dt.month, dt.day);
+  }
+}

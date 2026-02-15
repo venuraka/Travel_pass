@@ -4,11 +4,14 @@ import '../passenger/PaymentHistory.dart';
 import 'Attendance.dart';
 import 'EditDetails.dart';
 import 'TrackVehicle.dart';
+import '../../controllers/PassengerDashboardController.dart';
+import '../../models/PassengerModel.dart';
 
 // --- Color Palette (Updated and Finalized for Light Theme) ---
 // 0xFF05A664 -> Primary Green (Action/Accent)
 // 0xFF121415 -> Dark Text (Primary foreground/Text)
 // 0xFFF8F9FC -> Very Light Background/Card Color (Unified light mode background)
+// const Color _primaryGreen = Color(0xFF05A664);
 const Color _primaryGreen = Color(0xFF05A664);
 const Color _darkText = Color(0xFF121415);
 const Color _secondaryGray = Color(
@@ -18,13 +21,6 @@ const Color _lightBackground = Color(0xFFF8F9FC); // Main background
 const Color _cardColor =
     Colors.white; // Using pure white for cards/surfaces on the light background
 
-// --- Mock Data for Attendance Marking (Date-based) ---
-final List<Map<String, String>> todayDateList = [
-  {'id': '2025-11-24', 'label': '2025-11-24', 'status': 'Pending'},
-  {'id': '2025-11-23', 'label': '2025-11-23', 'status': 'Pending'},
-  {'id': '2025-11-22', 'label': '2025-11-22', 'status': 'Pending'},
-];
-
 class PassengerDashboardApp extends StatefulWidget {
   const PassengerDashboardApp({super.key});
 
@@ -33,12 +29,44 @@ class PassengerDashboardApp extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<PassengerDashboardApp> {
-  // Use a mutable list of date-based items for state management
-  final List<Map<String, String>> _datesToMark = List.from(todayDateList);
+  final PassengerDashboardController _controller =
+      PassengerDashboardController();
 
-  // Helper method to find the correct index for restoration (crucial for UNDO)
-  int _findOriginalIndex(Map<String, String> item) {
-    return todayDateList.indexWhere((i) => i['id'] == item['id']);
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  PassengerModel? _passenger;
+  List<Map<String, dynamic>> _datesToMark = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    final data = await _controller.loadDashboardData();
+
+    if (mounted) {
+      if (data.containsKey('error')) {
+        setState(() {
+          _errorMessage = data['error'];
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _passenger = data['passenger'] as PassengerModel;
+          _datesToMark = List<Map<String, dynamic>>.from(data['datesToMark']);
+          // We can also store the attendanceDoc if needed for history view
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -51,67 +79,77 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
         elevation: 0,
         toolbarHeight: 0,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.only(top: 15.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: <Widget>[
-            // Greeting Card
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: _buildGreetingAndStatusCard(),
-            ),
-            const SizedBox(height: 30),
-
-            // All subsequent elements are wrapped in padding
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator(color: _primaryGreen))
+          : _errorMessage != null
+          ? Center(
+              child: Text(
+                _errorMessage!,
+                style: const TextStyle(color: Colors.red),
+              ),
+            )
+          : SingleChildScrollView(
+              padding: const EdgeInsets.only(top: 15.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Primary Action Button
-                  _buildFindVehicleButton(context),
-                  const SizedBox(height: 30),
-
-                  // Quick Contact Bar
-                  _buildQuickContactBar(),
-                  const SizedBox(height: 30),
-
-                  // ATTENDANCE CARD - NOW DATE-BASED
-                  _buildAttendanceCard(),
-                  const SizedBox(height: 30),
-
-                  // History Action Tiles
-                  _buildHistoryTile(
-                    title: 'Attendance History',
-                    icon: Icons.history_edu_outlined,
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => PassengerAttendaceScreen(),
-                        ),
-                      );
-                    },
+                children: <Widget>[
+                  // Greeting Card
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: _buildGreetingAndStatusCard(),
                   ),
-                  _buildHistoryTile(
-                    title: 'Payment History',
-                    icon: Icons.account_balance_wallet_outlined,
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => PaymentHistoryScreen(),
+                  const SizedBox(height: 30),
+
+                  // All subsequent elements are wrapped in padding
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Primary Action Button
+                        _buildFindVehicleButton(context),
+                        const SizedBox(height: 30),
+
+                        // Quick Contact Bar
+                        _buildQuickContactBar(),
+                        const SizedBox(height: 30),
+
+                        // ATTENDANCE CARD - NOW DATE-BASED
+                        _buildAttendanceCard(),
+                        const SizedBox(height: 30),
+
+                        // History Action Tiles
+                        _buildHistoryTile(
+                          title: 'Attendance History',
+                          icon: Icons.history_edu_outlined,
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const PassengerAttendaceScreen(),
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
+                        _buildHistoryTile(
+                          title: 'Payment History',
+                          icon: Icons.account_balance_wallet_outlined,
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => PaymentHistoryScreen(),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -162,7 +200,7 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
       children: [
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
+          children: [
             Text(
               'Good Morning,',
               style: TextStyle(
@@ -172,8 +210,8 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
               ),
             ),
             Text(
-              'Venuraka',
-              style: TextStyle(
+              _passenger?.name ?? 'Passenger',
+              style: const TextStyle(
                 fontSize: 32,
                 fontWeight: FontWeight.w900,
                 color: _darkText,
@@ -306,21 +344,15 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
     );
   }
 
-  Widget _buildAttendanceDismissibleRow(Map<String, String> item) {
+  Widget _buildAttendanceDismissibleRow(Map<String, dynamic> item) {
     final Key key = ValueKey(item['id']);
     final Color presentColor = _primaryGreen;
     final Color absentColor = Colors.red.shade600;
 
-    // Use a unique index for restoration since the list position changes on removal
-    // The original index in the static list is a reliable marker.
-    final int originalIndex = _findOriginalIndex(item);
-    late Map<String, String> dismissedItem =
-        item; // Store dismissed item details
-
     return Dismissible(
       key: key,
       direction: DismissDirection.horizontal,
-      onDismissed: (direction) {
+      onDismissed: (direction) async {
         String status = '';
         if (direction == DismissDirection.startToEnd) {
           status = 'Present';
@@ -328,40 +360,41 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
           status = 'Absent';
         }
 
-        // Remove the item from the state
+        // Optimistically remove from UI
+        final removedItem = item;
+        final removedIndex = _datesToMark.indexOf(item);
+
         setState(() {
-          _datesToMark.removeWhere((i) => i['id'] == item['id']);
+          _datesToMark.remove(item);
         });
 
-        // Show SnackBar with undo action
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${item['label']} marked as $status.'),
-            action: SnackBarAction(
-              label: 'UNDO',
-              textColor: _primaryGreen,
-              onPressed: () {
-                // Restore the item at its original position in the static list
-                setState(() {
-                  // Find the correct insertion point relative to the original static list
-                  int insertIndex = 0;
-                  for (int i = 0; i < todayDateList.length; i++) {
-                    if (i == originalIndex) {
-                      insertIndex = i;
-                      break;
-                    }
-                    if (_datesToMark.contains(todayDateList[i])) {
-                      insertIndex++;
-                    }
-                  }
+        // Call Controller to save
+        try {
+          if (_passenger != null) {
+            await _controller.markAttendance(
+              passengerId: _passenger!.uid,
+              driverId: _passenger!.driverId,
+              date: item['date'] as DateTime,
+              status: status,
+            );
+          }
 
-                  // Insert the item at the calculated position
-                  _datesToMark.insert(insertIndex, dismissedItem);
-                });
-              },
-            ),
-          ),
-        );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('${item['label']} marked as $status.')),
+            );
+          }
+        } catch (e) {
+          // Revert on error (optional, but good UX)
+          if (mounted) {
+            setState(() {
+              _datesToMark.insert(removedIndex, removedItem);
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text("Error marking attendance: $e")),
+            );
+          }
+        }
       },
 
       // Swipe RIGHT (Mark Present)
@@ -409,8 +442,8 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
 
       // The main content of the row
       child: _buildAttendanceRowContent(
-        dateLabel: item['label']!,
-        status: item['status']!,
+        dateLabel: item['label']! as String,
+        status: item['status']! as String,
       ),
     );
   }

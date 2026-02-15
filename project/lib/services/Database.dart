@@ -5,7 +5,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/DriverModel.dart';
 import '../models/PassengerModel.dart';
 import '../models/PollModel.dart';
-import '../models/UpdateModel.dart'; // Added
+import '../models/UpdateModel.dart';
+import '../models/AttendanceModel.dart'; // Added // Added
 
 class DatabaseService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -290,6 +291,53 @@ class DatabaseService {
       );
     } catch (e) {
       debugPrint("Error batch adjusting $paymentType passengers: $e");
+      rethrow;
+    }
+  }
+
+  // --- Attendance Methods ---
+
+  /// Updates the attendance record for a passenger for a specific date.
+  /// Uses a single document per passenger (doc ID = passengerId).
+  Future<void> updateAttendance(
+    String passengerId,
+    String driverId,
+    DateTime date,
+    String status,
+  ) async {
+    try {
+      final dateKey =
+          "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+
+      final docRef = _db.collection('attendance').doc(passengerId);
+
+      // Use set with merge to create if not exists, or update if exists
+      // We update the specific key in the 'records' map
+      await docRef.set({
+        'id': passengerId,
+        'driverId': driverId,
+        'lastUpdated': Timestamp.now(),
+        // Map syntax for updating a specific key in a nested map field (dot notation)
+        // Note: In standard set(merge: true), dot notation for keys works if the parent exists.
+        // However, safely we can just merge the map.
+        'records': {dateKey: status},
+      }, SetOptions(merge: true));
+    } catch (e) {
+      debugPrint("Error updating attendance: $e");
+      rethrow;
+    }
+  }
+
+  /// Fetches the single attendance document for a passenger.
+  Future<AttendanceModel?> getPassengerAttendance(String passengerId) async {
+    try {
+      final doc = await _db.collection('attendance').doc(passengerId).get();
+      if (doc.exists && doc.data() != null) {
+        return AttendanceModel.fromMap(doc.data()!, doc.id);
+      }
+      return null;
+    } catch (e) {
+      debugPrint("Error fetching attendance: $e");
       rethrow;
     }
   }

@@ -35,8 +35,8 @@ class MyApp extends StatelessWidget {
       ),
 
       // Set the initial route to your corrected SignUp Page
-      // home: const PassengerDashboardApp(),
-      home: const DriverDashboardScreen(),
+      home: const PassengerDashboardApp(),
+      // home: const DriverDashboardScreen(),
     );
   }
 }
