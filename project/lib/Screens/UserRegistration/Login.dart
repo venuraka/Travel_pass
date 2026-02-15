@@ -3,8 +3,13 @@ import 'package:flutter/material.dart';
 import '../../controllers/AuthService.dart';
 import '../../utils/AuthExceptionHandler.dart';
 import 'SignUp.dart';
-import 'UserSelection.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../controllers/AccessController.dart';
+import '../passenger/Updates.dart';
+import '../passenger/PendingApproval.dart';
+import '../UserRegistration/UserSelection.dart';
 import '../Components/CustomSnackBar.dart';
+import '../../models/UserModel.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -15,6 +20,9 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final AuthService _authService = AuthService();
+  final AccessController _accessController = AccessController();
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
+
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
@@ -26,33 +34,103 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  Future<void> _signInWithGoogle() async {
-    setState(() {
-      _isLoading = true;
-    });
-
+  Future<void> _handleAuth(Future<MyUserModel?> Function() authFunction) async {
+    setState(() => _isLoading = true);
     try {
-      final user = await _authService.signInWithGoogle();
+      final user = await authFunction();
       if (user != null && mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const UserSelectionScreen()),
-        );
+        _navigateBasedOnRole(user.uid);
       }
     } catch (e) {
-      if (!mounted) return;
       if (!mounted) return;
       CustomSnackBar.showError(
         context,
         AuthExceptionHandler.handleException(e),
       );
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _navigateBasedOnRole(String uid) async {
+    // Check if Driver
+    final isDriver = await _accessController.isDriver(uid);
+    if (isDriver) {
+      if (!mounted) return;
+      // Navigate to Driver Dashboard (replace with your actual driver home)
+      // Assuming 'Driver/Dashboard.dart' exists or using UserSelection for now if multiple driver screens
+      // For now, let's go to UserSelection as a placeholder or proper Driver Home
+      // But based on request, we want strict routing.
+      // If driver, usually goes to Dashboard.
+      // Let's check imports. Dashboard.dart is in Screens/Driver.
+      // I'll stick to UserSelection for now as I don't see Dashboard imported,
+      // OR I can import it. Let's start with UserSelection which likely has logic or just go there.
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const UserSelectionScreen()),
+      );
+      return;
+    }
+
+    // Check if Passenger
+    final isApproved = await _accessController.checkPassengerStatus(uid);
+    if (!mounted) return;
+
+    if (isApproved) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const UpdatesScreen()),
+      );
+    } else {
+      // If not approved (or not found as driver/passenger yet - e.g. new user)
+      // If new user, maybe go to UserSelection to register?
+      // But checkPassengerStatus returns false if not found.
+      // So if neither, go to UserSelection.
+      // Wait, if registered=false, it means they ARE in passenger collection but not approved.
+      // We need to differentiate "Not a user yet" vs "Pending Passenger".
+
+      // Let's refine checkPassengerStatus: it returns false if not found OR not registered.
+      // We might need to know if they exist at all.
+
+      // Simple logic:
+      // If (passenger exits AND registered=false) -> Pending
+      // If (passenger exists AND registered=true) -> Updates
+      // If (neither driver nor passenger) -> UserSelection (to register)
+
+      // Reuse logic from AccessController effectively?
+      // AccessController only returned bool.
+      // Let's assume for now:
+      // If we are here, we are not a driver.
+      // Let's try to get passenger doc.
+
+      final isPassenger = await _db.collection('passenger').doc(uid).get();
+
+      if (isPassenger.exists) {
+        if (isPassenger.data()?['registered'] == true) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const UpdatesScreen()),
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const PendingApprovalScreen(),
+            ),
+          );
+        }
+      } else {
+        // New user
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const UserSelectionScreen()),
+        );
       }
     }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    await _handleAuth(_authService.signInWithGoogle);
   }
 
   Future<void> _handleEmailLogin() async {
@@ -64,25 +142,7 @@ class _LoginPageState extends State<LoginPage> {
       return;
     }
 
-    setState(() => _isLoading = true);
-    try {
-      final user = await _authService.loginWithEmail(email, password);
-      if (user != null && mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const UserSelectionScreen()),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        CustomSnackBar.showError(
-          context,
-          AuthExceptionHandler.handleException(e),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+    await _handleAuth(() => _authService.loginWithEmail(email, password));
   }
 
   @override

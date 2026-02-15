@@ -79,15 +79,39 @@ class _RegisterPassengerScreenState extends State<RegisterPassengerScreen> {
   }
 
   Future<void> _handleRegister() async {
+    final name = _nameController.text.trim();
+    final phone = _phoneController.text.trim();
+    final paymentAmount = _paymentAmountController.text.trim();
+
+    if (name.isEmpty || phone.isEmpty || paymentAmount.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please fill all required fields'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (!RegExp(r'^[0-9]+$').hasMatch(paymentAmount)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Payment amount must contain only numbers'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     setState(() => _isLoading = true);
 
     try {
       await _controller.registerPassenger(
         context: context,
         passenger: widget.passenger,
-        name: _nameController.text.trim(),
-        paymentAmount: _paymentAmountController.text.trim(),
-        phone: _phoneController.text.trim(),
+        name: name,
+        paymentAmount: paymentAmount,
+        phone: phone,
         paymentType: _paymentFrequency,
         pickupLocation: _selectedLocation ?? widget.passenger.pickupLocation,
       );

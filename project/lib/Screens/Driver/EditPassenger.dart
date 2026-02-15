@@ -4,16 +4,12 @@ import '../Components/Whitecard.dart';
 import '../Components/Header.dart';
 import '../../models/PassengerModel.dart';
 import '../../controllers/RegisterPassengerController.dart';
+import '../../services/Database.dart';
 
 class EditPassengerScreen extends StatefulWidget {
   final PassengerModel passenger;
-  final List<String> pickupLocations;
 
-  const EditPassengerScreen({
-    super.key,
-    required this.passenger,
-    this.pickupLocations = const ['Colombo', 'Gampaha', 'Kandy', 'Galle'],
-  });
+  const EditPassengerScreen({super.key, required this.passenger});
 
   @override
   State<EditPassengerScreen> createState() => _EditPassengerScreenState();
@@ -29,6 +25,8 @@ class _EditPassengerScreenState extends State<EditPassengerScreen> {
   late String _paymentFrequency;
   String? _selectedLocation;
   bool _isLoading = false;
+  List<String> _availableLocations = [];
+  bool _isLoadingRoute = true;
 
   final Color appGreen = const Color(0xFF05A664);
   final RegisterPassengerController _controller = RegisterPassengerController();
@@ -48,16 +46,45 @@ class _EditPassengerScreenState extends State<EditPassengerScreen> {
         ? widget.passenger.paymentType
         : 'Daily';
 
-    // Set selected location if it exists in the list, otherwise null or default
-    if (widget.pickupLocations.contains(widget.passenger.pickupLocation)) {
-      _selectedLocation = widget.passenger.pickupLocation;
-    } else if (widget.passenger.pickupLocation.isNotEmpty) {
-      // If the location is not in the list, we might want to add it temporarily or handle it
-      // For now, let's just default to null if not found to force re-selection or handle custom
-      // But typically we should show the existing value.
-      // Let's assume the list passed includes the current one or we add it.
-      // Check if we need to add it to the dropdown list locally
-      _selectedLocation = null;
+    _fetchRouteStops();
+  }
+
+  Future<void> _fetchRouteStops() async {
+    try {
+      final driverData = await DatabaseService().getDriverData(
+        widget.passenger.driverId,
+      );
+      if (driverData != null && driverData.route != null) {
+        final locations = driverData.route!
+            .where((point) => point['role'] != 'end')
+            .map((point) => point['name'] as String)
+            .toList();
+
+        if (mounted) {
+          setState(() {
+            _availableLocations = locations;
+            _isLoadingRoute = false;
+
+            // Handle initial selection
+            if (widget.passenger.pickupLocation.isNotEmpty) {
+              if (_availableLocations.contains(
+                widget.passenger.pickupLocation,
+              )) {
+                _selectedLocation = widget.passenger.pickupLocation;
+              } else {
+                // If current location is not in the fetched route, add it temporarily
+                _availableLocations.insert(0, widget.passenger.pickupLocation);
+                _selectedLocation = widget.passenger.pickupLocation;
+              }
+            }
+          });
+        }
+      } else {
+        if (mounted) setState(() => _isLoadingRoute = false);
+      }
+    } catch (e) {
+      debugPrint("Error fetching route: $e");
+      if (mounted) setState(() => _isLoadingRoute = false);
     }
   }
 
@@ -70,9 +97,26 @@ class _EditPassengerScreenState extends State<EditPassengerScreen> {
   }
 
   Future<void> _updatePassenger() async {
-    if (_nameController.text.isEmpty || _phoneController.text.isEmpty) {
+    final name = _nameController.text.trim();
+    final phone = _phoneController.text.trim();
+    final paymentAmount = _paymentAmountController.text.trim();
+
+    if (name.isEmpty || phone.isEmpty || paymentAmount.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please fill all required fields')),
+        const SnackBar(
+          content: Text('Please fill all required fields'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (!RegExp(r'^[0-9]+$').hasMatch(paymentAmount)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Payment mount must contain only numbers'),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
@@ -82,9 +126,9 @@ class _EditPassengerScreenState extends State<EditPassengerScreen> {
     try {
       await _controller.updatePassenger(
         passenger: widget.passenger,
-        name: _nameController.text.trim(),
-        paymentAmount: _paymentAmountController.text.trim(),
-        phone: _phoneController.text.trim(),
+        name: name,
+        paymentAmount: paymentAmount,
+        phone: phone,
         paymentType: _paymentFrequency,
         pickupLocation: _selectedLocation ?? '',
         context: context,
@@ -104,17 +148,6 @@ class _EditPassengerScreenState extends State<EditPassengerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Combine passed locations with current passenger location if unique
-    final List<String> dropdownLocations = [...widget.pickupLocations];
-    if (widget.passenger.pickupLocation.isNotEmpty &&
-        !dropdownLocations.contains(widget.passenger.pickupLocation)) {
-      dropdownLocations.insert(0, widget.passenger.pickupLocation);
-      _selectedLocation ??= widget.passenger.pickupLocation;
-    } else if (_selectedLocation == null &&
-        widget.passenger.pickupLocation.isNotEmpty) {
-      _selectedLocation = widget.passenger.pickupLocation;
-    }
-
     return Scaffold(
       backgroundColor: const Color(0xFF121415),
       body: Stack(
@@ -206,33 +239,49 @@ class _EditPassengerScreenState extends State<EditPassengerScreen> {
                     const SizedBox(height: 30),
 
                     // --- UPDATED DROPDOWN SECTION ---
-                    DropdownButtonFormField<String>(
-                      initialValue: _selectedLocation,
-                      icon: Icon(Icons.keyboard_arrow_down, color: appGreen),
-                      isExpanded: true,
-                      decoration: InputDecoration(
-                        labelText: 'Pickup Location',
-                        labelStyle: const TextStyle(color: Colors.grey),
-                        floatingLabelStyle: TextStyle(color: appGreen),
-                        enabledBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(color: appGreen, width: 1.0),
-                        ),
-                        focusedBorder: UnderlineInputBorder(
-                          borderSide: BorderSide(color: appGreen, width: 2.0),
-                        ),
-                      ),
-                      items: dropdownLocations.map((location) {
-                        return DropdownMenuItem<String>(
-                          value: location,
-                          child: Text(location),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        setState(() {
-                          _selectedLocation = value;
-                        });
-                      },
-                    ),
+                    _isLoadingRoute
+                        ? Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: CircularProgressIndicator(color: appGreen),
+                            ),
+                          )
+                        : DropdownButtonFormField<String>(
+                            initialValue: _selectedLocation,
+                            icon: Icon(
+                              Icons.keyboard_arrow_down,
+                              color: appGreen,
+                            ),
+                            isExpanded: true,
+                            decoration: InputDecoration(
+                              labelText: 'Pickup Location',
+                              labelStyle: const TextStyle(color: Colors.grey),
+                              floatingLabelStyle: TextStyle(color: appGreen),
+                              enabledBorder: UnderlineInputBorder(
+                                borderSide: BorderSide(
+                                  color: appGreen,
+                                  width: 1.0,
+                                ),
+                              ),
+                              focusedBorder: UnderlineInputBorder(
+                                borderSide: BorderSide(
+                                  color: appGreen,
+                                  width: 2.0,
+                                ),
+                              ),
+                            ),
+                            items: _availableLocations.map((location) {
+                              return DropdownMenuItem<String>(
+                                value: location,
+                                child: Text(location),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedLocation = value;
+                              });
+                            },
+                          ),
 
                     // --------------------------------
                     const SizedBox(height: 50),

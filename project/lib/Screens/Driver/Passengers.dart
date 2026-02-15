@@ -18,7 +18,6 @@ class _PassengerScreenState extends State<PassengerScreen> {
   final PassengerController _controller = PassengerController();
 
   List<PassengerModel> _passengers = [];
-  List<String> _pickupLocations = [];
   bool _isLoading = true;
   String _errorMessage = '';
 
@@ -36,11 +35,9 @@ class _PassengerScreenState extends State<PassengerScreen> {
 
     try {
       final passengers = await _controller.getRegisteredPassengers();
-      final locations = await _controller.getPickupLocations();
       if (mounted) {
         setState(() {
           _passengers = passengers;
-          _pickupLocations = locations;
           _isLoading = false;
         });
       }
@@ -161,7 +158,6 @@ class _PassengerScreenState extends State<PassengerScreen> {
                                   MaterialPageRoute(
                                     builder: (context) => EditPassengerScreen(
                                       passenger: passenger,
-                                      pickupLocations: _pickupLocations,
                                     ),
                                   ),
                                 );

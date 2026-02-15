@@ -8,7 +8,7 @@ import '../Components/Header.dart';
 import '../Components/CustomSnackBar.dart';
 import '../../services/Database.dart';
 import '../../models/PassengerModel.dart';
-import '../passenger/Updates.dart';
+import '../passenger/PendingApproval.dart';
 
 class PassengerRegistrationScreen extends StatefulWidget {
   const PassengerRegistrationScreen({super.key});
@@ -210,10 +210,15 @@ class _PassengerRegistrationScreenState
       await _dbService.savePassengerData(newPassenger);
 
       if (mounted) {
-        CustomSnackBar.showSuccess(context, "Registration successful!");
+        CustomSnackBar.showSuccess(
+          context,
+          "Registration successful! Awaiting approval.",
+        );
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => const UpdatesScreen()),
+          MaterialPageRoute(
+            builder: (context) => const PendingApprovalScreen(),
+          ),
           (route) => false,
         );
       }
