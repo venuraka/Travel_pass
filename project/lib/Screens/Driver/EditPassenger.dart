@@ -207,7 +207,7 @@ class _EditPassengerScreenState extends State<EditPassengerScreen> {
 
                     // --- UPDATED DROPDOWN SECTION ---
                     DropdownButtonFormField<String>(
-                      value: _selectedLocation,
+                      initialValue: _selectedLocation,
                       icon: Icon(Icons.keyboard_arrow_down, color: appGreen),
                       isExpanded: true,
                       decoration: InputDecoration(

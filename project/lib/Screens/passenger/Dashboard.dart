@@ -3,7 +3,6 @@ import 'package:url_launcher/url_launcher.dart';
 import '../passenger/Updates.dart';
 import '../passenger/PaymentHistory.dart';
 import 'Attendance.dart';
-import 'EditDetails.dart';
 import 'TrackVehicle.dart';
 import '../../controllers/PassengerDashboardController.dart';
 import '../../models/PassengerModel.dart';
@@ -223,16 +222,6 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
               ),
             ),
           ],
-        ),
-
-        IconButton(
-          icon: const Icon(Icons.settings_outlined, color: _darkText, size: 28),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const EditDetailsScreen()),
-            );
-          },
         ),
       ],
     );

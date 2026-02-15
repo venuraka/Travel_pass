@@ -341,4 +341,21 @@ class DatabaseService {
       rethrow;
     }
   }
+
+  /// Updates passenger phone and pickup location.
+  Future<void> updatePassengerDetails({
+    required String uid,
+    required String phone,
+    required String pickupLocation,
+  }) async {
+    try {
+      await _db.collection('passenger').doc(uid).update({
+        'phone': phone,
+        'pickupLocation': pickupLocation,
+      });
+    } catch (e) {
+      debugPrint("Error updating passenger details: $e");
+      rethrow;
+    }
+  }
 }

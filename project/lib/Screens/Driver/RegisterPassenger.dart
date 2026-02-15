@@ -201,7 +201,7 @@ class _RegisterPassengerScreenState extends State<RegisterPassengerScreen> {
                     // --- UPDATED DROPDOWN SECTION ---
                     // Replaced Container with DropdownButtonFormField to match InputTextField style
                     DropdownButtonFormField<String>(
-                      value: _selectedLocation,
+                      initialValue: _selectedLocation,
                       icon: Icon(Icons.keyboard_arrow_down, color: appGreen),
                       isExpanded: true,
                       decoration: InputDecoration(
