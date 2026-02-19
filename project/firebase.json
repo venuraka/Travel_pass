@@ -1,1 +1,48 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"travelpass-40736","appId":"1:595531441360:android:4091f78444ae19fac86ad5","fileOutput":"android/app/google-services.json"}},"ios":{"default":{"projectId":"travelpass-40736","appId":"1:595531441360:ios:c4dd3774d802ed68c86ad5","uploadDebugSymbols":false,"fileOutput":"ios/Runner/GoogleService-Info.plist"}},"dart":{"lib/firebase_options.dart":{"projectId":"travelpass-40736","configurations":{"android":"1:595531441360:android:4091f78444ae19fac86ad5","ios":"1:595531441360:ios:c4dd3774d802ed68c86ad5"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "travelpass-40736",
+          "appId": "1:595531441360:android:4091f78444ae19fac86ad5",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "travelpass-40736",
+          "appId": "1:595531441360:ios:c4dd3774d802ed68c86ad5",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "travelpass-40736",
+          "configurations": {
+            "android": "1:595531441360:android:4091f78444ae19fac86ad5",
+            "ios": "1:595531441360:ios:c4dd3774d802ed68c86ad5"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "disallowLegacyRuntimeConfig": true,
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run lint",
+        "npm --prefix \"$RESOURCE_DIR\" run build"
+      ]
+    }
+  ]
+}
