@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import 'package:rxdart/rxdart.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -158,5 +159,26 @@ class PassengerDashboardController {
       'lastAlertCheckTime',
       DateTime.now().millisecondsSinceEpoch,
     );
+  }
+
+  /// Streams the journey starting status for a specific driver.
+  Stream<bool> getJourneyStatusStream(String driverId) {
+    return _dbService.getJourneyStatusStream(driverId);
+  }
+
+  /// Combined stream that returns true only if both a poll is active and journey is started.
+  Stream<bool> getTrackingEligibilityStream(String driverId) {
+    return Rx.combineLatest2(
+      _dbService.getTodayPollStatusStream(driverId),
+      _dbService.getJourneyStatusStream(driverId),
+      (bool hasPoll, bool isStarted) => hasPoll && isStarted,
+    );
+  }
+
+  /// Returns today's attendance status for the current passenger.
+  Future<String> getTodayAttendanceStatus() async {
+    final user = _auth.currentUser;
+    if (user == null) return 'Error';
+    return await _dbService.getTodayAttendanceStatus(user.uid);
   }
 }

@@ -23,8 +23,8 @@ class DriverDashboardController {
       bool isPollActiveToday = false;
       for (var poll in polls) {
         if (poll.activeDates.any(
-          (d) =>
-              d.year == today.year &&
+              (d) =>
+          d.year == today.year &&
               d.month == today.month &&
               d.day == today.day,
         )) {
@@ -43,7 +43,8 @@ class DriverDashboardController {
       // 3. Count only those marked as 'Present' for today
       int presentCount = 0;
       final String dateKey =
-          "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
+          "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day
+          .toString().padLeft(2, '0')}";
 
       for (var passenger in passengers) {
         final attendance = await _dbService.getPassengerAttendance(
@@ -61,5 +62,48 @@ class DriverDashboardController {
       debugPrint("Error fetching today's passenger count: $e");
       return 0;
     }
+  }
+
+  /// Returns the current driver's UID.
+  String? getDriverId() {
+    return _auth.currentUser?.uid;
+  }
+
+  /// Sets the journey as started in the database.
+  Future<void> startJourney() async {
+    final uid = getDriverId();
+    if (uid != null) {
+      await _dbService.updateJourneyStatus(uid, true);
+    }
+  }
+
+  /// Resets the journey status (useful for ending it, though not directly asked).
+  Future<void> endJourney() async {
+    final uid = getDriverId();
+    if (uid != null) {
+      await _dbService.updateJourneyStatus(uid, false);
+    }
+  }
+
+  /// Checks if there is an active poll for the current driver today.
+  Future<bool> hasActivePollToday() async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return false;
+
+      final now = DateTime.now();
+      final today = DateTime.utc(now.year, now.month, now.day);
+
+      List<PollModel> polls = await _dbService.getPollsByDriver(user.uid);
+      for (var poll in polls) {
+        if (poll.activeDates.any((d) =>
+        d.year == today.year && d.month == today.month && d.day == today.day)) {
+          return true;
+        }
+      }
+    } catch (e) {
+      debugPrint("Error checking for today's poll: $e");
+    }
+    return false;
   }
 }

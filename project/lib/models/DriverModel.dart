@@ -13,6 +13,7 @@ class DriverModel {
   final DateTime? paymentDate;
   final String? monthlyPaymentAmount;
   final String? dailyPaymentAmount;
+  final bool isJourneyStarted;
 
   DriverModel({
     required this.uid,
@@ -27,6 +28,7 @@ class DriverModel {
     this.paymentDate,
     this.monthlyPaymentAmount,
     this.dailyPaymentAmount,
+    this.isJourneyStarted = false,
   });
 
   Map<String, dynamic> toMap() {
@@ -46,6 +48,7 @@ class DriverModel {
           : null,
       'monthlyPaymentAmount': monthlyPaymentAmount,
       'dailyPaymentAmount': dailyPaymentAmount,
+      'isJourneyStarted': isJourneyStarted,
     };
   }
 }

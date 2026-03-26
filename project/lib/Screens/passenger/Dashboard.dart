@@ -7,19 +7,13 @@ import 'TrackVehicle.dart';
 import '../../controllers/PassengerDashboardController.dart';
 import '../../models/PassengerModel.dart';
 
-// --- Color Palette (Updated and Finalized for Light Theme) ---
-// 0xFF05A664 -> Primary Green (Action/Accent)
-// 0xFF121415 -> Dark Text (Primary foreground/Text)
-// 0xFFF8F9FC -> Very Light Background/Card Color (Unified light mode background)
-// const Color _primaryGreen = Color(0xFF05A664);
-const Color _primaryGreen = Color(0xFF05A664);
-const Color _darkText = Color(0xFF121415);
-const Color _secondaryGray = Color(
-  0xFF909090,
-); // Minor/Detail text color (Kept for contrast)
-const Color _lightBackground = Color(0xFFF8F9FC); // Main background
-const Color _cardColor =
-    Colors.white; // Using pure white for cards/surfaces on the light background
+// --- Constants (Unified with Driver Dashboard) ---
+const Color primaryGreen = Color(0xFF05A664);
+const Color textDark = Color(0xFF121415);
+const Color textGrey = Color(0xFF909090);
+const Color bgGreenTint = Color(0xFFF1F8F5); // Subtle green background
+const Color cardColor = Colors.white;
+const Color surfaceGreen = Color(0xFFE8F5EE); // Light green for card surfaces
 
 class PassengerDashboardApp extends StatefulWidget {
   const PassengerDashboardApp({super.key});
@@ -66,7 +60,6 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
           _datesToMark = List<Map<String, dynamic>>.from(data['datesToMark']);
           _unreadAlertsCount = data['unreadCount'] as int? ?? 0;
           _driverPhone = data['driverPhone'] as String?;
-          // We can also store the attendanceDoc if needed for history view
           _isLoading = false;
         });
       }
@@ -76,15 +69,9 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Unified light background color
-      backgroundColor: _lightBackground,
-      appBar: AppBar(
-        backgroundColor: _lightBackground,
-        elevation: 0,
-        toolbarHeight: 0,
-      ),
+      backgroundColor: bgGreenTint,
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: _primaryGreen))
+          ? const Center(child: CircularProgressIndicator(color: primaryGreen))
           : _errorMessage != null
           ? Center(
               child: Text(
@@ -92,259 +79,354 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
                 style: const TextStyle(color: Colors.red),
               ),
             )
-          : SingleChildScrollView(
-              padding: const EdgeInsets.only(top: 15.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  // Greeting Card
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: _buildGreetingAndStatusCard(),
+          : _buildDashboardContent(),
+    );
+  }
+
+  Widget _buildDashboardContent() {
+    return SafeArea(
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 20),
+
+              // --- Modern Header (Simplified - Person icon removed) ---
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Good Morning,',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: primaryGreen, // Using green for greeting text
+                    ),
                   ),
-                  const SizedBox(height: 30),
-
-                  // All subsequent elements are wrapped in padding
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // Primary Action Button
-                        _buildFindVehicleButton(context),
-                        const SizedBox(height: 30),
-
-                        // Quick Contact Bar
-                        _buildQuickContactBar(),
-                        const SizedBox(height: 30),
-
-                        // ATTENDANCE CARD - NOW DATE-BASED
-                        _buildAttendanceCard(),
-                        const SizedBox(height: 30),
-
-                        // History Action Tiles
-                        _buildHistoryTile(
-                          title: 'Attendance History',
-                          icon: Icons.history_edu_outlined,
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const PassengerAttendaceScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                        _buildHistoryTile(
-                          title: 'Payment History',
-                          icon: Icons.account_balance_wallet_outlined,
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => PaymentHistoryScreen(),
-                              ),
-                            );
-                          },
-                        ),
-                      ],
+                  const SizedBox(height: 4),
+                  Text(
+                    _passenger?.name ?? 'Passenger',
+                    style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                      color: textDark,
+                      letterSpacing: -0.5,
                     ),
                   ),
                 ],
               ),
-            ),
-    );
-  }
 
-  // --- Widget Builders ---
+              const SizedBox(height: 25),
 
-  Widget _buildFindVehicleButton(BuildContext context) {
-    return Container(
-      // Modern, subtle shadow for primary actions
-      decoration: BoxDecoration(
-        boxShadow: [
-          BoxShadow(
-            color: _primaryGreen.withOpacity(0.4),
-            blurRadius: 18,
-            offset: const Offset(0, 10),
-          ),
-        ],
-        borderRadius: BorderRadius.circular(16),
+              // --- Soft Search Bar with Green Border ---
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16.0),
+                  border: Border.all(color: primaryGreen.withOpacity(0.1), width: 1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: primaryGreen.withOpacity(0.05),
+                      blurRadius: 15,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
+                ),
+                child: const TextField(
+                  decoration: InputDecoration(
+                    hintText: 'Search',
+                    hintStyle: TextStyle(
+                      color: Color(0xFFB0B0B0),
+                      fontSize: 14,
+                    ),
+                    prefixIcon: Icon(Icons.search, color: primaryGreen),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(vertical: 16.0),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 30),
+
+              // --- Track Vehicle Button (REPOSITIONED HERE) ---
+              if (_passenger?.driverId != null)
+                StreamBuilder<bool>(
+                  stream: _controller.getTrackingEligibilityStream(
+                    _passenger!.driverId,
+                  ),
+                  builder: (context, snapshot) {
+                    final bool isEligible = snapshot.data ?? false;
+                    if (isEligible) {
+                      return Column(
+                        children: [
+                          _buildFindVehicleButton(context),
+                          const SizedBox(height: 35),
+                        ],
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+
+              // --- Overview Section ---
+             Row(
+  children: [
+    const Text(
+      "Overview",
+      style: TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.w900,
+        color: textDark,
       ),
-      child: ElevatedButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const TrackVehicle()),
-          );
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: _primaryGreen,
-          foregroundColor: _cardColor, // White text on green button
-          padding: const EdgeInsets.symmetric(vertical: 25),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          elevation: 0,
-          textStyle: const TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1.0,
+    ),
+  ],
+),
+
+              // --- Action Grid (Rows matching Driver style) ---
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildActionCard(
+                      title: "Call Driver",
+                      icon: Icons.call_rounded,
+                      color: Colors.green,
+                      description: "Voice call",
+                      onTap: _handleCallDriver,
+                    ),
+                  ),
+                  const SizedBox(width: 15),
+                  Expanded(
+                    child: _buildActionCard(
+                      title: "Alerts",
+                      icon: Icons.notifications_active_rounded,
+                      color: Colors.orangeAccent,
+                      description: "Notifications",
+                      badgeCount: _unreadAlertsCount,
+                      onTap: _handleOpenAlerts,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 15),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildActionCard(
+                      title: "Attendance",
+                      icon: Icons.history_edu_rounded,
+                      color: Colors.blueAccent,
+                      description: "View history",
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PassengerAttendaceScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 15),
+                  Expanded(
+                    child: _buildActionCard(
+                      title: "Payments",
+                      icon: Icons.account_balance_wallet_rounded,
+                      color: Colors.purpleAccent,
+                      description: "Transaction history",
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const PaymentHistoryScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 30),
+
+              // --- Attendance Selection Card ---
+              _buildAttendanceCard(),
+
+              const SizedBox(height: 30),
+            ],
           ),
         ),
-        child: const Text('Track Vehicle'),
       ),
     );
   }
 
-  Widget _buildGreetingAndStatusCard() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Good Morning,',
-              style: TextStyle(
-                fontSize: 16,
-                color: _secondaryGray,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            Text(
-              _passenger?.name ?? 'Passenger',
-              style: const TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.w900,
-                color: _darkText,
-              ),
+  /// Matching Driver Dashboard style action card
+  Widget _buildActionCard({
+    required String title,
+    required IconData icon,
+    required Color color,
+    required String description,
+    int badgeCount = 0,
+    VoidCallback? onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.all(20.0),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20.0),
+          border: Border.all(color: primaryGreen.withOpacity(0.1), width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: primaryGreen.withOpacity(0.04),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
             ),
           ],
         ),
-      ],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: color, size: 24),
+                ),
+                if (badgeCount > 0)
+                  Positioned(
+                    right: -5,
+                    top: -5,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 20,
+                        minHeight: 20,
+                      ),
+                      child: Text(
+                         badgeCount > 9 ? '9+' : '$badgeCount',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: textDark,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              description,
+              style: const TextStyle(fontSize: 12, color: textGrey),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _buildQuickContactBar() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
-      children: [
-        _contactIcon(
-          Icons.call_outlined,
-          'Call',
-          onPressed: () async {
-            if (_driverPhone != null && _driverPhone!.isNotEmpty) {
-              final Uri launchUri = Uri(scheme: 'tel', path: _driverPhone!);
-              try {
-                if (await canLaunchUrl(launchUri)) {
-                  await launchUrl(launchUri);
-                } else {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Could not launch dialer.")),
-                    );
-                  }
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Error launching call: $e")),
-                  );
-                }
-              }
-            } else {
+  Widget _buildFindVehicleButton(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      height: 65, // Slightly larger hero button
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20), // Slightly less round for hero style
+        gradient: const LinearGradient(
+          colors: [primaryGreen, Color(0xFF048F56)], // Driver-style hero gradient
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: primaryGreen.withOpacity(0.3),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: ElevatedButton(
+        onPressed: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Hold the button to track vehicle"),
+              duration: Duration(seconds: 2),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        },
+        onLongPress: () async {
+          // Check attendance status before allowing tracking
+          final status = await _controller.getTodayAttendanceStatus();
+          if (status != 'Present') {
+            if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text("Driver phone number not available."),
+                SnackBar(
+                  content: const Text(
+                    "Mark 'Present' to track the vehicle.",
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  backgroundColor: Colors.redAccent,
+                  behavior: SnackBarBehavior.floating,
                 ),
               );
             }
-          },
-        ),
-        _contactIcon(
-          Icons.notifications_none,
-          'Alerts',
-          badgeCount: _unreadAlertsCount,
-          onPressed: () async {
-            await Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) =>
-                    UpdatesScreen(driverId: _passenger?.driverId),
-              ),
-            );
-            // Refresh data when returning to update badge
-            _loadData();
-          },
-        ),
-      ],
-    );
-  }
+            return;
+          }
 
-  Widget _contactIcon(
-    IconData icon,
-    String label, {
-    VoidCallback? onPressed,
-    int badgeCount = 0,
-  }) {
-    return InkWell(
-      onTap: onPressed,
-      borderRadius: BorderRadius.circular(40), // For a circular ripple effect
-      child: Column(
-        children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: _primaryGreen.withOpacity(
-                    0.1,
-                  ), // Very light green background
-                ),
-                child: Icon(icon, color: _primaryGreen, size: 30),
-              ),
-              if (badgeCount > 0)
-                Positioned(
-                  right: -2,
-                  top: -2,
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: const BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                    ),
-                    constraints: const BoxConstraints(
-                      minWidth: 22,
-                      minHeight: 22,
-                    ),
-                    child: Text(
-                      badgeCount.toString(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ),
-            ],
+          if (mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const TrackVehicle()),
+            );
+          }
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: primaryGreen,
+          foregroundColor: Colors.white,
+          padding: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18.0),
           ),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 13,
-              color: _secondaryGray,
-              fontWeight: FontWeight.w500,
+          elevation: 0,
+          textStyle: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.5,
+          ),
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text('Track Vehicle'),
+            SizedBox(width: 10),
+            Icon(Icons.arrow_forward_rounded,
+            size: 30,
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -353,12 +435,11 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
     return Container(
       padding: const EdgeInsets.all(20.0),
       decoration: BoxDecoration(
-        color: _cardColor, // Pure white surface
-        borderRadius: BorderRadius.circular(16),
-        // Subtle, high-quality shadow for card separation
+        color: cardColor,
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: _darkText.withOpacity(0.05),
+            color: Colors.grey.withOpacity(0.08),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -367,33 +448,25 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Mark Attendance',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: _darkText,
-                ),
-              ),
-            ],
+          const Text(
+            'Mark Attendance',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: textDark,
+            ),
           ),
-          // Thinner, lighter divider for separation
-          const Divider(height: 25, thickness: 0.5, color: _secondaryGray),
-
-          // Attendance list items (now date-based and dismissible)
+          const SizedBox(height: 15),
           ..._datesToMark.map((item) => _buildAttendanceDismissibleRow(item)),
-
           if (_datesToMark.isEmpty)
             const Padding(
-              padding: EdgeInsets.symmetric(vertical: 10.0),
+              padding: EdgeInsets.symmetric(vertical: 20.0),
               child: Center(
                 child: Text(
-                  'All attendance marked for recent dates! 🎉',
+                  'All caught up! 🎉',
                   style: TextStyle(
-                    color: _secondaryGray,
+                    color: textGrey,
+                    fontSize: 14,
                     fontStyle: FontStyle.italic,
                   ),
                 ),
@@ -405,200 +478,86 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
   }
 
   Widget _buildAttendanceDismissibleRow(Map<String, dynamic> item) {
-    final Key key = ValueKey(item['id']);
-    final Color presentColor = _primaryGreen;
-    final Color absentColor = Colors.red.shade600;
-
-    return Dismissible(
-      key: key,
-      direction: DismissDirection.horizontal,
-      onDismissed: (direction) async {
-        String status = '';
-        if (direction == DismissDirection.startToEnd) {
-          status = 'Present';
-        } else if (direction == DismissDirection.endToStart) {
-          status = 'Absent';
-        }
-
-        // Optimistically remove from UI
-        final removedItem = item;
-        final removedIndex = _datesToMark.indexOf(item);
-
-        setState(() {
-          _datesToMark.remove(item);
-        });
-
-        // Call Controller to save
-        try {
-          if (_passenger != null) {
-            await _controller.markAttendance(
-              passengerId: _passenger!.uid,
-              driverId: _passenger!.driverId,
-              date: item['date'] as DateTime,
-              status: status,
-            );
-          }
-
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('${item['label']} marked as $status.')),
-            );
-          }
-        } catch (e) {
-          // Revert on error (optional, but good UX)
-          if (mounted) {
-            setState(() {
-              _datesToMark.insert(removedIndex, removedItem);
-            });
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("Error marking attendance: $e")),
-            );
-          }
-        }
-      },
-
-      // Swipe RIGHT (Mark Present)
-      background: Container(
-        decoration: BoxDecoration(
-          color: presentColor,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        alignment: Alignment.centerLeft,
-        padding: const EdgeInsets.only(left: 20),
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        child: const Row(
-          children: [
-            Icon(Icons.check_circle_outline, color: _cardColor),
-            SizedBox(width: 10),
-            Text(
-              'Mark Present',
-              style: TextStyle(color: _cardColor, fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      decoration: BoxDecoration(
+        color: bgGreenTint,
+        borderRadius: BorderRadius.circular(12),
       ),
-
-      // Swipe LEFT (Mark Absent)
-      secondaryBackground: Container(
-        decoration: BoxDecoration(
-          color: absentColor,
-          borderRadius: BorderRadius.circular(12),
+      child: Dismissible(
+        key: ValueKey(item['id']),
+        direction: DismissDirection.horizontal,
+        onDismissed: (direction) async {
+          String status = direction == DismissDirection.startToEnd ? 'Present' : 'Absent';
+          setState(() {
+            _datesToMark.remove(item);
+          });
+          try {
+            if (_passenger != null) {
+              await _controller.markAttendance(
+                passengerId: _passenger!.uid,
+                driverId: _passenger!.driverId,
+                date: item['date'] as DateTime,
+                status: status,
+              );
+            }
+          } catch (e) {
+            _loadData(); // Revert on error
+          }
+        },
+        background: _buildDismissBackground(Icons.check_circle_outline, "Present", Colors.green, true),
+        secondaryBackground: _buildDismissBackground(Icons.cancel_outlined, "Absent", Colors.redAccent, false),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                item['label'] as String,
+                style: const TextStyle(fontWeight: FontWeight.w600, color: textDark),
+              ),
+              const Icon(Icons.swipe_outlined, size: 16, color: textGrey),
+            ],
+          ),
         ),
-        alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
-        margin: const EdgeInsets.symmetric(vertical: 4),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            Text(
-              'Mark Absent',
-              style: TextStyle(color: _cardColor, fontWeight: FontWeight.w600),
-            ),
-            SizedBox(width: 10),
-            Icon(Icons.cancel_outlined, color: _cardColor),
-          ],
-        ),
-      ),
-
-      // The main content of the row
-      child: _buildAttendanceRowContent(
-        dateLabel: item['label']! as String,
-        status: item['status']! as String,
       ),
     );
   }
 
-  Widget _buildAttendanceRowContent({
-    required String dateLabel,
-    required String status,
-  }) {
+  Widget _buildDismissBackground(IconData icon, String label, Color color, bool isLeft) {
     return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: _cardColor, // Pure white for the content row
-        borderRadius: BorderRadius.circular(12),
-        // Finer border for a cleaner look
-        border: Border.all(color: _secondaryGray.withOpacity(0.1), width: 1),
-      ),
+      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)),
+      alignment: isLeft ? Alignment.centerLeft : Alignment.centerRight,
+      padding: EdgeInsets.symmetric(horizontal: 20),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // Display the date/label in YYYY-MM-DD format
-          Text(
-            dateLabel,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: _darkText,
-            ),
-          ),
-
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-            decoration: BoxDecoration(
-              // Slightly brighter badge color
-              color: _secondaryGray.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              status,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: _secondaryGray, // Subtle text color for status badge
-              ),
-            ),
-          ),
+          if (isLeft) Icon(icon, color: Colors.white),
+          if (isLeft) const SizedBox(width: 8),
+          Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+          if (!isLeft) const SizedBox(width: 8),
+          if (!isLeft) Icon(icon, color: Colors.white),
         ],
       ),
     );
   }
 
-  Widget _buildHistoryTile({
-    required String title,
-    required IconData icon,
-    required VoidCallback onPressed,
-  }) {
-    return InkWell(
-      onTap: onPressed,
-      // Change background color on tap for feedback
-      splashColor: _primaryGreen.withOpacity(0.05),
-      highlightColor: _primaryGreen.withOpacity(0.02),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 20.0),
-        decoration: BoxDecoration(
-          border: Border(
-            // Cleaner, thinner bottom border
-            bottom: BorderSide(
-              color: _secondaryGray.withOpacity(0.15),
-              width: 1,
-            ),
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: _primaryGreen, size: 24),
-            const SizedBox(width: 15),
-            Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                  color: _darkText,
-                ),
-              ),
-            ),
-            // Updated color for arrow icon
-            const Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: _secondaryGray,
-            ),
-          ],
-        ),
+  Future<void> _handleCallDriver() async {
+    if (_driverPhone != null && _driverPhone!.isNotEmpty) {
+      final Uri launchUri = Uri(scheme: 'tel', path: _driverPhone!);
+      if (await canLaunchUrl(launchUri)) {
+        await launchUrl(launchUri);
+      }
+    }
+  }
+
+  Future<void> _handleOpenAlerts() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => UpdatesScreen(driverId: _passenger?.driverId),
       ),
     );
+    _loadData();
   }
 }

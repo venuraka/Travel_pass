@@ -14,7 +14,7 @@ import '../../controllers/DriverDashboardController.dart'; // Added
 const Color primaryGreen = Color(0xFF05A664);
 const Color textDark = Color(0xFF121415);
 const Color textGrey = Color(0xFF909090);
-const Color bgOffWhite = Color(0xFFF8F9FC);
+const Color bgGreenTint = Color(0xFFF1F8F5);
 
 class DriverDashboardScreen extends StatefulWidget {
   const DriverDashboardScreen({super.key});
@@ -29,6 +29,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
       DriverDashboardController(); // Added
   int _todayPassengerCount = 0; // Added state variable
   bool _isLoadingCount = true;
+  bool _hasPollToday = false;
 
   @override // Added initState
   void initState() {
@@ -38,9 +39,11 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
 
   Future<void> _loadDashboardData() async {
     final count = await _controller.getTodayPassengerCount();
+    final hasPoll = await _controller.hasActivePollToday();
     if (mounted) {
       setState(() {
         _todayPassengerCount = count;
+        _hasPollToday = hasPoll;
         _isLoadingCount = false;
       });
     }
@@ -49,7 +52,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bgOffWhite,
+      backgroundColor: bgGreenTint,
       body: _getSelectedScreen(),
       bottomNavigationBar: CustomBottomNavBar(
         selectedIndex: _selectedIndex,
@@ -98,10 +101,10 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                     children: [
                       Text(
                         'Good Morning,',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: textGrey,
+                         style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: primaryGreen, // Using green for greeting text
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -259,11 +262,63 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                   ],
                 ),
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const Startjourney()),
+                  onPressed: () async {
+                    // Perform a fresh check to ensure validation is not stale
+                    final bool hasPoll = await _controller.hasActivePollToday();
+                    if (!hasPoll) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("No scheduled poll for today"),
+                          duration: Duration(seconds: 2),
+                          behavior: SnackBarBehavior.floating,
+                          backgroundColor: Colors.redAccent,
+                        ),
+                      );
+                      // Update local state to reflect current reality
+                      if (mounted) setState(() => _hasPollToday = false);
+                      return;
+                    }
+                    
+                    // Update local state if it was stale
+                    if (mounted && !_hasPollToday) setState(() => _hasPollToday = true);
+
+                    // Show reminder if user just taps the button
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Hold the button to start the journey"),
+                        duration: Duration(seconds: 2),
+                        behavior: SnackBarBehavior.floating,
+                      ),
                     );
+                  },
+                  onLongPress: () async {
+                    // Perform a fresh check to ensure validation is not stale
+                    final bool hasPoll = await _controller.hasActivePollToday();
+                    if (!hasPoll) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("Cannot start: No scheduled poll today"),
+                          duration: Duration(seconds: 2),
+                          behavior: SnackBarBehavior.floating,
+                          backgroundColor: Colors.redAccent,
+                        ),
+                      );
+                      // Update local state to reflect current reality
+                      if (mounted) setState(() => _hasPollToday = false);
+                      return;
+                    }
+                    
+                    // Update local state if it was stale
+                    if (mounted && !_hasPollToday) setState(() => _hasPollToday = true);
+
+                    // Trigger the journey start when held
+                    await _controller.startJourney();
+                    if (mounted) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const Startjourney()),
+                      );
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: primaryGreen,
@@ -285,7 +340,10 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                         ),
                       ),
                       SizedBox(width: 10),
-                      Icon(Icons.arrow_forward_rounded),
+                      Icon(Icons.arrow_forward_rounded, 
+                      size: 40,
+                      ),
+                       
                     ],
                   ),
                 ),

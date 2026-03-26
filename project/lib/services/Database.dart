@@ -118,7 +118,7 @@ class DatabaseService {
           route: (data['route'] as List<dynamic>?)
               ?.map((item) => item as Map<String, dynamic>)
               .toList(),
-          // ... other fields can be null or defaults
+          isJourneyStarted: data['isJourneyStarted'] ?? false,
         );
       }
       return null;
@@ -375,4 +375,68 @@ class DatabaseService {
       rethrow;
     }
   }
+
+  /// Updates the journey starting status for a driver.
+  Future<void> updateJourneyStatus(String driverId, bool isStarted) async {
+    try {
+      await _db.collection('driver').doc(driverId).update({
+        'isJourneyStarted': isStarted,
+      });
+    } catch (e) {
+      debugPrint("Error updating journey status: $e");
+      rethrow;
+    }
+  }
+
+  /// Returns a stream of the journey status for a specific driver.
+  Stream<bool> getJourneyStatusStream(String driverId) {
+    return _db.collection('driver').doc(driverId).snapshots().map((doc) {
+      if (doc.exists && doc.data() != null) {
+        return doc.data()!['isJourneyStarted'] ?? false;
+      }
+      return false;
+    });
+  }
+
+  /// Returns a stream of whether there is an active poll for today for a driver.
+  Stream<bool> getTodayPollStatusStream(String driverId) {
+    return _db.collection('polls')
+        .where('driverId', isEqualTo: driverId)
+        .snapshots()
+        .map((snapshot) {
+      final now = DateTime.now();
+      final today = DateTime.utc(now.year, now.month, now.day);
+
+      for (var doc in snapshot.docs) {
+        final poll = PollModel.fromMap(doc.data(), doc.id);
+        if (poll.activeDates.any((d) =>
+        d.year == today.year &&
+            d.month == today.month &&
+            d.day == today.day)) {
+          return true;
+        }
+      }
+      return false;
+    });
+  }
+
+  /// Returns the attendance status for a passenger for today.
+  Future<String> getTodayAttendanceStatus(String passengerId) async {
+    try {
+      final doc = await _db.collection('attendance').doc(passengerId).get();
+      if (!doc.exists) return 'Pending';
+      
+      final data = doc.data() as Map<String, dynamic>;
+      final records = data['records'] as Map<String, dynamic>? ?? {};
+      
+      final now = DateTime.now();
+      final dateKey = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+      
+      return records[dateKey] as String? ?? 'Pending';
+    } catch (e) {
+      debugPrint("Error fetching today's attendance status: $e");
+      return 'Error';
+    }
+  }
 }
+
