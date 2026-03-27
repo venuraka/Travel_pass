@@ -25,7 +25,7 @@ class StartJourneyController {
       ? _allPassengers[_currentPassengerIndex] : null;
 
   final Function(Position) onLocationChanged;
-  final Function(PassengerModel) onProximityReached;
+  final Function(List<PassengerModel>) onProximityReached;
 
   StartJourneyController({
     required this.onLocationChanged,
@@ -82,18 +82,14 @@ class StartJourneyController {
     final targetPassenger = currentPassenger;
     if (targetPassenger == null || _currentDriverId == null) return;
 
-    // 1. Check if passenger is present for today
-    final status = await _dbService.getTodayAttendanceStatus(targetPassenger.uid);
-    if (status != 'Present') return;
-
-    // 2. Resolve passenger LatLng from driver's route
+    // 1. Resolve target passenger LatLng from driver's route
     final driverData = await _dbService.getDriverData(_currentDriverId!);
     if (driverData == null || driverData.route == null) return;
 
-    LatLng? passengerLatLng;
+    LatLng? targetLatLng;
     for (var point in driverData.route!) {
       if (point['name'] == targetPassenger.pickupLocation) {
-        passengerLatLng = LatLng(
+        targetLatLng = LatLng(
           (point['lat'] as num).toDouble(),
           (point['lng'] as num).toDouble(),
         );
@@ -101,15 +97,31 @@ class StartJourneyController {
       }
     }
 
-    if (passengerLatLng == null) return;
+    if (targetLatLng == null) return;
 
+    // 2. Check distance to target
     double distance = Geolocator.distanceBetween(
       position.latitude, position.longitude,
-      passengerLatLng.latitude, passengerLatLng.longitude
+      targetLatLng.latitude, targetLatLng.longitude
     );
 
     if (distance < 50) { // 50 meters
-      onProximityReached(targetPassenger);
+      // 3. Find ALL passengers at this same location who are "Present"
+      List<PassengerModel> proximalPassengers = [];
+      
+      for (var passenger in _allPassengers) {
+        // Only check passengers who haven't been processed or are at the same spot
+        if (passenger.pickupLocation == targetPassenger.pickupLocation) {
+          final status = await _dbService.getTodayAttendanceStatus(passenger.uid);
+          if (status == 'Present') {
+            proximalPassengers.add(passenger);
+          }
+        }
+      }
+
+      if (proximalPassengers.isNotEmpty) {
+        onProximityReached(proximalPassengers);
+      }
     }
   }
 

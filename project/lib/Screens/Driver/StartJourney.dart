@@ -44,33 +44,48 @@ class _StartjourneyState extends State<Startjourney> {
     }
   }
 
-  void _showPassengerPopup(PassengerModel passenger) {
+  void _showPassengerPopup(List<PassengerModel> proximalPassengers) {
+    // Create a local copy to manage within the popup session
+    List<PassengerModel> remainingPassengers = List.from(proximalPassengers);
+
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => PassengerGetInPopup(
-        passengerName: passenger.name,
-        onCorrect: () async {
-          await _controller.markOnboarded(passenger.uid, true);
-          _isPopupShown = false;
-          if (mounted) {
-            Navigator.pop(context);
-            setState(() {
-              _controller.nextPassenger();
-            });
-          }
-        },
-        onIncorrect: () async {
-          await _controller.markOnboarded(passenger.uid, false);
-          _isPopupShown = false;
-          if (mounted) {
-            Navigator.pop(context);
-            setState(() {
-              _controller.nextPassenger();
-            });
-          }
-        },
-      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setPopupState) {
+            return PassengerGetInPopup(
+              passengers: remainingPassengers,
+              onCorrect: (passenger) async {
+                await _controller.markOnboarded(passenger.uid, true);
+                setPopupState(() {
+                  remainingPassengers.removeWhere((p) => p.uid == passenger.uid);
+                });
+                if (remainingPassengers.isEmpty) {
+                  _isPopupShown = false;
+                  Navigator.pop(context);
+                  setState(() {
+                    _controller.nextPassenger();
+                  });
+                }
+              },
+              onIncorrect: (passenger) async {
+                await _controller.markOnboarded(passenger.uid, false);
+                setPopupState(() {
+                  remainingPassengers.removeWhere((p) => p.uid == passenger.uid);
+                });
+                if (remainingPassengers.isEmpty) {
+                  _isPopupShown = false;
+                  Navigator.pop(context);
+                  setState(() {
+                    _controller.nextPassenger();
+                  });
+                }
+              },
+            );
+          },
+        );
+      },
     );
   }
 
