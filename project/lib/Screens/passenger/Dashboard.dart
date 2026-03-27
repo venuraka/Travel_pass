@@ -396,10 +396,15 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
             return;
           }
 
-          if (mounted) {
+          if (mounted && _passenger != null) {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const TrackVehicle()),
+              MaterialPageRoute(
+                builder: (_) => TrackVehicle(
+                  driverId: _passenger!.driverId,
+                  passengerId: _passenger!.uid,
+                ),
+              ),
             );
           }
         },

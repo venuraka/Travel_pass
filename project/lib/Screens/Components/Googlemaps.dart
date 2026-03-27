@@ -3,16 +3,37 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 
 class GoogleMaps extends StatelessWidget {
-  const GoogleMaps({super.key});
+  final LatLng? initialPosition;
+  final Set<Marker> markers;
+  final bool showMyLocationButton;
+
+  const GoogleMaps({
+    super.key,
+    this.initialPosition,
+    this.markers = const {},
+    this.showMyLocationButton = true,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return const _GoogleMapsStateful();
+    return _GoogleMapsStateful(
+      initialPosition: initialPosition,
+      markers: markers,
+      showMyLocationButton: showMyLocationButton,
+    );
   }
 }
 
 class _GoogleMapsStateful extends StatefulWidget {
-  const _GoogleMapsStateful();
+  final LatLng? initialPosition;
+  final Set<Marker> markers;
+  final bool showMyLocationButton;
+
+  const _GoogleMapsStateful({
+    this.initialPosition,
+    this.markers = const {},
+    this.showMyLocationButton = true,
+  });
 
   @override
   State<_GoogleMapsStateful> createState() => _GoogleMapsStatefulState();
@@ -21,9 +42,9 @@ class _GoogleMapsStateful extends StatefulWidget {
 class _GoogleMapsStatefulState extends State<_GoogleMapsStateful> {
   GoogleMapController? controller;
 
-  final CameraPosition _initialPosition = const CameraPosition(
-    target: LatLng(37.7749, -122.4194),
-    zoom: 12,
+  late final CameraPosition _initialPosition = CameraPosition(
+    target: widget.initialPosition ?? const LatLng(6.9271, 79.8612),
+    zoom: 14,
   );
 
   @override
@@ -38,6 +59,7 @@ class _GoogleMapsStatefulState extends State<_GoogleMapsStateful> {
               myLocationEnabled: true,
               myLocationButtonEnabled: false,
               zoomControlsEnabled: false,
+              markers: widget.markers,
             ),
 
         // Back button (TOP LEFT)
