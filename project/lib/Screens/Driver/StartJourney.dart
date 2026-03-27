@@ -15,7 +15,7 @@ class Startjourney extends StatefulWidget {
 
 class _StartjourneyState extends State<Startjourney> {
   late StartJourneyController _controller;
-  PassengerModel? _proximityPassenger;
+  List<PassengerModel>? _proximalPassengers;
   bool _isPopupShown = false;
 
   @override
@@ -23,15 +23,15 @@ class _StartjourneyState extends State<Startjourney> {
     super.initState();
     _controller = StartJourneyController(
       onLocationChanged: (position) {
-        // Map will update automatically if myLocationEnabled is true
+        if (mounted) setState(() {});
       },
-      onProximityReached: (passenger) {
+      onProximityReached: (passengers) {
         if (!_isPopupShown) {
           setState(() {
-            _proximityPassenger = passenger;
+            _proximalPassengers = passengers;
             _isPopupShown = true;
           });
-          _showPassengerPopup(passenger);
+          _showPassengerPopup(passengers);
         }
       },
     );
@@ -103,27 +103,24 @@ class _StartjourneyState extends State<Startjourney> {
       body: Stack(
         children: [
           // 1. Google Map (Fills the entire screen)
-          const GoogleMaps(),
+          GoogleMaps(
+            markers: _controller.markers,
+          ),
 
           // 2. Next Passenger Card (Positioned at the bottom)
           if (currentPassenger != null)
             Align(
               alignment: Alignment.bottomCenter,
               child: NextPassengerCard(
-                passengerName: currentPassenger.name,
-                location: currentPassenger.pickupLocation,
-                eta: "Calculated from live data",
+                passengers: _controller.passengers,
+                currentIndex: _controller.currentPassengerIndex,
+                status: _controller.currentStatus,
                 onCallPressed: () {
-                  print("Call pressed");
+                  _controller.makeCall();
                 },
-                onPreviousPressed: () {
+                onPageChanged: (index) {
                   setState(() {
-                    _controller.previousPassenger();
-                  });
-                },
-                onNextPressed: () {
-                  setState(() {
-                    _controller.nextPassenger();
+                    _controller.setPassengerIndex(index);
                   });
                 },
               ),
