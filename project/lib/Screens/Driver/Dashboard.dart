@@ -340,8 +340,8 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                         ),
                       ),
                       SizedBox(width: 10),
-                      Icon(Icons.arrow_forward_rounded, 
-                      size: 40,
+                      Icon(Icons.arrow_forward_rounded,
+                      size: 30,
                       ),
                        
                     ],
