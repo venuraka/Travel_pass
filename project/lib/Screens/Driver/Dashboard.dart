@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../Components/BottomBar.dart';
 import 'Attendance.dart';
 import 'PaymentDetails.dart';
@@ -86,7 +87,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     return SafeArea(
       child: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          padding: EdgeInsets.symmetric(horizontal: 24.0.w),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -102,16 +103,16 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                       Text(
                         'Good Morning,',
                          style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 14.sp,
                       fontWeight: FontWeight.w600,
                       color: primaryGreen, // Using green for greeting text
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      const Text(
+                      SizedBox(height: 4.h),
+                      Text(
                         'Venuraka',
                         style: TextStyle(
-                          fontSize: 26,
+                          fontSize: 26.sp,
                           fontWeight: FontWeight.w800,
                           color: textDark,
                           letterSpacing: -0.5,
@@ -152,28 +153,28 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
               const SizedBox(height: 25),
 
               // --- Soft Search Bar ---
-              Container(
+               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(16.0),
+                  borderRadius: BorderRadius.circular(16.0.r),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.03),
-                      blurRadius: 15,
-                      offset: const Offset(0, 5),
+                      blurRadius: 15.r,
+                      offset: Offset(0, 5.h),
                     ),
                   ],
                 ),
-                child: const TextField(
+                child: TextField(
                   decoration: InputDecoration(
                     hintText: 'Search',
                     hintStyle: TextStyle(
                       color: Color(0xFFB0B0B0),
-                      fontSize: 14,
+                      fontSize: 14.sp,
                     ),
-                    prefixIcon: Icon(Icons.search, color: primaryGreen),
+                    prefixIcon: Icon(Icons.search, color: primaryGreen, size: 24.r),
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(vertical: 16.0),
+                    contentPadding: EdgeInsets.symmetric(vertical: 16.0.h),
                   ),
                 ),
               ),
@@ -181,10 +182,10 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
               const SizedBox(height: 30),
 
               // --- Section Title ---
-              const Text(
+               Text(
                 "Overview",
                 style: TextStyle(
-                  fontSize: 18,
+                  fontSize: 18.sp,
                   fontWeight: FontWeight.bold,
                   color: textDark,
                 ),
@@ -192,7 +193,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
               const SizedBox(height: 15),
 
               // --- Hero Card (Today's Passengers) ---
-              _buildHeroCard(
+               _buildHeroCard(
                 title: "Today's Passengers",
                 value: _isLoadingCount
                     ? '...'
@@ -374,12 +375,12 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
-          borderRadius: BorderRadius.circular(20.0),
+           borderRadius: BorderRadius.circular(20.0.r),
           boxShadow: [
             BoxShadow(
               color: primaryGreen.withOpacity(0.25),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
+              blurRadius: 15.r,
+              offset: Offset(0, 8.h),
             ),
           ],
         ),
@@ -391,34 +392,34 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white70,
-                    fontSize: 14,
+                    fontSize: 14.sp,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8.h),
                 Text(
                   value,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
-                    fontSize: 36,
+                    fontSize: 36.sp,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4.h),
               ],
             ),
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.all(12.r),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.2),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.people_alt_rounded,
                 color: Colors.white,
-                size: 28,
+                size: 28.r,
               ),
             ),
           ],
@@ -428,7 +429,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   }
 
   /// Smaller square cards for secondary actions
-  Widget _buildActionCard({
+   Widget _buildActionCard({
     required String title,
     required IconData icon,
     required Color color, // Pass a color to distinguish the icon
@@ -436,17 +437,17 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(20.r),
       child: Container(
-        padding: const EdgeInsets.all(20.0),
+        padding: EdgeInsets.all(20.0.r),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20.0),
+          borderRadius: BorderRadius.circular(20.0.r),
           boxShadow: [
             BoxShadow(
               color: Colors.grey.withOpacity(0.08),
-              blurRadius: 15,
-              offset: const Offset(0, 5),
+              blurRadius: 15.r,
+              offset: Offset(0, 5.h),
             ),
           ],
         ),
@@ -454,26 +455,26 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: EdgeInsets.all(10.r),
               decoration: BoxDecoration(
                 color: color.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: color, size: 24),
+              child: Icon(icon, color: color, size: 24.r),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16.h),
             Text(
               title,
-              style: const TextStyle(
-                fontSize: 15,
+              style: TextStyle(
+                fontSize: 15.sp,
                 fontWeight: FontWeight.w600,
                 color: textDark,
               ),
             ),
-            const SizedBox(height: 4),
-            const Text(
+            SizedBox(height: 4.h),
+            Text(
               "Tap to view",
-              style: TextStyle(fontSize: 12, color: textGrey),
+              style: TextStyle(fontSize: 12.sp, color: textGrey),
             ),
           ],
         ),

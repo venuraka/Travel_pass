@@ -44,3 +44,4 @@
 
 # Exceptions to above rules.
 !/project/
+.DS_Store

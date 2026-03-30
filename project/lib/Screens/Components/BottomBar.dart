@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 const Color primaryGreen = Color(0xFF05A664);
 const Color textMuted = Color(0xFF121415);
@@ -27,16 +28,16 @@ class CustomBottomNavBar extends StatelessWidget {
         onTap: () => onTabSelected(index),
         child: Padding(
           // reduced top padding and kept a small bottom padding
-          padding: const EdgeInsets.only(top: 0, bottom: 10),
+          padding: EdgeInsets.only(top: 0, bottom: 10.h),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 24, color: color),
+              Icon(icon, size: 24.r, color: color),
               Text(
                 label,
                 style: TextStyle(
                   color: color,
-                  fontSize: 11,
+                  fontSize: 11.sp,
                   fontWeight: weight,
                 ),
               ),
@@ -49,18 +50,19 @@ class CustomBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double height = 70 + MediaQuery.of(context).padding.bottom;
+    final double baseHeight = 70.h;
+    final double height = baseHeight + MediaQuery.of(context).padding.bottom;
 
     return Container(
       height: height,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(40.r)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.08),
-            blurRadius: 12,
-            offset: const Offset(0, -3),
+            blurRadius: 12.r,
+            offset: Offset(0, -3.h),
           ),
         ],
       ),

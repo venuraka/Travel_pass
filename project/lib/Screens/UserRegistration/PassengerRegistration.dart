@@ -1,5 +1,6 @@
 import 'dart:async'; // Add import for Timer
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../Components/InputTexts.dart';
@@ -430,30 +431,30 @@ class _PassengerRegistrationScreenState
                   // ===== Register Button =====
                   SizedBox(
                     width: double.infinity,
-                    height: 55,
+                    height: 55.h,
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _registerPassenger,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF05A664),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10.0),
+                          borderRadius: BorderRadius.circular(10.0.r),
                         ),
                         elevation: 0,
                       ),
                       child: _isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : const Row(
+                          ? CircularProgressIndicator(color: Colors.white, strokeWidth: 2.w)
+                          : Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
                                   'Register',
                                   style: TextStyle(
-                                    fontSize: 18,
+                                    fontSize: 18.sp,
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                SizedBox(width: 10),
+                                SizedBox(width: 10.w),
                               ],
                             ),
                     ),

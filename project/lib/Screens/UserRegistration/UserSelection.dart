@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'DriverRegistration.dart';
 import 'PassengerRegistration.dart';
 
@@ -13,32 +14,32 @@ class UserSelectionScreen extends StatelessWidget {
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 30.0),
+          padding: EdgeInsets.symmetric(horizontal: 30.0.w),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: <Widget>[
 
               // 1. Header Section
-              const SizedBox(height: 50),
-              const Text(
+              SizedBox(height: 50.h),
+              Text(
                 'Welcome',
                 style: TextStyle(
-                  fontSize: 60,
+                  fontSize: 60.sp,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF121415),
+                  color: const Color(0xFF121415),
                 ),
               ),
-              const SizedBox(height: 8),
-              const Text(
+              SizedBox(height: 8.h),
+              Text(
                 'Choose How you want to continue',
                 style: TextStyle(
-                  fontSize: 18,
-                  color: Color(0xFF05A664),
+                  fontSize: 18.sp,
+                  color: const Color(0xFF05A664),
                 ),
               ),
 
               // Add spacing before the selection tiles
-              const SizedBox(height: 50),
+              SizedBox(height: 50.h),
 
               // 2. Driver Selection Tile (using the new overlapping design)
               SelectionTile(
@@ -53,7 +54,7 @@ class UserSelectionScreen extends StatelessWidget {
                 },
               ),
 
-              const SizedBox(height: 20),
+              SizedBox(height: 20.h),
 
               // 3. Passenger Selection Tile (using the new overlapping design)
               SelectionTile(
@@ -73,14 +74,14 @@ class UserSelectionScreen extends StatelessWidget {
 
               // 5. Terms of Service Footer
               InkWell(
-                child: const Padding(
-                  padding: EdgeInsets.only(bottom: 20.0),
+                child: Padding(
+                  padding: EdgeInsets.only(bottom: 20.0.h),
                   child: Text(
                     'By continuing, you agree to our Terms of Service',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 14,
-                        color: Color(0xFF05A664),
+                      fontSize: 14.sp,
+                        color: const Color(0xFF05A664),
                     ),
                   ),
                 ),
@@ -110,14 +111,14 @@ class SelectionTile extends StatelessWidget {
   });
 
   // Constants for sizing the overlapping elements
-  static const double iconCircleSize = 75.0; // Diameter of the black circle
-  static const double cardHeight = 150.0;
-  static const double totalTileHeight = cardHeight + (iconCircleSize / 2);
+  static double get iconCircleSize => 75.0.r; // Diameter of the black circle
+  static double get cardHeight => 150.0.h;
+  static double get totalTileHeight => cardHeight + (iconCircleSize / 2);
 
   @override
   Widget build(BuildContext context) {
     // Determine the width of the tile
-    final double tileWidth = MediaQuery.of(context).size.width * 0.75;
+    final double tileWidth = 1.sw * 0.75;
 
     return InkWell(
       onTap: onTap,
@@ -141,12 +142,12 @@ class SelectionTile extends StatelessWidget {
               right: 0,
               child: Container(
                 height: cardHeight,
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                padding: EdgeInsets.symmetric(horizontal: 20.0.w),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(15),
+                  borderRadius: BorderRadius.circular(15.r),
                   border: Border.all(
-                    color: Color(0xFF05A664),
-                    width: 1.5,
+                    color: const Color(0xFF05A664),
+                    width: 1.5.w,
                   ),
                   color: Colors.white, // Explicit white background for the card
                 ),
@@ -156,22 +157,22 @@ class SelectionTile extends StatelessWidget {
                     // Title
                     Text(
                       title,
-                      style: const TextStyle(
-                        fontSize: 35,
+                      style: TextStyle(
+                        fontSize: 35.sp,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF121415),
+                        color: const Color(0xFF121415),
                       ),
                     ),
                     // Subtitle/Registration Text
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12.h),
                     Text(
                       subtitle,
                       style: TextStyle(
-                        fontSize: 15,
-                        color: Color(0xFF05A664),
+                        fontSize: 15.sp,
+                        color: const Color(0xFF05A664),
                       ),
                     ),
-                    const SizedBox(height: 20), // Bottom padding
+                    SizedBox(height: 20.h), // Bottom padding
                   ],
                 ),
               ),
@@ -189,8 +190,8 @@ class SelectionTile extends StatelessWidget {
                 ),
                 child: Icon(
                   icon,
-                  size: 50,
-                  color: Color(0xFF05A664),// Icon color is green inside the black circle
+                  size: 50.r,
+                  color: const Color(0xFF05A664),// Icon color is green inside the black circle
                 ),
               ),
             ),

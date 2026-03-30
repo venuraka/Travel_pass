@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class InfoCard extends StatelessWidget {
   final String title;
@@ -25,27 +26,27 @@ class InfoCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(16.r),
           boxShadow: [
             BoxShadow(
               color: Colors.grey.withOpacity(0.2),
-              spreadRadius: 2,
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              spreadRadius: 2.r,
+              blurRadius: 8.r,
+              offset: Offset(0, 2.h),
             ),
           ],
         ),
         // Use a Stack to overlay the "Daily" tag on top of the content
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(16.r),
           child: Stack(
             children: [
               // Main Content Layer
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+                padding: EdgeInsets.all(16.r),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -55,22 +56,22 @@ class InfoCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           SizedBox(
-                            height: showTag ? 12 : 0,
+                            height: showTag ? 12.h : 0,
                           ), // Spacing if tag exists
                           Text(
                             title,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              fontSize: 14,
+                              fontSize: 14.sp,
                               color: Colors.black87,
                             ),
                           ),
-                          const SizedBox(height: 2),
+                          SizedBox(height: 2.h),
                           subtitleWidget ??
                               Text(
                                 subtitle ?? '',
-                                style: const TextStyle(
-                                  fontSize: 12,
+                                style: TextStyle(
+                                  fontSize: 12.sp,
                                   color: Colors.black54,
                                 ),
                               ),
@@ -89,21 +90,21 @@ class InfoCard extends StatelessWidget {
                   top: 0,
                   left: 0,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 12.w,
+                      vertical: 4.h,
                     ),
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       color: Colors.black,
                       borderRadius: BorderRadius.only(
-                        bottomRight: Radius.circular(16),
+                        bottomRight: Radius.circular(16.r),
                       ),
                     ),
                     child: Text(
                       tagText,
-                      style: const TextStyle(
-                        color: Color(0xFF00C853), // Matrix Green color
-                        fontSize: 10,
+                      style: TextStyle(
+                        color: const Color(0xFF00C853), // Matrix Green color
+                        fontSize: 10.sp,
                         fontWeight: FontWeight.bold,
                       ),
                     ),

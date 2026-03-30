@@ -50,6 +50,7 @@ dependencies:
   url_launcher: ^6.3.2
   shared_preferences: ^2.5.4
   rxdart: ^0.28.0
+  flutter_screenutil: ^5.9.3
 
 
 dev_dependencies:

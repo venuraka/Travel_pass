@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../controllers/AuthService.dart';
 import '../../utils/AuthExceptionHandler.dart';
@@ -161,20 +162,20 @@ class _LoginPageState extends State<LoginPage> {
               children: <Widget>[
                 const SizedBox(height: 30),
                 // Header
-                const Text(
+                Text(
                   'Login',
                   style: TextStyle(
-                    fontSize: 40,
+                    fontSize: 40.sp,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF121415),
                   ),
                 ),
-                const SizedBox(height: 10),
-                const Text(
+                SizedBox(height: 10.h),
+                Text(
                   'Welcome back!',
-                  style: TextStyle(fontSize: 16, color: Color(0xFF05A664)),
+                  style: TextStyle(fontSize: 16.sp, color: Color(0xFF05A664)),
                 ),
-                const SizedBox(height: 40),
+                SizedBox(height: 40.h),
 
                 // Google Sign In Button
                 _buildGoogleButton(),
@@ -222,16 +223,16 @@ class _LoginPageState extends State<LoginPage> {
       onTap: _isLoading ? null : _signInWithGoogle,
       child: Container(
         width: double.infinity,
-        height: 55,
+        height: 55.h,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(30),
-          border: Border.all(color: const Color(0xFF121415), width: 1.5),
+          borderRadius: BorderRadius.circular(30.r),
+          border: Border.all(color: const Color(0xFF121415), width: 1.5.w),
           boxShadow: [
             BoxShadow(
               color: const Color(0xFF121415).withOpacity(0.1),
-              offset: const Offset(0, 4),
-              blurRadius: 10,
+              offset: Offset(0, 4.h),
+              blurRadius: 10.r,
             ),
           ],
         ),
@@ -300,29 +301,29 @@ class _LoginPageState extends State<LoginPage> {
 
         SizedBox(
           width: double.infinity,
-          height: 55,
+          height: 55.h,
           child: ElevatedButton(
             onPressed: _isLoading ? null : _handleEmailLogin,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF05A664),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
+                borderRadius: BorderRadius.circular(30.r),
               ),
               elevation: 0,
             ),
             child: _isLoading
-                ? const SizedBox(
-                    height: 24,
-                    width: 24,
+                ? SizedBox(
+                    height: 24.r,
+                    width: 24.r,
                     child: CircularProgressIndicator(
                       color: Colors.white,
-                      strokeWidth: 2,
+                      strokeWidth: 2.w,
                     ),
                   )
-                : const Text(
+                : Text(
                     'Login',
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: 18.sp,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
@@ -373,15 +374,16 @@ class _LoginPageState extends State<LoginPage> {
       keyboardType: keyboardType,
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(
+        labelStyle: TextStyle(
           color: Color(0xFF121415),
           fontWeight: FontWeight.w500,
+          fontSize: 14.sp,
         ),
-        enabledBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Color(0xFF05A664), width: 1.0),
+        enabledBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: Color(0xFF05A664), width: 1.0.w),
         ),
-        focusedBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Color(0xFF05A664), width: 2.0),
+        focusedBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: Color(0xFF05A664), width: 2.0.w),
         ),
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../passenger/Updates.dart';
 import '../passenger/PaymentHistory.dart';
@@ -87,7 +88,7 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
     return SafeArea(
       child: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          padding: EdgeInsets.symmetric(horizontal: 24.0.w),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -97,19 +98,19 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Good Morning,',
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: 14.sp,
                       fontWeight: FontWeight.w600,
                       color: primaryGreen, // Using green for greeting text
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4.h),
                   Text(
                     _passenger?.name ?? 'Passenger',
-                    style: const TextStyle(
-                      fontSize: 28,
+                    style: TextStyle(
+                      fontSize: 28.sp,
                       fontWeight: FontWeight.w900,
                       color: textDark,
                       letterSpacing: -0.5,
@@ -121,29 +122,29 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
               const SizedBox(height: 25),
 
               // --- Soft Search Bar with Green Border ---
-              Container(
+               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(16.0),
-                  border: Border.all(color: primaryGreen.withOpacity(0.1), width: 1),
+                  borderRadius: BorderRadius.circular(16.0.r),
+                  border: Border.all(color: primaryGreen.withOpacity(0.1), width: 1.w),
                   boxShadow: [
                     BoxShadow(
                       color: primaryGreen.withOpacity(0.05),
-                      blurRadius: 15,
-                      offset: const Offset(0, 5),
+                      blurRadius: 15.r,
+                      offset: Offset(0, 5.h),
                     ),
                   ],
                 ),
-                child: const TextField(
+                child: TextField(
                   decoration: InputDecoration(
                     hintText: 'Search',
                     hintStyle: TextStyle(
                       color: Color(0xFFB0B0B0),
-                      fontSize: 14,
+                      fontSize: 14.sp,
                     ),
-                    prefixIcon: Icon(Icons.search, color: primaryGreen),
+                    prefixIcon: Icon(Icons.search, color: primaryGreen, size: 24.r),
                     border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(vertical: 16.0),
+                    contentPadding: EdgeInsets.symmetric(vertical: 16.0.h),
                   ),
                 ),
               ),
@@ -171,18 +172,18 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
                 ),
 
               // --- Overview Section ---
-             Row(
-  children: [
-    const Text(
-      "Overview",
-      style: TextStyle(
-        fontSize: 20,
-        fontWeight: FontWeight.w900,
-        color: textDark,
-      ),
-    ),
-  ],
-),
+              Row(
+                children: [
+                   Text(
+                    "Overview",
+                    style: TextStyle(
+                      fontSize: 20.sp,
+                      fontWeight: FontWeight.w900,
+                      color: textDark,
+                    ),
+                  ),
+                ],
+              ),
 
               // --- Action Grid (Rows matching Driver style) ---
               Row(
@@ -272,18 +273,18 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(20.r),
       child: Container(
-        padding: const EdgeInsets.all(20.0),
+        padding: EdgeInsets.all(20.0.r),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20.0),
-          border: Border.all(color: primaryGreen.withOpacity(0.1), width: 1),
+          borderRadius: BorderRadius.circular(20.0.r),
+          border: Border.all(color: primaryGreen.withOpacity(0.1), width: 1.w),
           boxShadow: [
             BoxShadow(
               color: primaryGreen.withOpacity(0.04),
-              blurRadius: 15,
-              offset: const Offset(0, 5),
+              blurRadius: 15.r,
+              offset: Offset(0, 5.h),
             ),
           ],
         ),
@@ -294,32 +295,32 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
               clipBehavior: Clip.none,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: EdgeInsets.all(10.r),
                   decoration: BoxDecoration(
                     color: color.withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(icon, color: color, size: 24),
+                  child: Icon(icon, color: color, size: 24.r),
                 ),
                 if (badgeCount > 0)
                   Positioned(
-                    right: -5,
-                    top: -5,
+                    right: -5.w,
+                    top: -5.h,
                     child: Container(
-                      padding: const EdgeInsets.all(6),
+                      padding: EdgeInsets.all(6.r),
                       decoration: const BoxDecoration(
                         color: Colors.red,
                         shape: BoxShape.circle,
                       ),
-                      constraints: const BoxConstraints(
-                        minWidth: 20,
-                        minHeight: 20,
+                      constraints: BoxConstraints(
+                        minWidth: 20.w,
+                        minHeight: 20.h,
                       ),
                       child: Text(
                          badgeCount > 9 ? '9+' : '$badgeCount',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Colors.white,
-                          fontSize: 10,
+                          fontSize: 10.sp,
                           fontWeight: FontWeight.bold,
                         ),
                         textAlign: TextAlign.center,
@@ -328,19 +329,19 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
                   ),
               ],
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16.h),
             Text(
               title,
-              style: const TextStyle(
-                fontSize: 15,
+              style: TextStyle(
+                fontSize: 15.sp,
                 fontWeight: FontWeight.w600,
                 color: textDark,
               ),
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: 4.h),
             Text(
               description,
-              style: const TextStyle(fontSize: 12, color: textGrey),
+              style: TextStyle(fontSize: 12.sp, color: textGrey),
             ),
           ],
         ),
@@ -351,9 +352,9 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
   Widget _buildFindVehicleButton(BuildContext context) {
     return Container(
       width: double.infinity,
-      height: 65, // Slightly larger hero button
+      height: 65.h, // Slightly larger hero button
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20), // Slightly less round for hero style
+        borderRadius: BorderRadius.circular(20.r), // Slightly less round for hero style
         gradient: const LinearGradient(
           colors: [primaryGreen, Color(0xFF048F56)], // Driver-style hero gradient
           begin: Alignment.topLeft,
@@ -362,8 +363,8 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
         boxShadow: [
           BoxShadow(
             color: primaryGreen.withOpacity(0.3),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+            blurRadius: 20.r,
+            offset: Offset(0, 10.h),
           ),
         ],
       ),
@@ -413,22 +414,22 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
           foregroundColor: Colors.white,
           padding: EdgeInsets.zero,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18.0),
+            borderRadius: BorderRadius.circular(18.0.r),
           ),
           elevation: 0,
-          textStyle: const TextStyle(
-            fontSize: 18,
+          textStyle: TextStyle(
+            fontSize: 18.sp,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.5,
           ),
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Track Vehicle'),
-            SizedBox(width: 10),
+            const Text('Track Vehicle'),
+            SizedBox(width: 10.w),
             Icon(Icons.arrow_forward_rounded,
-            size: 30,
+            size: 30.r,
             ),
           ],
         ),
@@ -438,40 +439,40 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
 
   Widget _buildAttendanceCard() {
     return Container(
-      padding: const EdgeInsets.all(20.0),
+      padding: EdgeInsets.all(20.0.r),
       decoration: BoxDecoration(
         color: cardColor,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(20.r),
         boxShadow: [
           BoxShadow(
             color: Colors.grey.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            blurRadius: 20.r,
+            offset: Offset(0, 8.h),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text(
+          Text(
             'Mark Attendance',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: 18.sp,
               fontWeight: FontWeight.w700,
               color: textDark,
             ),
           ),
-          const SizedBox(height: 15),
+          SizedBox(height: 15.h),
           ..._datesToMark.map((item) => _buildAttendanceDismissibleRow(item)),
           if (_datesToMark.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 20.0),
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 20.0.h),
               child: Center(
                 child: Text(
                   'All caught up! 🎉',
                   style: TextStyle(
                     color: textGrey,
-                    fontSize: 14,
+                    fontSize: 14.sp,
                     fontStyle: FontStyle.italic,
                   ),
                 ),

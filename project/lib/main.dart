@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart'; // Add import
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:project/Screens/Driver/Dashboard.dart';
 import 'Screens/passenger/Dashboard.dart';
 import 'firebase_options.dart';
@@ -27,18 +28,26 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'TravelPass',
-      theme: ThemeData(
-        fontFamily: 'Poppins',
-        scaffoldBackgroundColor: Colors.white,
-      ),
+    // Standard design size for mobile apps (e.g., iPhone 13)
+    return ScreenUtilInit(
+      designSize: const Size(375, 812),
+      minTextAdapt: true,
+      splitScreenMode: true,
+      builder: (context, child) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'TravelPass',
+          theme: ThemeData(
+            fontFamily: 'Poppins',
+            scaffoldBackgroundColor: Colors.white,
+          ),
 
-      // Set the initial route to AuthWrapper
-      // home: const AuthWrapper(),
-      home: const DriverDashboardScreen(),
-      // home: const  PassengerDashboardApp(),
+          // Set the initial route to AuthWrapper
+          // home: const AuthWrapper(),
+          home: const DriverDashboardScreen(),
+          // home: const  PassengerDashboardApp(),
+        );
+      },
     );
   }
 }
