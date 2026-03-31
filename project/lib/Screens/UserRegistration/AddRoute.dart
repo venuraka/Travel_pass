@@ -3,7 +3,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:uuid/uuid.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Added
-import 'package:flutter_dotenv/flutter_dotenv.dart'; // Added
+import '../../config/AppConfig.dart';
 import '../Components/CustomSnackBar.dart';
 import '../Driver/Dashboard.dart';
 import '../../services/PlaceService.dart';
@@ -19,7 +19,7 @@ class AddRouteScreen extends StatefulWidget {
 class _AddRouteScreenState extends State<AddRouteScreen> {
   // Services
   final PlaceService _placeService = PlaceService(
-    dotenv.env['GOOGLE_MAPS_API_KEY'] ?? '', // Use env var
+    AppConfig.googleMapsApiKey,
   );
   late GoogleMapController mapController;
   final Uuid _uuid = const Uuid();

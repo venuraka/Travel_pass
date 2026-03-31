@@ -24,14 +24,14 @@ import GoogleMaps
             fatalError("GoogleMapsAPIKey not found in Info.plist")
         }
 
-        // ✅ Setup Method Channel using FlutterEngine
+        // ✅ Setup Method Channels using FlutterEngine
         let controller = FlutterViewController(engine: flutterEngine, nibName: nil, bundle: nil)
 
+        // 📞 Phone Channel
         let phoneChannel = FlutterMethodChannel(
             name: "com.travelpass.app/phone",
             binaryMessenger: controller.binaryMessenger
         )
-
         phoneChannel.setMethodCallHandler { (call, result) in
             if call.method == "makeCall" {
                 guard let args = call.arguments as? [String: Any],
@@ -41,7 +41,6 @@ import GoogleMaps
                                         details: nil))
                     return
                 }
-
                 if let url = URL(string: "tel://\(phoneNumber)"),
                    UIApplication.shared.canOpenURL(url) {
                     UIApplication.shared.open(url, options: [:]) { success in
@@ -58,6 +57,20 @@ import GoogleMaps
                                         message: "Cannot open phone dialer",
                                         details: nil))
                 }
+            } else {
+                result(FlutterMethodNotImplemented)
+            }
+        }
+
+        // 🔑 Config Channel — reads secrets from Info.plist at runtime (never in Dart source)
+        let configChannel = FlutterMethodChannel(
+            name: "com.travelpass.app/config",
+            binaryMessenger: controller.binaryMessenger
+        )
+        configChannel.setMethodCallHandler { (call, result) in
+            if call.method == "getGoogleMapsApiKey" {
+                let key = Bundle.main.object(forInfoDictionaryKey: "GoogleMapsAPIKey") as? String ?? ""
+                result(key)
             } else {
                 result(FlutterMethodNotImplemented)
             }

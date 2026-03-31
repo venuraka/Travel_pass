@@ -2,6 +2,7 @@ import UIKit
 import Flutter
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
+
     var window: UIWindow?
 
     func scene(
@@ -11,12 +12,14 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     ) {
         guard let windowScene = (scene as? UIWindowScene) else { return }
 
-        // ✅ Get Flutter engine from AppDelegate
         let appDelegate = UIApplication.shared.delegate as! AppDelegate
         let flutterEngine = appDelegate.flutterEngine
 
-
-        let flutterViewController = FlutterViewController(engine: flutterEngine, nibName: nil, bundle: nil)
+        let flutterViewController = FlutterViewController(
+            engine: flutterEngine,
+            nibName: nil,
+            bundle: nil
+        )
 
         window = UIWindow(windowScene: windowScene)
         window?.rootViewController = flutterViewController

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:project/Screens/Driver/Dashboard.dart';
 import 'Screens/UserRegistration/Login.dart';
 import 'Screens/passenger/Dashboard.dart';
 import 'firebase_options.dart';
 import 'utils/AuthWrapper.dart';
+import 'config/AppConfig.dart';
 
 void main() async {
   // 1. Ensures Flutter widgets are ready before initializing Firebase
@@ -15,11 +15,8 @@ void main() async {
   // 2. Initialize Firebase with your project options
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  await dotenv.load(fileName: ".env"); // Load env file
-
-  // Note: GoogleSignIn.instance.initialize() is NOT required on iOS when
-  // GoogleService-Info.plist is properly configured. It's only needed on web
-  // or when you need to override default configuration.
+  // 3. Load API keys securely from native platform (Info.plist / AndroidManifest)
+  await AppConfig.init();
 
   runApp(const MyApp());
 }
