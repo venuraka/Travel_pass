@@ -11,10 +11,12 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     ) {
         guard let windowScene = (scene as? UIWindowScene) else { return }
 
-        let flutterViewController = FlutterViewController()
-        let flutterEngine = (UIApplication.shared.delegate as! AppDelegate).flutterEngine
+        // ✅ Get Flutter engine from AppDelegate
+        let appDelegate = UIApplication.shared.delegate as! AppDelegate
+        let flutterEngine = appDelegate.flutterEngine
 
-        flutterViewController.engine = flutterEngine
+
+        let flutterViewController = FlutterViewController(engine: flutterEngine, nibName: nil, bundle: nil)
 
         window = UIWindow(windowScene: windowScene)
         window?.rootViewController = flutterViewController

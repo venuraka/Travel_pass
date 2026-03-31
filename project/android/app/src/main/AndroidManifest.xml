@@ -36,8 +36,9 @@
         <!-- Google maps for flutter-->
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyCGbN2wCtheM7gjPzgLykngb4lPaPiTR7c"
+            android:value="AIzaSyDG7eFkGdsM4LJf1vVyWADHkbImTju4lNQ"
             />
+
 
     </application>
 
