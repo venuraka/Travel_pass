@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -18,9 +19,16 @@ class PlaceService {
 
     final uri = Uri.https('places.googleapis.com', '/v1/places:autocomplete');
 
+    final headers = {
+      'Content-Type': 'application/json', 
+      'X-Goog-Api-Key': apiKey,
+      if (Platform.isIOS) 'X-Ios-Bundle-Identifier': 'com.venuraka.travelpass',
+      if (Platform.isAndroid) 'X-Android-Package': 'com.venuraka.travelpass',
+    };
+
     final response = await http.post(
       uri,
-      headers: {'Content-Type': 'application/json', 'X-Goog-Api-Key': apiKey},
+      headers: headers,
       body: jsonEncode({
         'input': query,
         'sessionToken': sessionToken,
@@ -64,14 +72,17 @@ class PlaceService {
       'sessionToken': sessionToken,
     });
 
+    final headers = {
+      'Content-Type': 'application/json',
+      'X-Goog-Api-Key': apiKey,
+      'X-Goog-FieldMask': 'location,formattedAddress,displayName',
+      if (Platform.isIOS) 'X-Ios-Bundle-Identifier': 'com.venuraka.travelpass',
+      if (Platform.isAndroid) 'X-Android-Package': 'com.venuraka.travelpass',
+    };
+
     final response = await http.get(
       uri,
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Goog-Api-Key': apiKey,
-        // Using FieldMask header is also an option, but query param 'fields' works
-        'X-Goog-FieldMask': 'location,formattedAddress,displayName',
-      },
+      headers: headers,
     );
 
     if (response.statusCode == 200) {
@@ -104,7 +115,12 @@ class PlaceService {
       'key': apiKey,
     });
 
-    final response = await http.get(uri);
+    final headers = {
+      if (Platform.isIOS) 'X-Ios-Bundle-Identifier': 'com.venuraka.travelpass',
+      if (Platform.isAndroid) 'X-Android-Package': 'com.venuraka.travelpass',
+    };
+
+    final response = await http.get(uri, headers: headers);
 
     if (response.statusCode == 200) {
       final result = json.decode(response.body);
@@ -151,7 +167,11 @@ class PlaceService {
     );
 
     debugPrint("PlaceService: Fetching directions...");
-    final response = await http.get(uri);
+    final headers = {
+      if (Platform.isIOS) 'X-Ios-Bundle-Identifier': 'com.venuraka.travelpass',
+      if (Platform.isAndroid) 'X-Android-Package': 'com.venuraka.travelpass',
+    };
+    final response = await http.get(uri, headers: headers);
 
     if (response.statusCode == 200) {
       final result = json.decode(response.body);

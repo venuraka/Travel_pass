@@ -7,6 +7,7 @@ class InputTextField extends StatelessWidget {
   final bool showTrailingIcon;
   final String? hintText;
   final Function(String)? onChanged; // Add this
+  final FocusNode? focusNode;
 
   const InputTextField({
     super.key,
@@ -16,12 +17,14 @@ class InputTextField extends StatelessWidget {
     this.showTrailingIcon = true,
     this.hintText,
     this.onChanged, // Add this
+    this.focusNode,
   });
 
   @override
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
+      focusNode: focusNode,
       keyboardType: keyboardType,
       onChanged: onChanged, // Add this
       decoration: InputDecoration(

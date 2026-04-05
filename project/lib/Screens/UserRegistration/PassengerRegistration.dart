@@ -35,6 +35,7 @@ class _PassengerRegistrationScreenState
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _otherPhoneController = TextEditingController();
+  final FocusNode _plateFocusNode = FocusNode();
   final DatabaseService _dbService = DatabaseService();
 
   Timer? _debounce;
@@ -51,6 +52,7 @@ class _PassengerRegistrationScreenState
     _emailController.dispose();
     _phoneController.dispose();
     _otherPhoneController.dispose();
+    _plateFocusNode.dispose();
     super.dispose();
   }
 
@@ -83,14 +85,12 @@ class _PassengerRegistrationScreenState
     });
 
     try {
-      // Assuming plates are standardized to uppercase for search if case insensitive logic is needed
-      // Note: Firestore queries are case-sensitive.
-      // If we want "wp ca" to match "WP CA", we must query with the case that is in DB.
-      // Usually plates are Uppercase. Let's try converting to uppercase.
-      final driverData = await _dbService.getDriverByPlate(plate.toUpperCase());
+      final driverData = await _dbService.getDriverByPlate(plate);
 
       if (driverData != null) {
         _matchedDriverId = driverData['uid'];
+        // Store exact plate format
+        _plateController.text = driverData['vehiclePlate'] ?? plate;
         final route = driverData['route'] as List<dynamic>?;
 
         if (route != null && route.isNotEmpty) {
@@ -194,9 +194,7 @@ class _PassengerRegistrationScreenState
       final newPassenger = PassengerModel(
         uid: user.uid,
         name: _nameController.text.trim(),
-        vehiclePlate: _plateController.text
-            .trim()
-            .toUpperCase(), // Save normalized
+        vehiclePlate: _plateController.text.trim(), // Save exact string, DO NOT uppercase!
         driverId: _matchedDriverId!,
         address: _addressController.text.trim(),
         email: _emailController.text.trim(),
@@ -260,11 +258,41 @@ class _PassengerRegistrationScreenState
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      InputTextField(
-                        labelText: 'Vehicle Number Plate',
-                        keyboardType: TextInputType.text,
-                        controller: _plateController,
-                        onChanged: _onPlateChanged,
+                      Autocomplete<String>(
+                        optionsBuilder: (TextEditingValue textEditingValue) async {
+                          if (textEditingValue.text.isEmpty) {
+                            return const Iterable<String>.empty();
+                          }
+                          return await _dbService.searchVehiclePlates(textEditingValue.text);
+                        },
+                        onSelected: (String selection) {
+                          _plateController.text = selection;
+                          _onPlateChanged(selection);
+                          _plateFocusNode.unfocus();
+                        },
+                        fieldViewBuilder: (
+                          BuildContext context,
+                          TextEditingController textEditingController,
+                          FocusNode focusNode,
+                          VoidCallback onFieldSubmitted,
+                        ) {
+                          // Sync internal controller with _plateController so value is available on submit
+                          textEditingController.addListener(() {
+                            if (_plateController.text != textEditingController.text) {
+                              _plateController.text = textEditingController.text;
+                            }
+                          });
+
+                          return InputTextField(
+                            labelText: 'Vehicle Number Plate',
+                            keyboardType: TextInputType.text,
+                            controller: textEditingController,
+                            focusNode: focusNode,
+                            onChanged: (val) {
+                              _onPlateChanged(val);
+                            },
+                          );
+                        },
                       ),
                       if (_checkStatusMessage != null)
                         Padding(

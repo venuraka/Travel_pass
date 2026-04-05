@@ -70,6 +70,25 @@ class DatabaseService {
     }
   }
 
+  /// Fetches a list of matching vehicle plates for autocomplete.
+  Future<List<String>> searchVehiclePlates(String query) async {
+    try {
+      final querySnapshot = await _db.collection('driver').get();
+      final loweredQuery = query.toLowerCase();
+      
+      final results = querySnapshot.docs
+          .map((doc) => doc.data()['vehiclePlate'] as String? ?? '')
+          .where((plate) => plate.toLowerCase().contains(loweredQuery))
+          .take(10)
+          .toList();
+          
+      return results;
+    } catch (e) {
+      debugPrint("Error searching vehicle plates: $e");
+      return [];
+    }
+  }
+
   /// Saves passenger registration data to Firestore.
   Future<void> savePassengerData(PassengerModel passenger) async {
     try {
