@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../Components/AppBar.dart';
 import '../Components/Cards.dart';
 import '../Components/CustomSnackBar.dart';
@@ -166,8 +167,28 @@ class _NewPassengerScreenState extends State<NewPassengerScreen> {
                 IconButton(
                   visualDensity: VisualDensity.compact,
                   splashRadius: 20,
-                  onPressed: () {
-                    // TODO: Handle reject action
+                  onPressed: () async {
+                    // Handle reject action by deleting the passenger document
+                    try {
+                      await FirebaseFirestore.instance
+                          .collection('passenger')
+                          .doc(passenger.uid)
+                          .delete();
+                      _fetchData(); // Refresh the list
+                      if (context.mounted) {
+                        CustomSnackBar.showSuccess(
+                          context,
+                          "Passenger rejected and removed.",
+                        );
+                      }
+                    } catch (e) {
+                      if (context.mounted) {
+                        CustomSnackBar.showError(
+                          context,
+                          "Failed to reject passenger: $e",
+                        );
+                      }
+                    }
                   },
                   icon: const Icon(
                     Icons.highlight_off,

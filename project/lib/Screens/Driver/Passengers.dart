@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../Components/Cards.dart';
+import '../Components/CustomSnackBar.dart';
 import '../Components/Topic.dart';
 import 'NewPassenger.dart';
 import 'EditPassenger.dart'; // Import the EditPassenger screen
@@ -49,6 +51,54 @@ class _PassengerScreenState extends State<PassengerScreen> {
         });
       }
     }
+  }
+
+  Future<void> _deletePassenger(String uid) async {
+    try {
+      await FirebaseFirestore.instance.collection('passenger').doc(uid).delete();
+      if (mounted) {
+        CustomSnackBar.showSuccess(context, "Passenger deleted successfully.");
+        _fetchPassengers(); // Refresh list automatically
+      }
+    } catch (e) {
+      if (mounted) {
+        CustomSnackBar.showError(context, "Failed to delete passenger: $e");
+      }
+    }
+  }
+
+  void _showDeleteDialog(PassengerModel passenger) {
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15.0),
+          ),
+          title: const Text('Delete Passenger'),
+          content: Text('Are you sure you want to delete ${passenger.name}?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(dialogContext); // Close dialog precisely
+                _deletePassenger(passenger.uid); // Pass the uid to delete
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
+              ),
+              child: const Text('Delete', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -149,22 +199,48 @@ class _PassengerScreenState extends State<PassengerScreen> {
                             ),
                             showTag: passenger.paymentType == 'Monthly',
                             tagText: 'Monthly',
-                            trailing: IconButton(
+                            trailing: PopupMenuButton<String>(
                               icon: Icon(Icons.more_vert, color: appGreen),
-                              onPressed: () async {
-                                // Navigate to EditPassenger screen on tap
-                                final result = await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => EditPassengerScreen(
-                                      passenger: passenger,
+                              onSelected: (String value) async {
+                                if (value == 'edit') {
+                                  // Navigate to EditPassenger screen
+                                  final result = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => EditPassengerScreen(
+                                        passenger: passenger,
+                                      ),
                                     ),
-                                  ),
-                                );
-                                if (result == true) {
-                                  _fetchPassengers();
+                                  );
+                                  if (result == true) {
+                                    _fetchPassengers();
+                                  }
+                                } else if (value == 'delete') {
+                                  _showDeleteDialog(passenger);
                                 }
                               },
+                              itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+                                PopupMenuItem<String>(
+                                  value: 'edit',
+                                  child: Row(
+                                    children: const [
+                                      Icon(Icons.edit, color: Colors.blue, size: 20),
+                                      SizedBox(width: 10),
+                                      Text('Edit'),
+                                    ],
+                                  ),
+                                ),
+                                PopupMenuItem<String>(
+                                  value: 'delete',
+                                  child: Row(
+                                    children: const [
+                                      Icon(Icons.delete, color: Colors.red, size: 20),
+                                      SizedBox(width: 10),
+                                      Text('Delete', style: TextStyle(color: Colors.red)),
+                                    ],
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         );

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../UserRegistration/Login.dart';
 import '../../controllers/AccessController.dart';
-import '../passenger/Updates.dart';
+import '../passenger/Dashboard.dart';
 
 class PendingApprovalScreen extends StatefulWidget {
   const PendingApprovalScreen({super.key});
@@ -20,15 +21,32 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
     setState(() => _isChecking = true);
     final user = _auth.currentUser;
     if (user != null) {
-      final isRegistered = await _accessController.checkPassengerStatus(
-        user.uid,
-      );
-      if (isRegistered && mounted) {
-        // Navigate to Passenger Dashboard (Updates Screen)
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const UpdatesScreen()),
-        );
+      final doc = await FirebaseFirestore.instance.collection('passenger').doc(user.uid).get();
+      
+      if (!doc.exists) {
+        // The driver deleted/rejected this registration request!
+        await _auth.signOut();
+        if (mounted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => const LoginPage()),
+            (route) => false,
+          );
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Selected driver rejected your request.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } else if (doc.data()?['registered'] == true) {
+        if (mounted) {
+          // Navigate to Passenger Dashboard
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const PassengerDashboardApp()),
+          );
+        }
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
