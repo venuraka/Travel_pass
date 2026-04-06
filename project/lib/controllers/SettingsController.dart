@@ -24,6 +24,7 @@ class SettingsController {
     required DateTime? paymentDate,
     required String monthlyAmount,
     required String dailyAmount,
+    required String badgePreference,
   }) async {
     try {
       final user = _auth.currentUser;
@@ -50,6 +51,7 @@ class SettingsController {
         paymentDate,
         monthlyAmount,
         dailyAmount,
+        badgePreference,
       );
 
       // 3. Update Passengers based on type

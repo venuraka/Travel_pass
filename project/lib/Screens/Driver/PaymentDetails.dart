@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../services/Database.dart';
 import '../Components/Cards.dart';
 import '../Components/Topic.dart';
 import 'PaymentHistory.dart';
@@ -13,11 +16,29 @@ class PaymentDetailsScreen extends StatefulWidget {
 class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
   final Color appGreen = const Color(0xFF05A664);
   final Color bgGreenTint = const Color(0xFFF1F8F5);
+  final DatabaseService _dbService = DatabaseService();
+  final String _driverId = FirebaseAuth.instance.currentUser?.uid ?? '';
+  String _badgePreference = "Both";
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDriverSettings();
+  }
+
+  Future<void> _loadDriverSettings() async {
+    final driver = await _dbService.getDriverData(_driverId);
+    if (driver != null && mounted) {
+      setState(() {
+        _badgePreference = driver.badgePreference;
+      });
+    }
+  }
 
   List<Map<String, String>> latePayments = [
-    {"name": "Vethum Ranasinghe", "place": "Miriswatta"},
-    {"name": "Vethum Ranasinghe", "place": "Miriswatta"},
-    {"name": "Vethum Ranasinghe", "place": "Miriswatta"},
+    {"name": "Vethum Ranasinghe", "place": "Miriswatta", "paymentType": "Daily"},
+    {"name": "Vethum Ranasinghe", "place": "Miriswatta", "paymentType": "Monthly"},
+    {"name": "Vethum Ranasinghe", "place": "Miriswatta", "paymentType": "Daily"},
   ];
 
   List<Map<String, String>> paidPassengers = [];
@@ -127,7 +148,12 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           child: _buildLatePaymentRow(
-                              appGreen, latePayments[i]["name"]!, latePayments[i]["place"]!),
+                              appGreen, 
+                              latePayments[i]["name"]!, 
+                              latePayments[i]["place"]!, 
+                              latePayments[i]["paymentType"]!, 
+                              _badgePreference
+                          ),
                         ),
                       ),
 
@@ -157,6 +183,8 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
                         title: "Vethum Ranasinghe",
                         subtitle: "Miriswatta",
                         showTag: true,
+                        tagText: "Daily",
+                        overallPreference: _badgePreference,
                         trailing: _buildPaidTrailing(appGreen, "Rs 1000", "2 Days Ago"),
                       ),
                     ),
@@ -167,6 +195,7 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
                         title: "Vethum Ranasinghe",
                         subtitle: "Miriswatta",
                         showTag: false,
+                        overallPreference: _badgePreference,
                         trailing: _buildPaidTrailing(appGreen, "Rs 1000", "2 Days Ago"),
                       ),
                     ),
@@ -178,6 +207,8 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
                           title: paidPassengers[i]["name"]!,
                           subtitle: paidPassengers[i]["place"]!,
                           showTag: true,
+                          tagText: paidPassengers[i]["paymentType"] ?? "Daily",
+                          overallPreference: _badgePreference,
                           trailing: _buildPaidTrailing(appGreen, "Rs 1000", "Paid Today"),
                         ),
                       ),
@@ -195,7 +226,25 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
 
   // ---------------- Helper Methods ----------------
 
-  Widget _buildLatePaymentRow(Color color, String name, String location) {
+  Widget _buildLatePaymentRow(Color color, String name, String location, String tag, String overallPreference) {
+    // Visibility logic
+    bool shouldShowBadge = (overallPreference == "Both") || (tag.toLowerCase() == overallPreference.toLowerCase());
+
+    // Styling logic
+    Color badgeBgColor = Colors.black;
+    Color badgeTextColor = const Color(0xFF00C853); // Matrix Green
+
+    if (overallPreference == "Both") {
+      if (tag == "Monthly") {
+        badgeBgColor = const Color(0xFF05A664); // Dark Green
+        badgeTextColor = const Color(0xFFE8F5E9); // Light Green
+      } else {
+        // Daily stays default style: Black BG, Matrix Green Text
+        badgeBgColor = Colors.black;
+        badgeTextColor = const Color(0xFF00C853);
+      }
+    }
+
     return Row(
       children: [
         Container(
@@ -211,7 +260,6 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
         Expanded(
           child: Container(
             margin: const EdgeInsets.symmetric(vertical: 8),
-            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
@@ -224,38 +272,76 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
                 ),
               ],
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        name,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          color: Colors.black87,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Stack(
+                children: [
+                   Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(height: shouldShowBadge ? 12 : 0),
+                              Text(
+                                name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                location,
+                                style: const TextStyle(fontSize: 12, color: Colors.black54),
+                              ),
+                              Text(
+                                "Rs 1000",
+                                style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w500),
+                              ),
+                              Text(
+                                "2 weeks late",
+                                style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w500),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.phone, color: color),
+                      ],
+                    ),
+                  ),
+
+                  // The Dynamic Tag Layer
+                  if (shouldShowBadge)
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: badgeBgColor,
+                          borderRadius: const BorderRadius.only(
+                            bottomRight: Radius.circular(16),
+                          ),
+                        ),
+                        child: Text(
+                          tag,
+                          style: TextStyle(
+                            color: badgeTextColor,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        location,
-                        style: const TextStyle(fontSize: 12, color: Colors.black54),
-                      ),
-                      Text(
-                        "Rs 1000",
-                        style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w500),
-                      ),
-                      Text(
-                        "2 weeks late",
-                        style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w500),
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(Icons.phone, color: color),
-              ],
+                    ),
+                ],
+              ),
             ),
           ),
         ),

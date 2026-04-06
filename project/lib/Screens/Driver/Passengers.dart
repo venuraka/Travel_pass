@@ -5,6 +5,8 @@ import '../Components/CustomSnackBar.dart';
 import '../Components/Topic.dart';
 import 'NewPassenger.dart';
 import 'EditPassenger.dart'; // Import the EditPassenger screen
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../services/Database.dart';
 import '../../controllers/PassengerController.dart';
 import '../../models/PassengerModel.dart';
 
@@ -23,6 +25,8 @@ class _PassengerScreenState extends State<PassengerScreen> {
   List<PassengerModel> _passengers = [];
   bool _isLoading = true;
   String _errorMessage = '';
+  String _badgePreference = 'Both'; // Added preference state
+  final DatabaseService _dbService = DatabaseService();
 
   @override
   void initState() {
@@ -38,9 +42,19 @@ class _PassengerScreenState extends State<PassengerScreen> {
 
     try {
       final passengers = await _controller.getRegisteredPassengers();
+      final user = FirebaseAuth.instance.currentUser;
+      String preference = 'Both';
+      if (user != null) {
+        final driver = await _dbService.getDriverData(user.uid);
+        if (driver != null) {
+          preference = driver.badgePreference;
+        }
+      }
+
       if (mounted) {
         setState(() {
           _passengers = passengers;
+          _badgePreference = preference;
           _isLoading = false;
         });
       }
@@ -198,8 +212,9 @@ class _PassengerScreenState extends State<PassengerScreen> {
                                 ),
                               ],
                             ),
-                            showTag: passenger.paymentType == 'Monthly',
-                            tagText: 'Monthly',
+                            showTag: true,
+                            tagText: passenger.paymentType,
+                            overallPreference: _badgePreference,
                             trailing: PopupMenuButton<String>(
                               icon: Icon(Icons.more_vert, color: appGreen),
                               onSelected: (String value) async {

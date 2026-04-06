@@ -14,6 +14,8 @@ class DriverModel {
   final String? monthlyPaymentAmount;
   final String? dailyPaymentAmount;
   final bool isJourneyStarted;
+  final double balance;
+  final String badgePreference; // Added: 'Daily', 'Monthly', or 'Both'
 
   DriverModel({
     required this.uid,
@@ -29,6 +31,8 @@ class DriverModel {
     this.monthlyPaymentAmount,
     this.dailyPaymentAmount,
     this.isJourneyStarted = false,
+    this.balance = 0.0,
+    this.badgePreference = 'Both', // Default to 'Both'
   });
 
   Map<String, dynamic> toMap() {
@@ -49,6 +53,8 @@ class DriverModel {
       'monthlyPaymentAmount': monthlyPaymentAmount,
       'dailyPaymentAmount': dailyPaymentAmount,
       'isJourneyStarted': isJourneyStarted,
+      'balance': balance,
+      'badgePreference': badgePreference,
     };
   }
 }

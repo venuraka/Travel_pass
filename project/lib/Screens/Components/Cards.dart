@@ -7,7 +7,8 @@ class InfoCard extends StatelessWidget {
   final Widget? subtitleWidget;
   final bool showTag; // To toggle the "Daily" ribbon
   final String tagText;
-  final Widget trailing; // This is the "Slot" for the Icon or the Price/Date
+  final Widget trailing;
+  final String overallPreference; // 'Daily', 'Monthly', or 'Both'
   final VoidCallback? onTap;
 
   const InfoCard({
@@ -18,6 +19,7 @@ class InfoCard extends StatelessWidget {
     required this.trailing,
     this.showTag = false,
     this.tagText = "Monthly",
+    this.overallPreference = "Both",
     this.onTap,
   });
 
@@ -84,8 +86,8 @@ class InfoCard extends StatelessWidget {
                 ),
               ),
 
-              // The "Daily" Tag Layer
-              if (showTag)
+              // The Dynamic Tag Layer
+              if (showTag && _shouldShowBadge())
                 Positioned(
                   top: 0,
                   left: 0,
@@ -95,7 +97,7 @@ class InfoCard extends StatelessWidget {
                       vertical: 4.h,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.black,
+                      color: _getBadgeBgColor(),
                       borderRadius: BorderRadius.only(
                         bottomRight: Radius.circular(16.r),
                       ),
@@ -103,7 +105,7 @@ class InfoCard extends StatelessWidget {
                     child: Text(
                       tagText,
                       style: TextStyle(
-                        color: const Color(0xFF00C853), // Matrix Green color
+                        color: _getBadgeTextColor(),
                         fontSize: 10.sp,
                         fontWeight: FontWeight.bold,
                       ),
@@ -115,5 +117,30 @@ class InfoCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  bool _shouldShowBadge() {
+    if (overallPreference == "Both") return true;
+    return tagText.toLowerCase() == overallPreference.toLowerCase();
+  }
+
+  Color _getBadgeBgColor() {
+    if (overallPreference != "Both") return Colors.black;
+    // Specific styles for "Both"
+    if (tagText == "Monthly") {
+      return const Color(0xFF05A664); // Dark Green
+    } else {
+      return Colors.black; // Default style for Daily when "Both" is selected
+    }
+  }
+
+  Color _getBadgeTextColor() {
+    if (overallPreference != "Both") return const Color(0xFF00C853); // Matrix Green
+    // Specific styles for "Both"
+    if (tagText == "Monthly") {
+      return const Color(0xFFE8F5E9); // Light Green text
+    } else {
+      return const Color(0xFF00C853); // Default style for Daily when "Both" is selected
+    }
   }
 }

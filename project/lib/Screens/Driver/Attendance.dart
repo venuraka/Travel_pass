@@ -130,14 +130,23 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   style: const TextStyle(color: Colors.red),
                 ),
               )
-            : SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 20,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+            : RefreshIndicator(
+                onRefresh: () async {
+                  setState(() {
+                    _selectedDate = DateTime.now();
+                  });
+                  await _loadData();
+                },
+                color: appGreen,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 20,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                     // --- HEADER ---
                     PageHeader(
                       title: "Attendance History",
@@ -223,6 +232,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   ],
                 ),
               ),
+            ),
       ),
     );
   }

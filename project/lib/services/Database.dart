@@ -7,6 +7,7 @@ import '../models/PassengerModel.dart';
 import '../models/PollModel.dart';
 import '../models/UpdateModel.dart';
 import '../models/AttendanceModel.dart'; // Added // Added
+import '../models/RedemptionModel.dart'; // New Import
 
 class DatabaseService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -138,6 +139,11 @@ class DatabaseService {
               ?.map((item) => item as Map<String, dynamic>)
               .toList(),
           isJourneyStarted: data['isJourneyStarted'] ?? false,
+          balance: (data['balance'] ?? 0.0).toDouble(),
+          badgePreference: data['badgePreference'] ?? 'Both',
+          monthlyPaymentAmount: data['monthlyPaymentAmount'],
+          dailyPaymentAmount: data['dailyPaymentAmount'],
+          paymentDate: (data['paymentDate'] as Timestamp?)?.toDate(),
         );
       }
       return null;
@@ -280,16 +286,16 @@ class DatabaseService {
   Future<void> updateDriverSettings(
     String uid,
     DateTime? paymentDate,
-    String monthlyAmount,
-    String dailyAmount,
+    String? monthlyAmount,
+    String? dailyAmount,
+    String? badgePreference,
   ) async {
     try {
       await _db.collection('driver').doc(uid).update({
-        'paymentDate': paymentDate != null
-            ? Timestamp.fromDate(paymentDate)
-            : null,
-        'monthlyPaymentAmount': monthlyAmount,
-        'dailyPaymentAmount': dailyAmount,
+        if (paymentDate != null) 'paymentDate': Timestamp.fromDate(paymentDate),
+        if (monthlyAmount != null) 'monthlyPaymentAmount': monthlyAmount,
+        if (dailyAmount != null) 'dailyPaymentAmount': dailyAmount,
+        if (badgePreference != null) 'badgePreference': badgePreference,
       });
     } catch (e) {
       debugPrint("Error updating driver settings: $e");
@@ -531,5 +537,42 @@ class DatabaseService {
       }
       return null;
     });
+  }
+
+  /// Returns a stream of a driver's balance.
+  Stream<double> getDriverBalanceStream(String driverId) {
+    return _db.collection('driver').doc(driverId).snapshots().map((doc) {
+      if (doc.exists && doc.data() != null) {
+        return (doc.data()!['balance'] ?? 0.0).toDouble();
+      }
+      return 0.0;
+    });
+  }
+
+  /// Returns a stream of redemption history for a driver.
+  Stream<List<RedemptionModel>> getRedemptionsStream(String driverId) {
+    return _db
+        .collection('redemptions')
+        .where('driverId', isEqualTo: driverId)
+        .orderBy('date', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => RedemptionModel.fromMap(doc.data(), doc.id))
+            .toList());
+  }
+
+  /// Creates a payment request in a new collection.
+  Future<void> requestPayment(String driverId, double amount) async {
+    try {
+      await _db.collection('paymentRequests').add({
+        'driverId': driverId,
+        'amount': amount,
+        'requestedAt': Timestamp.now(),
+        'status': 'Pending',
+      });
+    } catch (e) {
+      debugPrint("Error requesting payment: $e");
+      rethrow;
+    }
   }
 }

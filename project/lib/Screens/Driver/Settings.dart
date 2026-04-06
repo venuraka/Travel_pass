@@ -25,6 +25,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   int _monthlyAmount = 0;
   int _dailyAmount = 0;
   DateTime? _selectedDate;
+  String _badgePreference = "Both"; // Current preference
   bool _isLoading = false; // Loading state
 
   @override
@@ -49,6 +50,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 driver.dailyPaymentAmount!.isNotEmpty) {
               _dailyAmount = int.tryParse(driver.dailyPaymentAmount!) ?? 0;
             }
+            _badgePreference = driver.badgePreference;
           });
         }
       }
@@ -104,6 +106,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         paymentDate: _selectedDate,
         monthlyAmount: _monthlyAmount.toString(),
         dailyAmount: _dailyAmount.toString(),
+        badgePreference: _badgePreference,
       );
       if (mounted) {
         CustomSnackBar.showSuccess(
@@ -196,7 +199,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             _dailyAmount,
                             false,
                           ),
-
+                          const SizedBox(height: 30),
+                          // --- Badge Preference Section ---
+                          _buildBadgePreferenceSection(),
                           const SizedBox(height: 40),
 
                           // --- Update Route Button ---
@@ -323,6 +328,53 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
         child: Icon(icon, color: appGreen, size: 20),
       ),
+    );
+  }
+
+  // New Widget for Badge Preference Selection
+  Widget _buildBadgePreferenceSection() {
+    return Column(
+      children: [
+        const Text(
+          "Badge Display Preference",
+          style: TextStyle(
+            color: Color(0xFF05A664),
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 15),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: ["Daily", "Monthly", "Both"].map((option) {
+              bool isSelected = _badgePreference == option;
+              return GestureDetector(
+                onTap: () => setState(() => _badgePreference = option),
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 5),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: isSelected ? appGreen : Colors.transparent,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: appGreen),
+                  ),
+                  child: Text(
+                    option,
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : appGreen,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
     );
   }
 }

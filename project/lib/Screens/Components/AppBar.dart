@@ -22,9 +22,10 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
       ),
       backgroundColor: const Color(0xFF05A664), // The Green color from your code
       elevation: 0,
+      centerTitle: true,
       leading: IconButton(
         icon: const Icon(
-          Icons.arrow_circle_left_outlined,
+          Icons.arrow_circle_left,
           color: Colors.white,
           size: 30,
         ),
