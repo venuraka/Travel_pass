@@ -15,6 +15,7 @@ class AttendanceScreen extends StatefulWidget {
 
 class _AttendanceScreenState extends State<AttendanceScreen> {
   final Color appGreen = const Color(0xFF05A664);
+  final Color bgGreenTint = const Color(0xFFF1F8F5);
   final DriverAttendanceController _controller = DriverAttendanceController();
 
   DateTime? _selectedDate;
@@ -118,7 +119,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: bgGreenTint,
       body: SafeArea(
         child: _isLoading
             ? Center(child: CircularProgressIndicator(color: appGreen))

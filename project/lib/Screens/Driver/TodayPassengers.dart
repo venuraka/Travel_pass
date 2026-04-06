@@ -102,9 +102,10 @@ class _TodaypassengersScreenState extends State<TodaypassengersScreen> {
   @override
   Widget build(BuildContext context) {
     final Color appGreen = const Color(0xFF05A664);
+    final Color bgGreenTint = const Color(0xFFF1F8F5);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: bgGreenTint,
       appBar: const CustomAppBar(title: 'Today Passengers'),
       body: SafeArea(
         child: _isLoading

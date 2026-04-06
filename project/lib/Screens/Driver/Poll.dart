@@ -193,6 +193,7 @@ class _PollScreenState extends State<PollScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF1F8F5),
       appBar: const CustomAppBar(title: 'Start a Poll'),
       body: _isLoading && _currentDriver == null
           ? const Center(

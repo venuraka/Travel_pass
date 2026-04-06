@@ -149,6 +149,13 @@ class PassengerDashboardController {
     await _dbService.updateAttendance(passengerId, driverId, date, status);
   }
 
+  Future<void> removeAttendance({
+    required String passengerId,
+    required DateTime date,
+  }) async {
+    await _dbService.removeAttendanceRecord(passengerId, date);
+  }
+
   DateTime _normalizeDate(DateTime dt) {
     return DateTime.utc(dt.year, dt.month, dt.day);
   }
@@ -180,5 +187,55 @@ class PassengerDashboardController {
     final user = _auth.currentUser;
     if (user == null) return 'Error';
     return await _dbService.getTodayAttendanceStatus(user.uid);
+  }
+
+  /// Returns a stream of unread alerts count for the passenger.
+  Stream<int> getUnreadAlertsCountStream(String driverId) {
+    return _dbService.getUpdatesStream(driverId).asyncMap((updates) async {
+      final prefs = await SharedPreferences.getInstance();
+      final lastCheckMillis = prefs.getInt('lastAlertCheckTime') ?? 0;
+      final lastCheckTime = DateTime.fromMillisecondsSinceEpoch(lastCheckMillis);
+      return updates.where((u) => u.timestamp.isAfter(lastCheckTime)).length;
+    });
+  }
+
+  /// Returns a real-time stream of dates that need marking.
+  Stream<List<Map<String, dynamic>>> getAttendanceDatesStream(String passengerId, String driverId) {
+    final pollsStream = _dbService.getPollsByDriverStream(driverId);
+    final attendanceStream = _dbService.getPassengerAttendanceStream(passengerId);
+
+    return Rx.combineLatest2<List<PollModel>, AttendanceModel?, List<Map<String, dynamic>>>(
+      pollsStream,
+      attendanceStream,
+      (polls, attendance) {
+        List<Map<String, dynamic>> datesToMark = [];
+        Map<String, String> markedMap = attendance?.records ?? {};
+        
+        Set<DateTime> allPollDates = {};
+        for (var poll in polls) {
+          for (var date in poll.activeDates) {
+            allPollDates.add(_normalizeDate(date));
+          }
+        }
+
+        List<DateTime> sortedDates = allPollDates.toList()..sort();
+        final today = _normalizeDate(DateTime.now());
+
+        for (var date in sortedDates) {
+          if (date.isBefore(today)) continue;
+
+          final dateKey = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+          if (!markedMap.containsKey(dateKey)) {
+            datesToMark.add({
+              'id': date.toIso8601String(),
+              'date': date,
+              'label': dateKey,
+              'status': 'Pending',
+            });
+          }
+        }
+        return datesToMark;
+      },
+    );
   }
 }

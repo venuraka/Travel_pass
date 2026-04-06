@@ -10,6 +10,7 @@ import 'Settings.dart';
 import 'StartJourney.dart';
 import 'TodayPassengers.dart';
 import 'Updates.dart';
+import 'dart:async';
 import '../../controllers/DriverDashboardController.dart'; // Added
 
 const Color primaryGreen = Color(0xFF05A664);
@@ -31,21 +32,58 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   int _todayPassengerCount = 0; // Added state variable
   bool _isLoadingCount = true;
   bool _hasPollToday = false;
+  int _pendingReminders = 0; // Notification count
+  StreamSubscription? _countSubscription;
+  StreamSubscription? _pollSubscription;
+  StreamSubscription? _reminderSubscription;
 
   @override // Added initState
   void initState() {
     super.initState();
     _loadDashboardData();
+    
+    // Real-time stream for passenger count
+    _countSubscription = _controller.getTodayPassengerCountStream().listen((count) {
+      if (mounted) {
+        setState(() {
+          _todayPassengerCount = count;
+          _isLoadingCount = false;
+        });
+      }
+    });
+
+    // Real-time stream for today's poll status
+    _pollSubscription = _controller.getTodayPollStatusStream().listen((hasPoll) {
+      if (mounted) {
+        setState(() {
+          _hasPollToday = hasPoll;
+        });
+      }
+    });
+
+    // Real-time stream for pending requests (reminders)
+    _reminderSubscription = _controller.getPendingRequestsCountStream().listen((count) {
+      if (mounted) {
+        setState(() {
+          _pendingReminders = count;
+        });
+      }
+    });
   }
 
-  Future<void> _loadDashboardData() async {
-    final count = await _controller.getTodayPassengerCount();
-    final hasPoll = await _controller.hasActivePollToday();
+  @override
+  void dispose() {
+    _countSubscription?.cancel();
+    _pollSubscription?.cancel();
+    _reminderSubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadDashboardData({bool isRefresh = false}) async {
+    // Initial load for non-streaming data if any
     if (mounted) {
       setState(() {
-        _todayPassengerCount = count;
-        _hasPollToday = hasPoll;
-        _isLoadingCount = false;
+        // _isLoadingCount = false; // Handled by stream now
       });
     }
   }
@@ -101,11 +139,11 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Good Morning,',
-                         style: TextStyle(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w600,
-                      color: primaryGreen, // Using green for greeting text
+                        '${_getGreeting()},',
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w600,
+                          color: primaryGreen, // Using green for greeting text
                         ),
                       ),
                       SizedBox(height: 4.h),
@@ -233,6 +271,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                       title: "Reminders",
                       icon: Icons.notifications_active_rounded,
                       color: Colors.orangeAccent,
+                      badgeCount: _pendingReminders,
                       onTap: () {
                         Navigator.push(
                           context,
@@ -433,6 +472,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     required String title,
     required IconData icon,
     required Color color, // Pass a color to distinguish the icon
+    int badgeCount = 0,
     VoidCallback? onTap,
   }) {
     return InkWell(
@@ -454,13 +494,43 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: EdgeInsets.all(10.r),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: color, size: 24.r),
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  padding: EdgeInsets.all(10.r),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: color, size: 24.r),
+                ),
+                if (badgeCount > 0)
+                  Positioned(
+                    right: -5.w,
+                    top: -5.h,
+                    child: Container(
+                      padding: EdgeInsets.all(6.r),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: BoxConstraints(
+                        minWidth: 20.w,
+                        minHeight: 20.h,
+                      ),
+                      child: Text(
+                         badgeCount > 9 ? '9+' : '$badgeCount',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
             ),
             SizedBox(height: 16.h),
             Text(
@@ -480,5 +550,16 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
         ),
       ),
     );
+  }
+
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour >= 5 && hour < 12) {
+      return "Good Morning";
+    } else if (hour >= 12 && hour < 17) {
+      return "Good Afternoon";
+    } else {
+      return "Good Evening";
+    }
   }
 }

@@ -17,6 +17,7 @@ class PassengerScreen extends StatefulWidget {
 
 class _PassengerScreenState extends State<PassengerScreen> {
   final Color appGreen = const Color(0xFF05A664);
+  final Color bgGreenTint = const Color(0xFFF1F8F5);
   final PassengerController _controller = PassengerController();
 
   List<PassengerModel> _passengers = [];
@@ -104,7 +105,7 @@ class _PassengerScreenState extends State<PassengerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: bgGreenTint,
       body: SafeArea(
         child: Column(
           children: [

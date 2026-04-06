@@ -12,6 +12,7 @@ class PaymentDetailsScreen extends StatefulWidget {
 
 class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
   final Color appGreen = const Color(0xFF05A664);
+  final Color bgGreenTint = const Color(0xFFF1F8F5);
 
   List<Map<String, String>> latePayments = [
     {"name": "Vethum Ranasinghe", "place": "Miriswatta"},
@@ -57,7 +58,7 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: bgGreenTint,
       body: SafeArea(
         child: Column(
           children: [

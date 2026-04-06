@@ -151,7 +151,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF1F8F5),
       appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -161,6 +161,28 @@ class _LoginPageState extends State<LoginPage> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: <Widget>[
                 const SizedBox(height: 30),
+                // Logo or Icon
+                Container(
+                  width: 100.w,
+                  height: 100.w,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF05A664),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF05A664).withOpacity(0.3),
+                        blurRadius: 20.r,
+                        offset: Offset(0, 10.h),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.directions_bus_rounded,
+                    color: Colors.white,
+                    size: 50.r,
+                  ),
+                ),
+                SizedBox(height: 30.h),
                 // Header
                 Text(
                   'Login',

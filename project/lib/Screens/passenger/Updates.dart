@@ -47,7 +47,7 @@ class _UpdatesScreenState extends State<UpdatesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF1F8F5),
       // Using AppBar makes the back button and title standard and easier
       // We'll use the AppBar property of Scaffold and customize it
       appBar: AppBar(

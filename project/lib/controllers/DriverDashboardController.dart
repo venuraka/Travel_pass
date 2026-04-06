@@ -106,4 +106,25 @@ class DriverDashboardController {
     }
     return false;
   }
+
+  /// Returns a stream for today's passenger count.
+  Stream<int> getTodayPassengerCountStream() {
+    final uid = getDriverId();
+    if (uid == null) return Stream.value(0);
+    return _dbService.getTodayPassengerCountStream(uid);
+  }
+
+  /// Returns a stream for today's poll status. (Real-time)
+  Stream<bool> getTodayPollStatusStream() {
+    final uid = getDriverId();
+    if (uid == null) return Stream.value(false);
+    return _dbService.getTodayPollStatusStream(uid);
+  }
+
+  /// Returns a stream for pending requests count.
+  Stream<int> getPendingRequestsCountStream() {
+    final uid = getDriverId();
+    if (uid == null) return Stream.value(0);
+    return _dbService.getPendingPassengersCountStream(uid);
+  }
 }

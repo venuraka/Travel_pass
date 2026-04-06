@@ -364,6 +364,23 @@ class DatabaseService {
     }
   }
 
+  /// Removes the attendance record for a passenger for a specific date (Undo).
+  Future<void> removeAttendanceRecord(
+    String passengerId,
+    DateTime date,
+  ) async {
+    try {
+      final dateKey =
+          "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+      final docRef = _db.collection('attendance').doc(passengerId);
+      await docRef.update({
+        'records.$dateKey': FieldValue.delete(),
+      });
+    } catch (e) {
+      debugPrint("Error removing attendance: $e");
+    }
+  }
+
   /// Fetches the single attendance document for a passenger.
   Future<AttendanceModel?> getPassengerAttendance(String passengerId) async {
     try {
@@ -443,19 +460,76 @@ class DatabaseService {
   Future<String> getTodayAttendanceStatus(String passengerId) async {
     try {
       final doc = await _db.collection('attendance').doc(passengerId).get();
-      if (!doc.exists) return 'Pending';
-      
-      final data = doc.data() as Map<String, dynamic>;
-      final records = data['records'] as Map<String, dynamic>? ?? {};
-      
-      final now = DateTime.now();
-      final dateKey = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
-      
-      return records[dateKey] as String? ?? 'Pending';
+      if (doc.exists && doc.data() != null) {
+        final records = doc.data()!['records'] as Map<String, dynamic>? ?? {};
+        final now = DateTime.now();
+        final dateKey =
+            "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+        return records[dateKey] ?? 'Not Marked';
+      }
+      return 'Not Marked';
     } catch (e) {
       debugPrint("Error fetching today's attendance status: $e");
       return 'Error';
     }
   }
-}
 
+  /// Returns a stream of the count of passengers marked 'Present' for today for a specific driver.
+  Stream<int> getTodayPassengerCountStream(String driverId) {
+    return _db.collection('attendance')
+        .where('driverId', isEqualTo: driverId)
+        .snapshots()
+        .map((snapshot) {
+      final now = DateTime.now();
+      final dateKey =
+          "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+      
+      int count = 0;
+      for (var doc in snapshot.docs) {
+        final records = doc.data()['records'] as Map<String, dynamic>? ?? {};
+        if (records[dateKey] == 'Present') {
+          count++;
+        }
+      }
+      return count;
+    });
+  }
+
+  /// Returns a stream of the newest updates for a specific driver.
+  Stream<List<UpdateModel>> getUpdatesStream(String driverId) {
+    return _db.collection('updates')
+        .where('driverId', isEqualTo: driverId)
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) => UpdateModel.fromMap(doc.data(), doc.id)).toList();
+    });
+  }
+
+  /// Returns a stream of the count of pending passengers for a specific driver.
+  Stream<int> getPendingPassengersCountStream(String driverId) {
+    return _db.collection('passenger')
+        .where('driverId', isEqualTo: driverId)
+        .where('status', isEqualTo: 'Pending')
+        .snapshots()
+        .map((snapshot) => snapshot.docs.length);
+  }
+
+  /// Returns a stream of polls created by a driver.
+  Stream<List<PollModel>> getPollsByDriverStream(String driverId) {
+    return _db.collection('polls')
+        .where('driverId', isEqualTo: driverId)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => PollModel.fromMap(doc.data(), doc.id)).toList());
+  }
+
+  /// Returns a stream of an attendance document.
+  Stream<AttendanceModel?> getPassengerAttendanceStream(String passengerId) {
+    return _db.collection('attendance').doc(passengerId).snapshots().map((doc) {
+      if (doc.exists && doc.data() != null) {
+        return AttendanceModel.fromMap(doc.data()!, doc.id);
+      }
+      return null;
+    });
+  }
+}

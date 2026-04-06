@@ -43,8 +43,8 @@ class MyApp extends StatelessWidget {
 
           // Set the initial route to AuthWrapper
           // home: const GoogleSignUpPage(),
-          home: const DriverDashboardScreen(),
-          // home: const  PassengerDashboardApp(),
+          // home: const DriverDashboardScreen(),
+          home: const  PassengerDashboardApp(),
         );
       },
     );

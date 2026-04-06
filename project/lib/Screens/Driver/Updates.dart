@@ -56,7 +56,7 @@ class _UpdatesScreenState extends State<UpdatesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFF1F8F5),
       body: SafeArea(
         child: Column(
           children: [
@@ -75,7 +75,7 @@ class _UpdatesScreenState extends State<UpdatesScreen> {
             // The List of Messages
             Expanded(
               child: Container(
-                color: Colors.white,
+                color: Colors.transparent,
                 child: StreamBuilder<List<UpdateModel>>(
                   stream: _updatesStream,
                   builder: (context, snapshot) {

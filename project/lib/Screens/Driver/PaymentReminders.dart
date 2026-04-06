@@ -7,12 +7,13 @@ class PaymentRemindersScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final Color appGreen = const Color(0xFF05A664);
+    final Color bgGreenTint = const Color(0xFFF1F8F5);
 
     return Scaffold(
       appBar: const CustomAppBar(
         title: 'Payment Reminders',
       ),
-      backgroundColor: Colors.white,
+      backgroundColor: bgGreenTint,
       body: Column(
         children: [
           Expanded(

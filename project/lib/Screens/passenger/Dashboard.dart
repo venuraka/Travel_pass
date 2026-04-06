@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -35,17 +36,29 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
   int _unreadAlertsCount = 0;
   String? _driverPhone;
 
+  StreamSubscription? _unreadCountSubscription;
+  StreamSubscription? _attendanceSubscription;
+
   @override
   void initState() {
     super.initState();
     _loadData();
   }
 
-  Future<void> _loadData() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+  @override
+  void dispose() {
+    _unreadCountSubscription?.cancel();
+    _attendanceSubscription?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadData({bool isRefresh = false}) async {
+    if (!isRefresh) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    }
 
     final data = await _controller.loadDashboardData();
 
@@ -63,6 +76,32 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
           _driverPhone = data['driverPhone'] as String?;
           _isLoading = false;
         });
+
+        // Initialize real-time unread alert count listener
+        if (_unreadCountSubscription == null && _passenger != null) {
+          _unreadCountSubscription = _controller
+              .getUnreadAlertsCountStream(_passenger!.driverId)
+              .listen((count) {
+            if (mounted) {
+              setState(() {
+                _unreadAlertsCount = count;
+              });
+            }
+          });
+        }
+
+        // Initialize real-time attendance dates listener
+        if (_attendanceSubscription == null && _passenger != null) {
+          _attendanceSubscription = _controller
+              .getAttendanceDatesStream(_passenger!.uid, _passenger!.driverId)
+              .listen((dates) {
+            if (mounted) {
+              setState(() {
+                _datesToMark = dates;
+              });
+            }
+          });
+        }
       }
     }
   }
@@ -86,8 +125,12 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
 
   Widget _buildDashboardContent() {
     return SafeArea(
-      child: SingleChildScrollView(
-        child: Padding(
+      child: RefreshIndicator(
+        onRefresh: () => _loadData(isRefresh: true),
+        color: primaryGreen,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          child: Padding(
           padding: EdgeInsets.symmetric(horizontal: 24.0.w),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -99,7 +142,7 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Good Morning,',
+                    '${_getGreeting()},',
                     style: TextStyle(
                       fontSize: 14.sp,
                       fontWeight: FontWeight.w600,
@@ -110,8 +153,8 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
                   Text(
                     _passenger?.name ?? 'Passenger',
                     style: TextStyle(
-                      fontSize: 28.sp,
-                      fontWeight: FontWeight.w900,
+                      fontSize: 26.sp,
+                      fontWeight: FontWeight.w800,
                       color: textDark,
                       letterSpacing: -0.5,
                     ),
@@ -177,13 +220,15 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
                    Text(
                     "Overview",
                     style: TextStyle(
-                      fontSize: 20.sp,
-                      fontWeight: FontWeight.w900,
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.bold,
                       color: textDark,
                     ),
                   ),
                 ],
               ),
+
+              const SizedBox(height: 15),
 
               // --- Action Grid (Rows matching Driver style) ---
               Row(
@@ -258,6 +303,7 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
             ],
           ),
         ),
+      ),
       ),
     );
   }
@@ -493,11 +539,48 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
       child: Dismissible(
         key: ValueKey(item['id']),
         direction: DismissDirection.horizontal,
+        confirmDismiss: (direction) async {
+          String status = direction == DismissDirection.startToEnd ? 'Present' : 'Absent';
+          Color statusColor = direction == DismissDirection.startToEnd ? Colors.green : Colors.red;
+          bool? proceed = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.r)),
+              title: const Text("Confirm Attendance"),
+              content: Text.rich(
+                TextSpan(
+                  children: [
+                    const TextSpan(text: "Are you sure you want to mark your attendance as "),
+                    TextSpan(text: status, style: TextStyle(color: statusColor, fontWeight: FontWeight.bold)),
+                    TextSpan(text: " for ${item['label']}?"),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryGreen,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.r)),
+                  ),
+                  child: const Text("Confirm", style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            ),
+          );
+          return proceed ?? false;
+        },
         onDismissed: (direction) async {
           String status = direction == DismissDirection.startToEnd ? 'Present' : 'Absent';
+          
           setState(() {
             _datesToMark.remove(item);
           });
+          
           try {
             if (_passenger != null) {
               await _controller.markAttendance(
@@ -506,9 +589,33 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
                 date: item['date'] as DateTime,
                 status: status,
               );
+              
+              if (mounted) {
+                ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text("Attendance successfully marked as $status"),
+                    duration: const Duration(seconds: 10), // 10 sec undo as requested
+                    behavior: SnackBarBehavior.floating,
+                    action: SnackBarAction(
+                      label: "UNDO",
+                      textColor: Colors.yellowAccent,
+                      onPressed: () async {
+                        try {
+                          await _controller.removeAttendance(
+                            passengerId: _passenger!.uid,
+                            date: item['date'] as DateTime,
+                          );
+                          _loadData(isRefresh: true);
+                        } catch(e) {}
+                      },
+                    ),
+                  ),
+                );
+              }
             }
           } catch (e) {
-            _loadData(); // Revert on error
+            _loadData(isRefresh: true); // Revert on error
           }
         },
         background: _buildDismissBackground(Icons.check_circle_outline, "Present", Colors.green, true),
@@ -546,6 +653,17 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
         ],
       ),
     );
+  }
+
+  String _getGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour >= 5 && hour < 12) {
+      return "Good Morning";
+    } else if (hour >= 12 && hour < 17) {
+      return "Good Afternoon";
+    } else {
+      return "Good Evening";
+    }
   }
 
   Future<void> _handleCallDriver() async {

@@ -102,6 +102,7 @@ class _PassengerAttendaceScreenState extends State<PassengerAttendaceScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF1F8F5),
       // Use the CustomAppBar
       appBar: const CustomAppBar(title: 'Attendance Record'),
       body: Column(
