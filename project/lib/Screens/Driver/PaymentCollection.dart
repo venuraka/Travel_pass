@@ -15,6 +15,7 @@ class PaymentCollectionScreen extends StatefulWidget {
 class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
   final DatabaseService _dbService = DatabaseService();
   final String _driverId = FirebaseAuth.instance.currentUser?.uid ?? '';
+
   final Color appGreen = const Color(0xFF05A664);
   final Color bgGreenTint = const Color(0xFFF1F8F5);
 
@@ -22,39 +23,34 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: bgGreenTint,
-      appBar: const CustomAppBar(title: "Redemption History"),
-      body: Column(
-        children: [
-          Expanded(
-            child: StreamBuilder<List<RedemptionModel>>(
+      appBar: const CustomAppBar(title: 'Redemption History'),
+      body: SafeArea(
+        child: Column(
+          children: [
+            SizedBox(height: 20.h),
+
+            /// 🔹 Redemption List
+            Expanded(
+              child: StreamBuilder<List<RedemptionModel>>(
                 stream: _dbService.getRedemptionsStream(_driverId),
                 builder: (context, snapshot) {
+                  /// 🔄 Loading
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   }
+
+                  /// ❌ Empty State
                   if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.history_rounded, size: 64.r, color: Colors.grey.shade400),
-                          SizedBox(height: 16.h),
-                          Text(
-                            "No redemptions yet",
-                            style: TextStyle(fontSize: 16.sp, color: Colors.grey),
-                          ),
-                        ],
-                      ),
-                    );
+                    return _buildEmptyState();
                   }
 
+                  /// ✅ Data Loaded
                   final redemptions = snapshot.data!;
                   return ListView.builder(
                     padding: EdgeInsets.symmetric(horizontal: 20.w),
                     itemCount: redemptions.length,
                     itemBuilder: (context, index) {
-                      final item = redemptions[index];
-                      return _buildRedemptionCard(item);
+                      return _buildRedemptionCard(redemptions[index]);
                     },
                   );
                 },
@@ -62,11 +58,32 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
             ),
           ],
         ),
+      ),
     );
   }
 
+  /// 🔹 Empty UI
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.history_rounded, size: 64.r, color: Colors.grey.shade400),
+          SizedBox(height: 16.h),
+          Text(
+            "No redemptions yet",
+            style: TextStyle(fontSize: 16.sp, color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 🔹 Redemption Card
   Widget _buildRedemptionCard(RedemptionModel item) {
-    final dateStr = "${item.date.year}/${item.date.month}/${item.date.day}";
+    final dateStr =
+        "${item.date.year}/${item.date.month.toString().padLeft(2, '0')}/${item.date.day.toString().padLeft(2, '0')}";
+
     return Container(
       margin: EdgeInsets.only(bottom: 15.h),
       padding: EdgeInsets.all(18.r),
@@ -81,9 +98,12 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
           ),
         ],
       ),
+
+      /// 🔹 Row Content
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          /// 📅 Date
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -102,6 +122,8 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
               ),
             ],
           ),
+
+          /// 💰 Amount
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [

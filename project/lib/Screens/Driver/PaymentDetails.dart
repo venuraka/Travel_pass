@@ -5,6 +5,7 @@ import '../../services/Database.dart';
 import '../Components/Cards.dart';
 import '../Components/Topic.dart';
 import 'PaymentHistory.dart';
+import 'PaymentCollection.dart';
 
 class PaymentDetailsScreen extends StatefulWidget {
   const PaymentDetailsScreen({super.key});
@@ -19,6 +20,8 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
   final DatabaseService _dbService = DatabaseService();
   final String _driverId = FirebaseAuth.instance.currentUser?.uid ?? '';
   String _badgePreference = "Both";
+  bool _isRequesting = false;
+
 
   @override
   void initState() {
@@ -108,7 +111,18 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
                     ),
 
                     const SizedBox(height: 20),
-
+                    // --- Driver Balance Card ---
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: StreamBuilder<double>(
+                        stream: _dbService.getDriverBalanceStream(_driverId),
+                        builder: (context, snapshot) {
+                          final balance = snapshot.data ?? 0.0;
+                          return _buildBalanceCard(balance);
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 30),
                     // --- Late Payment Section Title (Added Padding) ---
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -347,6 +361,199 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
         ),
       ],
     );
+  }
+
+  // --- NEW: Balance Card Widget ---
+  Widget _buildBalanceCard(double balance) {
+    const Color textColor = Colors.white;
+
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PaymentCollectionScreen(),
+          ),
+        );
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Card(
+        elevation: 6,
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0),
+        ),
+        color: appGreen,
+        child: Container(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        "Accumulated Balance",
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: textColor.withOpacity(0.9),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        "Rs ${balance.toInt()}",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 32,
+                          color: textColor,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.account_balance_wallet_rounded,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                ],
+              ),
+
+              Divider(color: Colors.white.withOpacity(0.2), thickness: 1),
+              const SizedBox(height: 1),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "Ready to redeem?",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  _isRequesting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : TextButton(
+                          onPressed: () => _showRequestPayoutDialog(balance),
+                          style: TextButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: Text(
+                            "Request Payout",
+                            style: TextStyle(
+                              color: appGreen,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --- NEW: Request Payout Dialog ---
+  void _showRequestPayoutDialog(double balance) {
+    if (balance <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("No balance to redeem.")),
+      );
+      return;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text(
+          "Request Payout",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          "Are you sure you want to request a payout of Rs ${balance.toInt()} to your registered account?",
+          style: const TextStyle(color: Colors.black87),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("Cancel", style: TextStyle(color: Colors.grey[600])),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _handlePaymentRequest(balance);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: appGreen,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: const Text(
+              "Confirm",
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _handlePaymentRequest(double balance) async {
+    setState(() => _isRequesting = true);
+    try {
+      await _dbService.requestPayment(_driverId, balance);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text("Request submitted! We will process it shortly."),
+            backgroundColor: appGreen,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Failed to submit request. Please try again."),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isRequesting = false);
+    }
   }
 
   Widget _buildPaidTrailing(Color color, String price, String date) {
