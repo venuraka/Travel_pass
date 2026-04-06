@@ -280,7 +280,7 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
                       title: "Payments",
                       icon: Icons.account_balance_wallet_rounded,
                       color: Colors.purpleAccent,
-                      description: "Transaction history",
+                      description: "Transactions",
                       onTap: () {
                         Navigator.push(
                           context,
