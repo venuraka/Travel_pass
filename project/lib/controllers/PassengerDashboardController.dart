@@ -256,22 +256,34 @@ class PassengerDashboardController {
           }
         }
 
-        List<DateTime> sortedDates = allPollDates.toList()..sort();
         final today = _normalizeDate(DateTime.now());
+        debugPrint("Calculating dates to mark for passenger: $passengerId (Today normalized: $today)");
+        debugPrint("Total polls found for driver: ${polls.length}");
+
+        final List<DateTime> sortedDates = allPollDates.toList()..sort();
 
         for (var date in sortedDates) {
-          if (date.isBefore(today)) continue;
+          // Normalize to ensure comparison works
+          final normalizedPollDate = _normalizeDate(date);
+          
+          // Exclude dates strictly before today (allow today's poll to show)
+          if (normalizedPollDate.isBefore(today)) {
+            continue;
+          }
 
-          final dateKey = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+          final dateKey = "${normalizedPollDate.year}-${normalizedPollDate.month.toString().padLeft(2, '0')}-${normalizedPollDate.day.toString().padLeft(2, '0')}";
+          
           if (!markedMap.containsKey(dateKey)) {
+            debugPrint("Adding date to mark: $dateKey");
             datesToMark.add({
-              'id': date.toIso8601String(),
-              'date': date,
+              'id': normalizedPollDate.toIso8601String(),
+              'date': normalizedPollDate,
               'label': dateKey,
               'status': 'Pending',
             });
           }
         }
+        debugPrint("Final dates to mark list size: ${datesToMark.length}");
         return datesToMark;
       },
     );

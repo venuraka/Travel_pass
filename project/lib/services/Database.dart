@@ -145,6 +145,21 @@ class DatabaseService {
         });
   }
 
+  /// Sends a trigger to notify all passengers of this driver that a new poll has been added/updated.
+  Future<void> notifyPassengersOfNewPoll(String driverId, String driverName, int dateCount) async {
+    final notification = NotificationModel(
+      id: const Uuid().v4(),
+      driverId: driverId,
+      type: 'poll_added',
+      title: 'New Poll Available',
+      message: '$driverName has added $dateCount new date(s) to the schedule. Please mark your attendance.',
+      timestamp: DateTime.now(),
+    );
+    await createNotification(notification);
+    debugPrint("Poll notification trigger recorded for passengers of driver: $driverId");
+  }
+
+
   /// Sends a trigger to notify all passengers of this driver that tracking is enabled.
   Future<void> notifyPassengersOfTracking(String driverId, String driverName) async {
     // 1. Create the Firestore notification (for in-app alerts)

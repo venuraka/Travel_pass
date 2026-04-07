@@ -17,7 +17,7 @@ class AppConfig {
     _googleMapsApiKey =
         await _channel.invokeMethod<String>('getGoogleMapsApiKey') ?? '';
   }
-
+  
   /// The Google Maps / Places / Directions API key.
   /// Only available after [init()] has been awaited.
   static String get googleMapsApiKey => _googleMapsApiKey;

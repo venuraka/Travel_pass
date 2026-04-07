@@ -116,8 +116,8 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
               .listen((notifications) {
             if (mounted && notifications.isNotEmpty) {
               final latest = notifications.first;
-              if (latest.type == 'location_tracking') {
-                _showTrackingNotification(latest);
+              if (latest.type == 'location_tracking' || latest.type == 'poll_added') {
+                _handleInAppNotification(latest);
               }
             }
           });
@@ -126,13 +126,15 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
     }
   }
 
-  void _showTrackingNotification(NotificationModel notification) {
+  void _handleInAppNotification(NotificationModel notification) {
     // Prevent multiple overlapping notifications
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+    final bool isTracking = notification.type == 'location_tracking';
     
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        backgroundColor: primaryGreen,
+        backgroundColor: isTracking ? primaryGreen : Colors.blueAccent,
         duration: const Duration(seconds: 15),
         behavior: SnackBarBehavior.floating,
         padding: EdgeInsets.zero,
@@ -140,16 +142,21 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
         content: InkWell(
           onTap: () {
             ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            if (_passenger != null) {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => TrackVehicle(
-                    driverId: _passenger!.driverId,
-                    passengerId: _passenger!.uid,
+            if (isTracking) {
+              if (_passenger != null) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => TrackVehicle(
+                      driverId: _passenger!.driverId,
+                      passengerId: _passenger!.uid,
+                    ),
                   ),
-                ),
-              );
+                );
+              }
+            } else {
+              // Scroll to attendance mark card (approximate jump or just dismiss)
+              // For simplicity, we just notify them they can mark it now.
             }
           },
           child: Container(
@@ -162,7 +169,11 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
                     color: Colors.white.withOpacity(0.2),
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.location_on_rounded, color: Colors.white, size: 20.r),
+                  child: Icon(
+                    isTracking ? Icons.location_on_rounded : Icons.event_note_rounded, 
+                    color: Colors.white, 
+                    size: 20.r
+                  ),
                 ),
                 SizedBox(width: 12.w),
                 Expanded(
