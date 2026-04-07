@@ -87,7 +87,6 @@ class DatabaseService {
           
       return results;
     } catch (e) {
-      debugPrint("Error searching vehicle plates: $e");
       return [];
     }
   }
@@ -100,7 +99,6 @@ class DatabaseService {
           .doc(passenger.uid)
           .set(passenger.toMap());
     } catch (e) {
-      debugPrint("Error saving passenger data: $e");
       rethrow;
     }
   }
@@ -525,15 +523,17 @@ class DatabaseService {
         .where('driverId', isEqualTo: driverId)
         .snapshots()
         .map((snapshot) {
-      final now = DateTime.now();
+      final now = DateTime.now().toUtc();
       final today = DateTime.utc(now.year, now.month, now.day);
 
       for (var doc in snapshot.docs) {
         final poll = PollModel.fromMap(doc.data(), doc.id);
-        if (poll.activeDates.any((d) =>
-        d.year == today.year &&
-            d.month == today.month &&
-            d.day == today.day)) {
+        if (poll.activeDates.any((d) {
+          final utcDate = d.toUtc();
+          return utcDate.year == today.year &&
+                 utcDate.month == today.month &&
+                 utcDate.day == today.day;
+        })) {
           return true;
         }
       }
@@ -565,7 +565,7 @@ class DatabaseService {
         .where('driverId', isEqualTo: driverId)
         .snapshots()
         .map((snapshot) {
-      final now = DateTime.now();
+      final now = DateTime.now().toUtc();
       final dateKey =
           "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
       
@@ -605,7 +605,9 @@ class DatabaseService {
     return _db.collection('polls')
         .where('driverId', isEqualTo: driverId)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => PollModel.fromMap(doc.data(), doc.id)).toList());
+        .map((snapshot) {
+          return snapshot.docs.map((doc) => PollModel.fromMap(doc.data(), doc.id)).toList();
+        });
   }
 
   /// Returns a stream of an attendance document.

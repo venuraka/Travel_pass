@@ -90,8 +90,9 @@ class PassengerDashboardController {
       final today = _normalizeDate(DateTime.now());
 
       for (var date in sortedDates) {
-        // Exclude past dates from the "To Mark" list
-        if (date.isBefore(today)) {
+        // Exclude past dates AND today from the "To Mark" list
+        // Today will be handled in a separate dedicated section
+        if (date.isBefore(today) || date.isAtSameMomentAs(today)) {
           continue;
         }
 
@@ -194,25 +195,23 @@ class PassengerDashboardController {
     return _dbService.getLatestNotificationsStream(driverId);
   }
 
-  /// Combined stream that returns eligibility info:
-
-  /// - isVisible: if journey is started AND today's poll exists
-  /// - isEnabled: if attendance is 'Present'
-  Stream<Map<String, bool>> getTrackingEligibilityStream(String driverId, String passengerId) {
+  /// Combined stream specifically for the "Today's Status" section
+  Stream<Map<String, dynamic>> getTodayStatusCombinedStream(String driverId, String passengerId) {
     return Rx.combineLatest3(
       _dbService.getJourneyStatusStream(driverId),
       _dbService.getPassengerAttendanceStream(passengerId),
-      _dbService.getTodayPollStatusStream(driverId), // Added Poll check
+      _dbService.getTodayPollStatusStream(driverId),
       (bool isStarted, AttendanceModel? attendance, bool hasPollToday) {
         final today = _normalizeDate(DateTime.now());
         final dateKey = "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
         
-        final status = attendance?.records[dateKey] ?? 'Pending';
-        final isPresent = status == 'Present';
+        final status = attendance?.records[dateKey] ?? 'Not Marked';
 
         return {
-          'isVisible': isStarted && hasPollToday,
-          'isEnabled': isPresent,
+          'isStarted': isStarted,
+          'hasPollToday': hasPollToday,
+          'status': status,
+          'date': today,
         };
       },
     );
@@ -257,33 +256,31 @@ class PassengerDashboardController {
         }
 
         final today = _normalizeDate(DateTime.now());
-        debugPrint("Calculating dates to mark for passenger: $passengerId (Today normalized: $today)");
-        debugPrint("Total polls found for driver: ${polls.length}");
-
         final List<DateTime> sortedDates = allPollDates.toList()..sort();
 
         for (var date in sortedDates) {
           // Normalize to ensure comparison works
           final normalizedPollDate = _normalizeDate(date);
           
-          // Exclude dates strictly before today (allow today's poll to show)
-          if (normalizedPollDate.isBefore(today)) {
+          final dateKey = "${normalizedPollDate.year}-${normalizedPollDate.month.toString().padLeft(2, '0')}-${normalizedPollDate.day.toString().padLeft(2, '0')}";
+          
+          // Exclude dates strictly before or equal to today 
+          // Today is handled in its own section
+          if (normalizedPollDate.isBefore(today) || normalizedPollDate.isAtSameMomentAs(today)) {
             continue;
           }
 
-          final dateKey = "${normalizedPollDate.year}-${normalizedPollDate.month.toString().padLeft(2, '0')}-${normalizedPollDate.day.toString().padLeft(2, '0')}";
-          
-          if (!markedMap.containsKey(dateKey)) {
-            debugPrint("Adding date to mark: $dateKey");
-            datesToMark.add({
-              'id': normalizedPollDate.toIso8601String(),
-              'date': normalizedPollDate,
-              'label': dateKey,
-              'status': 'Pending',
-            });
+          if (markedMap.containsKey(dateKey)) {
+            continue;
           }
+          
+          datesToMark.add({
+            'id': normalizedPollDate.toIso8601String(),
+            'date': normalizedPollDate,
+            'label': dateKey,
+            'status': 'Pending',
+          });
         }
-        debugPrint("Final dates to mark list size: ${datesToMark.length}");
         return datesToMark;
       },
     );

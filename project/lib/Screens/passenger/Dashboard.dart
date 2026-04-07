@@ -296,28 +296,34 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
 
               const SizedBox(height: 30),
 
-              // --- Track Vehicle Button ---
+              // --- Today's Status Section ---
               if (_passenger?.driverId != null)
-                StreamBuilder<Map<String, bool>>(
-                  stream: _controller.getTrackingEligibilityStream(
+                StreamBuilder<Map<String, dynamic>>(
+                  stream: _controller.getTodayStatusCombinedStream(
                     _passenger!.driverId,
                     _passenger!.uid,
                   ),
                   builder: (context, snapshot) {
-                    final data = snapshot.data ?? {'isVisible': false, 'isEnabled': false};
-                    final bool isVisible = data['isVisible']!;
-                    final bool isEnabled = data['isEnabled']!;
+                    final data = snapshot.data;
+                    if (data == null || !data['hasPollToday']) {
+                      return const SizedBox.shrink();
+                    }
 
-                    if (isVisible) {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildFindVehicleButton(context, isEnabled),
+                    final bool isStarted = data['isStarted'];
+                    final String status = data['status'];
+                    final DateTime todayDate = data['date'];
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildTodayStatusCard(isStarted, status, todayDate),
+                        const SizedBox(height: 30),
+                        if (isStarted) ...[
+                          _buildFindVehicleButton(context, status == 'Present'),
                           const SizedBox(height: 35),
                         ],
-                      );
-                    }
-                    return const SizedBox.shrink();
+                      ],
+                    );
                   },
                 ),
 
@@ -501,6 +507,163 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
         ),
       ),
     );
+  }
+
+  Widget _buildTodayStatusCard(bool isStarted, String status, DateTime date) {
+    bool isPresent = status == 'Present';
+    bool isAbsent = status == 'Absent';
+    bool isNotMarked = status == 'Not Marked';
+
+    return Container(
+      padding: EdgeInsets.all(20.r),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(color: primaryGreen.withOpacity(0.1), width: 1.w),
+        boxShadow: [
+          BoxShadow(
+            color: primaryGreen.withOpacity(0.05),
+            blurRadius: 15.r,
+            offset: Offset(0, 5.h),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Today's Attendance",
+                    style: TextStyle(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.bold,
+                      color: textDark,
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    "${date.day} ${_getMonthName(date.month)} ${date.year}",
+                    style: TextStyle(fontSize: 12.sp, color: textGrey),
+                  ),
+                ],
+              ),
+              if (isStarted)
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(10.r),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.lock_outline_rounded, size: 14.r, color: Colors.grey),
+                      SizedBox(width: 4.w),
+                      Text(
+                        "Locked",
+                        style: TextStyle(fontSize: 11.sp, color: Colors.grey, fontWeight: FontWeight.w600),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+          SizedBox(height: 20.h),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatusToggleButton(
+                  label: "Present",
+                  isActive: isPresent,
+                  activeColor: primaryGreen,
+                  isDisabled: isStarted,
+                  onTap: () => _updateTodayStatus("Present", date),
+                ),
+              ),
+              SizedBox(width: 15.w),
+              Expanded(
+                child: _buildStatusToggleButton(
+                  label: "Absent",
+                  isActive: isAbsent,
+                  activeColor: Colors.redAccent,
+                  isDisabled: isStarted,
+                  onTap: () => _updateTodayStatus("Absent", date),
+                ),
+              ),
+            ],
+          ),
+          if (isStarted && isNotMarked)
+            Padding(
+              padding: EdgeInsets.only(top: 15.h),
+              child: Text(
+                "You didn't mark your attendance before the journey started.",
+                style: TextStyle(fontSize: 12.sp, color: Colors.redAccent, fontStyle: FontStyle.italic),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusToggleButton({
+    required String label,
+    required bool isActive,
+    required Color activeColor,
+    required bool isDisabled,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: isDisabled ? null : onTap,
+      borderRadius: BorderRadius.circular(12.r),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: EdgeInsets.symmetric(vertical: 12.h),
+        decoration: BoxDecoration(
+          color: isActive ? activeColor : Colors.white,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(
+            color: isActive ? activeColor : Colors.grey.shade300,
+            width: 1.5.w,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isActive ? Colors.white : (isDisabled ? Colors.grey : textDark),
+              fontWeight: FontWeight.bold,
+              fontSize: 14.sp,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _getMonthName(int month) {
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    return months[month - 1];
+  }
+
+  Future<void> _updateTodayStatus(String status, DateTime date) async {
+    if (_passenger == null) return;
+    
+    // Show local feedback immediately if you want, but snapshots will handle it
+    try {
+      await _controller.markAttendance(
+        passengerId: _passenger!.uid,
+        driverId: _passenger!.driverId,
+        date: date,
+        status: status,
+      );
+    } catch (e) {
+      debugPrint("Error updating today status: $e");
+    }
   }
 
   Widget _buildFindVehicleButton(BuildContext context, bool isEnabled) {
