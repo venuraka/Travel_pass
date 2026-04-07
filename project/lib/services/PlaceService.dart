@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import '../config/AppConfig.dart';
 
 class PlaceService {
   final String apiKey;
@@ -23,8 +24,14 @@ class PlaceService {
       'Content-Type': 'application/json', 
       'X-Goog-Api-Key': apiKey,
       if (Platform.isIOS) 'X-Ios-Bundle-Identifier': 'com.venuraka.travelpass',
-      if (Platform.isAndroid) 'X-Android-Package': 'com.venuraka.travelpass',
+      if (Platform.isAndroid) ...{
+        'X-Android-Package': 'com.venuraka.travelpass',
+        // Support both formatted (colon) and raw hex by stripping colons in Dart
+        'X-Android-Cert': AppConfig.androidCertificateHash.replaceAll(':', '').toLowerCase(),
+      },
     };
+
+    debugPrint("PlaceService: Sending headers: $headers");
 
     final response = await http.post(
       uri,
@@ -77,7 +84,10 @@ class PlaceService {
       'X-Goog-Api-Key': apiKey,
       'X-Goog-FieldMask': 'location,formattedAddress,displayName',
       if (Platform.isIOS) 'X-Ios-Bundle-Identifier': 'com.venuraka.travelpass',
-      if (Platform.isAndroid) 'X-Android-Package': 'com.venuraka.travelpass',
+      if (Platform.isAndroid) ...{
+        'X-Android-Package': 'com.venuraka.travelpass',
+        'X-Android-Cert': AppConfig.androidCertificateHash.replaceAll(':', '').toLowerCase(),
+      },
     };
 
     final response = await http.get(
@@ -117,7 +127,10 @@ class PlaceService {
 
     final headers = {
       if (Platform.isIOS) 'X-Ios-Bundle-Identifier': 'com.venuraka.travelpass',
-      if (Platform.isAndroid) 'X-Android-Package': 'com.venuraka.travelpass',
+      if (Platform.isAndroid) ...{
+        'X-Android-Package': 'com.venuraka.travelpass',
+        'X-Android-Cert': AppConfig.androidCertificateHash.replaceAll(':', '').toLowerCase(),
+      },
     };
 
     final response = await http.get(uri, headers: headers);
@@ -169,7 +182,10 @@ class PlaceService {
     debugPrint("PlaceService: Fetching directions...");
     final headers = {
       if (Platform.isIOS) 'X-Ios-Bundle-Identifier': 'com.venuraka.travelpass',
-      if (Platform.isAndroid) 'X-Android-Package': 'com.venuraka.travelpass',
+      if (Platform.isAndroid) ...{
+        'X-Android-Package': 'com.venuraka.travelpass',
+        'X-Android-Cert': AppConfig.androidCertificateHash.replaceAll(':', '').toLowerCase(),
+      },
     };
     final response = await http.get(uri, headers: headers);
 

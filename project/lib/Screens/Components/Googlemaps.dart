@@ -5,13 +5,17 @@ import 'package:geolocator/geolocator.dart';
 class GoogleMaps extends StatelessWidget {
   final LatLng? initialPosition;
   final Set<Marker> markers;
+  final Set<Polyline> polylines;
   final bool showMyLocationButton;
+  final double bottomPadding; // Added
 
   const GoogleMaps({
     super.key,
     this.initialPosition,
     this.markers = const {},
+    this.polylines = const {},
     this.showMyLocationButton = true,
+    this.bottomPadding = 0, // Default 0
   });
 
   @override
@@ -19,7 +23,9 @@ class GoogleMaps extends StatelessWidget {
     return _GoogleMapsStateful(
       initialPosition: initialPosition,
       markers: markers,
+      polylines: polylines,
       showMyLocationButton: showMyLocationButton,
+      bottomPadding: bottomPadding,
     );
   }
 }
@@ -27,12 +33,16 @@ class GoogleMaps extends StatelessWidget {
 class _GoogleMapsStateful extends StatefulWidget {
   final LatLng? initialPosition;
   final Set<Marker> markers;
+  final Set<Polyline> polylines;
   final bool showMyLocationButton;
+  final double bottomPadding;
 
   const _GoogleMapsStateful({
     this.initialPosition,
     this.markers = const {},
+    this.polylines = const {},
     this.showMyLocationButton = true,
+    required this.bottomPadding,
   });
 
   @override
@@ -49,9 +59,8 @@ class _GoogleMapsStatefulState extends State<_GoogleMapsStateful> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        body: Stack(
-          children: [
+    return Stack(
+      children: [
             // 1. Google Map (Fills the entire screen)
             GoogleMap(
               onMapCreated: (c) => controller = c,
@@ -60,6 +69,7 @@ class _GoogleMapsStatefulState extends State<_GoogleMapsStateful> {
               myLocationButtonEnabled: false,
               zoomControlsEnabled: false,
               markers: widget.markers,
+              polylines: widget.polylines,
             ),
 
         // Back button (TOP LEFT)
@@ -78,7 +88,10 @@ class _GoogleMapsStatefulState extends State<_GoogleMapsStateful> {
           child: Align(
             alignment: Alignment.bottomRight,
             child: Padding(
-              padding: const EdgeInsets.only(right: 12, bottom: 12),
+              padding: EdgeInsets.only(
+                right: 16, 
+                bottom: 16 + widget.bottomPadding, // Use padding to avoid UI elements
+              ),
               child: _circleButton(
                 icon: Icons.my_location,
                 onTap: _goToMyLocation,
@@ -87,7 +100,6 @@ class _GoogleMapsStatefulState extends State<_GoogleMapsStateful> {
           ),
         ),
       ],
-    ),
     );
   }
 
@@ -112,38 +124,32 @@ class _GoogleMapsStatefulState extends State<_GoogleMapsStateful> {
     );
   }
 
-  // Move camera to user's live location
+  // Move camera to user's live location or a specific target
   Future<void> _goToMyLocation() async {
-    bool serviceEnabled;
-    LocationPermission permission;
+    // 1. Check if we have a Pooled Location marker already on the map
+    // This is mathematically more accurate (averaged from multiple devices)
+    final pooledMarker = widget.markers.cast<Marker?>().firstWhere(
+      (m) => m?.markerId.value == 'pooled_location',
+      orElse: () => null,
+    );
 
-    // Check if GPS is on
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (pooledMarker != null) {
+      controller?.animateCamera(
+        CameraUpdate.newLatLngZoom(pooledMarker.position, 17),
+      );
+      return;
+    }
+
+    // 2. Fallback to standard GPS
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
       await Geolocator.openLocationSettings();
       return;
     }
 
-    // Check permission
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) {
-      permission = await Geolocator.requestPermission();
-      if (permission != LocationPermission.always &&
-          permission != LocationPermission.whileInUse) {
-        return;
-      }
-    }
-
-    // Get current location
-    final pos = await Geolocator.getCurrentPosition(
-      desiredAccuracy: LocationAccuracy.high,
-    );
-
+    final pos = await Geolocator.getCurrentPosition();
     controller?.animateCamera(
-      CameraUpdate.newLatLng(
-        LatLng(pos.latitude, pos.longitude),
-      ),
+      CameraUpdate.newLatLngZoom(LatLng(pos.latitude, pos.longitude), 16),
     );
   }
 }

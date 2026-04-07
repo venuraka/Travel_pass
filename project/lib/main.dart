@@ -52,7 +52,10 @@ class MyApp extends StatelessWidget {
             scaffoldBackgroundColor: Colors.white,
           ),
           // home: const PassengerDashboardApp(),
-          home: const DriverDashboardScreen(),
+          // home: const DriverDashboardScreen(),
+          // home: const AuthWrapper(),
+          home: const GoogleSignUpPage(),
+
         );
       },
     );

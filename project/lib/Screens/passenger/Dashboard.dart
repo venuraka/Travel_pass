@@ -98,14 +98,21 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
 
         // Initialize real-time attendance dates listener
         if (_attendanceSubscription == null && _passenger != null) {
+          debugPrint("[Dashboard] Setting up attendance dates stream for passenger=${_passenger!.uid}, driver=${_passenger!.driverId}");
           _attendanceSubscription = _controller
               .getAttendanceDatesStream(_passenger!.uid, _passenger!.driverId)
               .listen((dates) {
+            debugPrint("[Dashboard] Received ${dates.length} dates to mark from stream");
+            for (var d in dates) {
+              debugPrint("[Dashboard]   Date: ${d['label']} status=${d['status']}");
+            }
             if (mounted) {
               setState(() {
                 _datesToMark = dates;
               });
             }
+          }, onError: (error) {
+            debugPrint("[Dashboard] ERROR in attendance dates stream: $error");
           });
         }
 
@@ -114,12 +121,26 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
           _notificationSubscription = _controller
               .getLatestNotificationsStream(_passenger!.driverId)
               .listen((notifications) {
+            
             if (mounted && notifications.isNotEmpty) {
               final latest = notifications.first;
-              if (latest.type == 'location_tracking' || latest.type == 'poll_added') {
-                _handleInAppNotification(latest);
+              
+              // Only alert if we haven't seen this ID in this session
+              // AND if it was created in the last 2 minutes (truly real-time)
+              final isNew = !_seenNotificationIds.contains(latest.id);
+              final isRecent = latest.timestamp.isAfter(
+                DateTime.now().subtract(const Duration(minutes: 2)),
+              );
+
+              if (isNew && isRecent) {
+                _seenNotificationIds.add(latest.id);
+                if (latest.type == 'location_tracking' || latest.type == 'poll_added') {
+                  _handleInAppNotification(latest);
+                }
               }
             }
+          }, onError: (e) {
+            // Silently ignore or show minimal debug info
           });
         }
       }
@@ -423,6 +444,8 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
   }
 
   /// Matching Driver Dashboard style action card
+  int _selectedIndex = 0;
+  final Set<String> _seenNotificationIds = {}; // Prevent duplicate alerts
   Widget _buildActionCard({
     required String title,
     required IconData icon,

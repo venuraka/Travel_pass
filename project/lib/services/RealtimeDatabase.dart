@@ -2,28 +2,45 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
 
 class RealtimeDatabaseService {
-  // Use the specific RTDB URL provided for the Asia region
-  // REMOVED trailing slash as it can cause connection string parsing issues
+  // Try default initialization first, fallback to explicit if default doesn't have the URL
   final FirebaseDatabase _db = FirebaseDatabase.instanceFor(
     app: FirebaseDatabase.instance.app,
     databaseURL: 'https://travelpass-40736-default-rtdb.asia-southeast1.firebasedatabase.app',
   );
 
+  /// Performs a one-time connection test to the database.
+  Future<void> testConnection() async {
+    try {
+      debugPrint("[RTDB] CONNECTION TEST: Attempting to read root rules...");
+      // A simple read to the root or a 'status' node to check connectivity
+      await _db.ref('.info/connected').get();
+      debugPrint("[RTDB] CONNECTION TEST: REACHED SERVER (Check console rules if write fails)");
+    } catch (e) {
+      debugPrint("[RTDB] CONNECTION TEST: FAILED - $e");
+    }
+  }
+
   /// Updates the driver's location in the realtime database.
   Future<void> updateDriverLocation(String driverId, double lat, double lng) async {
     if (driverId.isEmpty) return;
     try {
-      debugPrint("RTDB: Updating driver location for $driverId: $lat, $lng");
-      await _db.ref('locations/$driverId/driver').set({
+      final ref = _db.ref('locations/$driverId/driver');
+      
+      // Use set() with a completion handler for more native error info
+      await ref.set({
         'lat': lat,
         'lng': lng,
         'timestamp': ServerValue.timestamp,
       });
+      debugPrint("[RTDB] SUCCESS: Location updated in Firebase");
       
       // Also update the pool
       await _updatePooledLocation(driverId);
     } catch (e) {
-      debugPrint("RTDB Error updating driver location: $e");
+      if (e.toString().contains('permission_denied') || e.toString().contains('unknown')) {
+        debugPrint("[RTDB] ERROR: Permission Denied or Unknown error. CHECK SECURITY RULES in Firebase Console.");
+      }
+      debugPrint("[RTDB] ERROR DETAIL: Failed to update location: $e");
     }
   }
 

@@ -21,11 +21,13 @@ class StartJourneyController {
   bool _isDisposed = false;
   String? _currentDriverId;
   bool _isAtFinalDestination = false;
-  Timer? _autoFinishTimer; // Added for auto-termination
+  Timer? _autoFinishTimer;
+  StreamSubscription? _pooledSubscription; // Added
 
   // Real-time status for the card
   String _currentStatus = "Calculating...";
   Set<Marker> _markers = {};
+  Set<Polyline> _polylines = {}; // Added
 
 
   // State
@@ -38,6 +40,7 @@ class StartJourneyController {
   bool get isAtFinalDestination => _isAtFinalDestination;
   String get currentStatus => _currentStatus;
   Set<Marker> get markers => _markers;
+  Set<Polyline> get polylines => _polylines; // Added
 
   final Function(Position) onLocationChanged;
   final Function(List<PassengerModel>) onProximityReached;
@@ -61,13 +64,94 @@ class StartJourneyController {
     
     // 4. Start location tracking
     await _startLocationTracking(driverId);
+
+    // 5. Build initial polylines
+    _updatePolylines();
+
+    // 6. Subscribe to Pooled Location for higher accuracy
+    _startPooledSubscription(driverId);
   }
 
   Future<void> _fetchDriverRoute(String driverId) async {
+    // Perform a one-time connection and rules test
+    await _rtDbService.testConnection();
+    
+    // Fetch driver data to get vehicle info
     final driverData = await _dbService.getDriverData(driverId);
     if (driverData != null && driverData.route != null) {
       _driverRoute = driverData.route;
+      _updatePolylines(); // Refresh line when data arrives
     }
+  }
+
+  void _updatePolylines() {
+    if (_driverRoute == null || _driverRoute!.isEmpty) return;
+
+    final List<LatLng> points = _driverRoute!
+        .map((p) => LatLng(
+              (p['lat'] as num).toDouble(),
+              (p['lng'] as num).toDouble(),
+            ))
+        .toList();
+
+    _polylines = {
+      Polyline(
+        polylineId: const PolylineId('route_line'),
+        points: points,
+        color: const Color(0xFF05A664), // primaryGreen match
+        width: 5,
+        geodesic: true,
+      ),
+    };
+  }
+
+  void _startPooledSubscription(String driverId) {
+    _pooledSubscription = _rtDbService.getPooledLocationStream(driverId).listen((data) {
+      if (_isDisposed || data.isEmpty) return;
+
+      final lat = data['lat']!;
+      final lng = data['lng']!;
+      final pooledLatLng = LatLng(lat, lng);
+
+      // Add/Update the specific Pooled Location Marker
+      _updateMarkersWithPooled(pooledLatLng);
+      
+      // We don't overwrite the phone location, but we inform the UI 
+      // if it wants to show the most "accurate" dot
+    });
+  }
+
+  void _updateMarkersWithPooled(LatLng pooledPosition) {
+    // Keep existing markers (stops) and update/add the pooled dot
+    final Set<Marker> updatedMarkers = Set.from(_markers);
+    
+    // Remove old pooled marker if it exists
+    updatedMarkers.removeWhere((m) => m.markerId.value == 'pooled_location');
+
+    updatedMarkers.add(
+      Marker(
+        markerId: const MarkerId('pooled_location'),
+        position: pooledPosition,
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+        infoWindow: const InfoWindow(title: 'Optimized Accuracy Location'),
+        zIndex: 10,
+        anchor: const Offset(0.5, 0.5), // Center it like a dot
+      ),
+    );
+
+    _markers = updatedMarkers;
+    onLocationChanged(Position(
+      latitude: pooledPosition.latitude,
+      longitude: pooledPosition.longitude,
+      timestamp: DateTime.now(),
+      accuracy: 0,
+      altitude: 0,
+      heading: 0,
+      speed: 0,
+      speedAccuracy: 0,
+      altitudeAccuracy: 0,
+      headingAccuracy: 0,
+    ));
   }
 
   void _updateMarkers() async {
@@ -97,20 +181,58 @@ class StartJourneyController {
   }
 
   Future<void> _startLocationTracking(String driverId) async {
+    debugPrint("[LocationTracking] Checking permissions...");
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) return;
+    if (!serviceEnabled) {
+      debugPrint("[LocationTracking] GPS Service is DISABLED");
+      return;
+    }
 
     LocationPermission permission = await Geolocator.checkPermission();
+    debugPrint("[LocationTracking] Current permission state: $permission");
+    
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
+      debugPrint("[LocationTracking] Requested permission state: $permission");
       if (permission == LocationPermission.denied) return;
     }
 
-    _positionSubscription = Geolocator.getPositionStream(
-      locationSettings: const LocationSettings(
+    if (permission == LocationPermission.deniedForever) {
+      debugPrint("[LocationTracking] Permissions are denied forever. Cannot start tracking.");
+      return;
+    }
+
+    debugPrint("[LocationTracking] Starting location stream...");
+    
+    late LocationSettings locationSettings;
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      locationSettings = AndroidSettings(
         accuracy: LocationAccuracy.high,
         distanceFilter: 5,
-      ),
+        forceLocationManager: true,
+        intervalDuration: const Duration(seconds: 5),
+        foregroundNotificationConfig: const ForegroundNotificationConfig(
+          notificationText: "Travel Pass is tracking your location to inform passengers.",
+          notificationTitle: "Journey in Progress",
+          enableWakeLock: true,
+        ),
+      );
+    } else if (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.macOS) {
+      locationSettings = AppleSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 5,
+        pauseLocationUpdatesAutomatically: false,
+        showBackgroundLocationIndicator: true,
+      );
+    } else {
+      locationSettings = const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 5,
+      );
+    }
+
+    _positionSubscription = Geolocator.getPositionStream(
+      locationSettings: locationSettings,
     ).listen((Position position) {
       if (_isDisposed) return;
       
@@ -278,6 +400,7 @@ class StartJourneyController {
   void dispose() {
     _isDisposed = true;
     _positionSubscription?.cancel();
+    _pooledSubscription?.cancel(); // Cancel pooled too
     _autoFinishTimer?.cancel();
   }
 }

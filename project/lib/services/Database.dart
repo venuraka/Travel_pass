@@ -129,17 +129,17 @@ class DatabaseService {
 
   /// Streams the most recent notifications for a specific driver.
   Stream<List<NotificationModel>> getLatestNotificationsStream(String driverId) {
-    // Only fetch notifications from the last 5 minutes to avoid showing old ones on load
-    final fiveMinsAgo = DateTime.now().subtract(const Duration(minutes: 5));
-    
     return _db.collection('notifications')
         .where('driverId', isEqualTo: driverId)
-        .where('timestamp', isGreaterThan: Timestamp.fromDate(fiveMinsAgo))
-        .orderBy('timestamp', descending: true)
-        .limit(3)
         .snapshots()
         .map((snapshot) {
-          return snapshot.docs.map((doc) => NotificationModel.fromMap(doc.data(), doc.id)).toList();
+          final notifications = snapshot.docs
+              .map((doc) => NotificationModel.fromMap(doc.data(), doc.id))
+              .toList();
+          
+          // Sort by timestamp descending manually in Dart to avoid Index requirements
+          notifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+          return notifications;
         });
   }
 

@@ -31,18 +31,18 @@ class DriverDashboardController {
       }
 
       // 1. Check if there is an active poll for today (Optimization: Check this first)
-      final DateTime now = DateTime.now();
+      final DateTime now = DateTime.now().toUtc();
       final DateTime today = DateTime.utc(now.year, now.month, now.day);
 
       List<PollModel> polls = await _dbService.getPollsByDriver(user.uid);
       bool isPollActiveToday = false;
       for (var poll in polls) {
-        if (poll.activeDates.any(
-              (d) =>
-          d.year == today.year &&
-              d.month == today.month &&
-              d.day == today.day,
-        )) {
+        if (poll.activeDates.any((d) {
+          final utcDate = d.toUtc();
+          return utcDate.year == today.year &&
+                 utcDate.month == today.month &&
+                 utcDate.day == today.day;
+        })) {
           isPollActiveToday = true;
           break;
         }
@@ -106,13 +106,15 @@ class DriverDashboardController {
       final user = _auth.currentUser;
       if (user == null) return false;
 
-      final now = DateTime.now();
+      final now = DateTime.now().toUtc();
       final today = DateTime.utc(now.year, now.month, now.day);
 
       List<PollModel> polls = await _dbService.getPollsByDriver(user.uid);
       for (var poll in polls) {
-        if (poll.activeDates.any((d) =>
-        d.year == today.year && d.month == today.month && d.day == today.day)) {
+        if (poll.activeDates.any((d) {
+          final utcDate = d.toUtc();
+          return utcDate.year == today.year && utcDate.month == today.month && utcDate.day == today.day;
+        })) {
           return true;
         }
       }

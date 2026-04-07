@@ -11,14 +11,24 @@ class AppConfig {
   static const MethodChannel _channel = MethodChannel('com.travelpass.app/config');
 
   static String _googleMapsApiKey = '';
+  static String _androidCertificateHash = ''; // Added
 
   /// Must be called once in main() before runApp().
   static Future<void> init() async {
     _googleMapsApiKey =
         await _channel.invokeMethod<String>('getGoogleMapsApiKey') ?? '';
+    _androidCertificateHash =
+        await _channel.invokeMethod<String>('getAndroidCertificateHash') ?? '';
+    
+    // ignore: avoid_print
+    print("[AppConfig] API Key loaded: ${_googleMapsApiKey.isNotEmpty}");
+    // ignore: avoid_print
+    print("[AppConfig] Android Hash loaded: $_androidCertificateHash");
   }
   
   /// The Google Maps / Places / Directions API key.
-  /// Only available after [init()] has been awaited.
   static String get googleMapsApiKey => _googleMapsApiKey;
+
+  /// The Android SHA-1 certificate hash for API restrictions.
+  static String get androidCertificateHash => _androidCertificateHash;
 }

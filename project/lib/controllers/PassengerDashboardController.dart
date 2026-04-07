@@ -174,7 +174,8 @@ class PassengerDashboardController {
   }
 
   DateTime _normalizeDate(DateTime dt) {
-    return DateTime.utc(dt.year, dt.month, dt.day);
+    final utc = dt.toUtc();
+    return DateTime.utc(utc.year, utc.month, utc.day);
   }
 
   Future<void> markAlertsAsRead() async {
@@ -255,7 +256,8 @@ class PassengerDashboardController {
           }
         }
 
-        final today = _normalizeDate(DateTime.now());
+        final now = DateTime.now().toUtc();
+        final today = DateTime.utc(now.year, now.month, now.day);
         final List<DateTime> sortedDates = allPollDates.toList()..sort();
 
         for (var date in sortedDates) {

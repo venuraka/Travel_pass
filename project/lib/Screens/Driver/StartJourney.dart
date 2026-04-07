@@ -109,6 +109,8 @@ class _StartjourneyState extends State<Startjourney> {
           // 1. Google Map (Fills the entire screen)
           GoogleMaps(
             markers: _controller.markers,
+            polylines: _controller.polylines,
+            bottomPadding: _controller.passengers.isNotEmpty ? 280 : 0, // Push button up if card is visible
           ),
 
           // 2. Next Passenger Card (Positioned at the bottom)
