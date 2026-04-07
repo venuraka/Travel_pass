@@ -27,6 +27,8 @@ class _TrackVehicleState extends State<TrackVehicle> {
   late TrackVehicleController _controller;
   LatLng? _pooledLocation;
   bool _isOnboarded = false;
+  String _currentStatus = "Calculating...";
+
 
   @override
   void initState() {
@@ -46,8 +48,16 @@ class _TrackVehicleState extends State<TrackVehicle> {
           });
         }
       },
+      onStatusChanged: (String status) {
+        if (mounted) {
+          setState(() {
+            _currentStatus = status;
+          });
+        }
+      },
     );
     _controller.startTracking(widget.driverId, widget.passengerId);
+
   }
 
   @override
@@ -82,9 +92,10 @@ class _TrackVehicleState extends State<TrackVehicle> {
           Align(
             alignment: Alignment.bottomCenter,
             child: JourneyInfoCard(
-              busArrivalTime: _isOnboarded ? "Onboarded" : "Calculating...",
+              busArrivalTime: _currentStatus,
               nextStop: _isOnboarded ? "Sharing your location" : "Waiting for pick up",
               attendanceCount: _isOnboarded ? 1 : 0, // Placeholder
+
               onCallPressed: () {
                 print("Call pressed");
               },

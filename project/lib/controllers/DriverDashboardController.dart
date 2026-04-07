@@ -2,10 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/Database.dart';
 import '../models/PollModel.dart'; // Added
+import '../services/PushNotificationService.dart'; // Added
+import 'package:flutter/foundation.dart'; // Added
 
 class DriverDashboardController {
   final DatabaseService _dbService = DatabaseService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  Future<void> initFCM() async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      await PushNotificationService.initialize();
+      final token = await PushNotificationService.getToken();
+      if (token != null) {
+        await _dbService.updateUserFCMToken(user.uid, token, 'driver');
+        debugPrint("Driver FCM Token updated: $token");
+      }
+      PushNotificationService.listenForeground();
+    }
+  }
 
   /// Fetches the count of passengers who have marked themselves as 'Present' for today.
   Future<int> getTodayPassengerCount() async {

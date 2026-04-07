@@ -40,6 +40,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   @override // Added initState
   void initState() {
     super.initState();
+    _controller.initFCM(); // Added for push notifications
     _loadDashboardData();
     
     // Real-time stream for passenger count
@@ -287,7 +288,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
 
               const SizedBox(height: 40),
 
-              // --- Floating Start Button ---
+              // --- Start Journey Button (Poll-conditional) ---
               Container(
                 width: double.infinity,
                 height: 60,
@@ -295,34 +296,24 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                   borderRadius: BorderRadius.circular(30),
                   boxShadow: [
                     BoxShadow(
-                      color: primaryGreen.withOpacity(0.3),
+                      color: _hasPollToday ? primaryGreen.withOpacity(0.3) : const Color(0xFFB9E4D0).withOpacity(0.2),
                       blurRadius: 20,
                       offset: const Offset(0, 10),
                     ),
                   ],
                 ),
                 child: ElevatedButton(
-                  onPressed: () async {
-                    // Perform a fresh check to ensure validation is not stale
-                    final bool hasPoll = await _controller.hasActivePollToday();
-                    if (!hasPoll) {
+                  onPressed: () {
+                    if (!_hasPollToday) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text("No scheduled poll for today"),
-                          duration: Duration(seconds: 2),
+                          content: Text("Please make a poll for today first!"),
+                          backgroundColor: Colors.orangeAccent,
                           behavior: SnackBarBehavior.floating,
-                          backgroundColor: Colors.redAccent,
                         ),
                       );
-                      // Update local state to reflect current reality
-                      if (mounted) setState(() => _hasPollToday = false);
                       return;
                     }
-                    
-                    // Update local state if it was stale
-                    if (mounted && !_hasPollToday) setState(() => _hasPollToday = true);
-
-                    // Show reminder if user just taps the button
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text("Hold the button to start the journey"),
@@ -331,27 +322,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                       ),
                     );
                   },
-                  onLongPress: () async {
-                    // Perform a fresh check to ensure validation is not stale
-                    final bool hasPoll = await _controller.hasActivePollToday();
-                    if (!hasPoll) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("Cannot start: No scheduled poll today"),
-                          duration: Duration(seconds: 2),
-                          behavior: SnackBarBehavior.floating,
-                          backgroundColor: Colors.redAccent,
-                        ),
-                      );
-                      // Update local state to reflect current reality
-                      if (mounted) setState(() => _hasPollToday = false);
-                      return;
-                    }
-                    
-                    // Update local state if it was stale
-                    if (mounted && !_hasPollToday) setState(() => _hasPollToday = true);
-
-                    // Trigger the journey start when held
+                  onLongPress: _hasPollToday ? () async {
                     await _controller.startJourney();
                     if (mounted) {
                       Navigator.push(
@@ -359,36 +330,37 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                         MaterialPageRoute(builder: (_) => const Startjourney()),
                       );
                     }
-                  },
+                  } : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryGreen,
-                    foregroundColor: Colors.white,
+                    backgroundColor: _hasPollToday ? primaryGreen : const Color(0xFFB9E4D0),
+                    foregroundColor: _hasPollToday ? Colors.white : primaryGreen.withOpacity(0.8),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18.0),
+                      borderRadius: BorderRadius.circular(18.0.r),
                     ),
-                    elevation: 0, // We used Container shadow for a softer glow
+                    elevation: 0,
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
+                    children: [
                       Text(
-                        'Start Journey',
+                        _hasPollToday ? 'Start Journey' : 'Make a poll to start journey',
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 16.sp,
                           fontWeight: FontWeight.w700,
-                          letterSpacing: 0.5,
+                          letterSpacing: 0.2,
                         ),
                       ),
-                      SizedBox(width: 10),
-                      Icon(Icons.arrow_forward_rounded,
-                      size: 30,
+                      SizedBox(width: 10.w),
+                      Icon(
+                        _hasPollToday ? Icons.arrow_forward_rounded : Icons.lock_outline_rounded,
+                        size: 24.r,
                       ),
-                       
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: 30),
+
             ],
           ),
         ),

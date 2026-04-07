@@ -10,8 +10,11 @@ class NextPassengerCard extends StatefulWidget {
   final List<PassengerModel> passengers;
   final int currentIndex;
   final String status;
-  final VoidCallback? onCallPressed;
+  final Function(String)? onCallPressed;
   final Function(int) onPageChanged;
+  final VoidCallback? onFinishJourney; // Added
+
+  final bool isAtFinalDestination; // Added
 
   const NextPassengerCard({
     super.key,
@@ -20,6 +23,8 @@ class NextPassengerCard extends StatefulWidget {
     required this.status,
     this.onCallPressed,
     required this.onPageChanged,
+    this.onFinishJourney, // Added
+    this.isAtFinalDestination = false, // Added
   });
 
   @override
@@ -41,7 +46,7 @@ class _NextPassengerCardState extends State<NextPassengerCard> {
     if (oldWidget.currentIndex != widget.currentIndex) {
       _pageController.animateToPage(
         widget.currentIndex,
-        duration: const Duration(milliseconds: 1000),
+        duration: const Duration(milliseconds: 500),
         curve: Curves.easeInOut,
       );
     }
@@ -55,54 +60,58 @@ class _NextPassengerCardState extends State<NextPassengerCard> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onLongPress: widget.onCallPressed,
-      child: Container(
-        width: double.infinity,
-        decoration: const BoxDecoration(
-          color: kCardBackgroundColor,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(30.0),
-            topRight: Radius.circular(30.0),
-          ),
-        ),
-        padding: const EdgeInsets.only(top: 16.0, bottom: 20.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            // --- Title: Next Passenger ---
-            const Padding(
-              padding: EdgeInsets.only(bottom: 24.0),
-              child: Text(
-                'Next Passenger',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20.0,
-                  fontWeight: FontWeight.bold,
-                  decoration: TextDecoration.underline,
-                  decorationColor: Colors.white,
-                ),
-              ),
-            ),
+    // Re-calculating allReached to include the destination phase
+    final bool allPassengersPicked = widget.passengers.isEmpty || 
+        (widget.currentIndex >= widget.passengers.length && widget.passengers.isNotEmpty);
+    
+    final currentPassenger = !allPassengersPicked && widget.passengers.isNotEmpty
+        ? widget.passengers[widget.currentIndex] 
+        : null;
 
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: kCardBackgroundColor,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(30.0),
+          topRight: Radius.circular(30.0),
+        ),
+      ),
+      padding: const EdgeInsets.only(top: 24.0, bottom: 30.0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          // --- Title ---
+          Text(
+            widget.isAtFinalDestination 
+                ? 'Destination Reached' 
+                : (allPassengersPicked ? 'Heading To Destination' : 'Next Passenger'),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 22.0,
+              fontWeight: FontWeight.w900,
+              decoration: TextDecoration.underline,
+              decorationColor: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 30),
+
+          if (!allPassengersPicked) ...[
             // --- Passenger Info Row with Swipeable PageView ---
             SizedBox(
-              height: 120, // Height for the info area
+              height: 140,
               child: Row(
                 children: [
-                  // Left Arrow
                   IconButton(
                     onPressed: widget.currentIndex > 0
                         ? () => widget.onPageChanged(widget.currentIndex - 1)
                         : null,
                     icon: Icon(
-                      Icons.arrow_back_ios,
-                      color: widget.currentIndex > 0 ? kPrimaryTextColor : Colors.grey,
-                      size: 20,
+                      Icons.arrow_back_ios_new_rounded,
+                      color: widget.currentIndex > 0 ? Colors.white60 : Colors.white10,
+                      size: 24,
                     ),
                   ),
-
-                  // Swipeable Content
                   Expanded(
                     child: PageView.builder(
                       controller: _pageController,
@@ -114,83 +123,143 @@ class _NextPassengerCardState extends State<NextPassengerCard> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: <Widget>[
                             Text(
-                              p.name,
+                              p.name.toLowerCase(),
                               style: const TextStyle(
                                 color: kPrimaryTextColor,
-                                fontSize: 18.0,
-                                fontWeight: FontWeight.w600,
+                                fontSize: 24.0,
+                                fontWeight: FontWeight.w700,
                               ),
                               textAlign: TextAlign.center,
                             ),
-                            const SizedBox(height: 4.0),
+                            const SizedBox(height: 8.0),
                             Text(
-                              p.pickupLocation,
+                              p.pickupLocation.toLowerCase(),
                               style: const TextStyle(
                                 color: kPrimaryTextColor,
-                                fontSize: 18.0,
-                                fontWeight: FontWeight.w600,
+                                fontSize: 22.0,
+                                fontWeight: FontWeight.w700,
                               ),
                               textAlign: TextAlign.center,
                             ),
-                            if (index == widget.currentIndex) ...[
-                              const SizedBox(height: 8.0),
-                              Text(
-                                widget.status,
-                                style: const TextStyle(
-                                  color: kPrimaryTextColor,
-                                  fontSize: 18.0,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                            const SizedBox(height: 12.0),
+                            Text(
+                              widget.status,
+                              style: const TextStyle(
+                                color: kPrimaryTextColor,
+                                fontSize: 20.0,
+                                fontWeight: FontWeight.w900,
                               ),
-                            ]
+                            ),
                           ],
                         );
                       },
                     ),
                   ),
-
-                  // Right Arrow
                   IconButton(
                     onPressed: widget.currentIndex < widget.passengers.length - 1
                         ? () => widget.onPageChanged(widget.currentIndex + 1)
                         : null,
                     icon: Icon(
-                      Icons.arrow_forward_ios,
+                      Icons.arrow_forward_ios_rounded,
                       color: widget.currentIndex < widget.passengers.length - 1
-                          ? kPrimaryTextColor
-                          : Colors.grey,
-                      size: 20,
+                          ? Colors.white60
+                          : Colors.white10,
+                      size: 24,
                     ),
                   ),
                 ],
               ),
             ),
-
             const SizedBox(height: 30.0),
-
-            // --- Bottom Action Indicator ---
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const <Widget>[
-                Icon(Icons.call, color: kPrimaryTextColor, size: 18),
-                SizedBox(width: 8.0),
-                Text(
-                  'Hold To Get a Call...',
-                  style: TextStyle(
-                    color: kSecondaryTextColor,
-                    fontSize: 16.0,
+            // HOLD TO CALL
+            GestureDetector(
+              onLongPress: () {
+                if (currentPassenger != null && widget.onCallPressed != null) {
+                  widget.onCallPressed!(currentPassenger.phone);
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const <Widget>[
+                    Icon(Icons.call_rounded, color: kPrimaryTextColor, size: 20),
+                    SizedBox(width: 12.0),
+                    Text(
+                      'Hold To Get a Call...',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 18.0,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ] else ...[
+            // --- Destination View ---
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 40),
+              child: Column(
+                children: [
+                  Text(
+                    widget.isAtFinalDestination 
+                        ? 'You have arrived at the final destination.'
+                        : 'All passengers are onboard. Driving to destination...',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.white70, fontSize: 16),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    widget.status,
+                    style: const TextStyle(
+                      color: kPrimaryTextColor,
+                      fontSize: 18.0,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 30),
+            
+            // Only show button if actually at destination
+            if (widget.isAtFinalDestination)
+              GestureDetector(
+                onTap: widget.onFinishJourney,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent,
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.redAccent.withOpacity(0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
+                      )
+                    ]
+                  ),
+                  child: const Text(
+                    'FINISH JOURNEY',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
                   ),
                 ),
-              ],
-            ),
+              ),
           ],
-        ),
+        ],
       ),
     );
   }
 }
 
-// --- Journey Info Card (No changes needed for this card) ---
+
+// --- Journey Info Card (For generic info, not used in Next Passenger flow) ---
 class JourneyInfoCard extends StatelessWidget {
   final String busArrivalTime;
   final String nextStop;
@@ -220,7 +289,6 @@ class JourneyInfoCard extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          // --- Swipe Up Instruction ---
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: const <Widget>[
@@ -235,10 +303,7 @@ class JourneyInfoCard extends StatelessWidget {
               ),
             ],
           ),
-
           const SizedBox(height: 24.0),
-
-          // --- Bus Will Come on ---
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
@@ -260,10 +325,7 @@ class JourneyInfoCard extends StatelessWidget {
               ),
             ],
           ),
-
           const SizedBox(height: 16.0),
-
-          // --- Next Stop ---
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
@@ -286,10 +348,7 @@ class JourneyInfoCard extends StatelessWidget {
               ),
             ],
           ),
-
           const SizedBox(height: 16.0),
-
-          // --- Attendance Count ---
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
@@ -312,20 +371,13 @@ class JourneyInfoCard extends StatelessWidget {
               ),
             ],
           ),
-
           const SizedBox(height: 24.0),
-
-          // --- Hold To Get a Call ---
           GestureDetector(
-            onTap: onCallPressed,
+            onLongPress: onCallPressed,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: const <Widget>[
-                Icon(
-                  Icons.phone_callback,
-                  color: kPrimaryTextColor,
-                  size: 18,
-                ),
+                Icon(Icons.phone_callback_rounded, color: kPrimaryTextColor, size: 18),
                 SizedBox(width: 8.0),
                 Text(
                   'Hold To Get a Call...',

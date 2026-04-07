@@ -21,11 +21,14 @@ class TrackVehicleController {
   // State
   final Function(LatLng) onPooledLocationChanged;
   final Function(bool) onOnboardingStatusChanged;
+  final Function(String) onStatusChanged;
 
   TrackVehicleController({
     required this.onPooledLocationChanged,
     required this.onOnboardingStatusChanged,
+    required this.onStatusChanged,
   });
+
 
   Future<void> init() async {
     final user = _auth.currentUser;
@@ -48,10 +51,14 @@ class TrackVehicleController {
     _passengerId = passengerId;
 
     // 1. Listen to pooled location
-    _rtDbService.getPooledLocationStream(driverId).listen((loc) {
+    _rtDbService.getPooledLocationStream(driverId).listen((loc) async {
       if (_isDisposed) return;
       if (loc.containsKey('lat') && loc.containsKey('lng')) {
-        onPooledLocationChanged(LatLng(loc['lat']!, loc['lng']!));
+        final vehicleLatLng = LatLng(loc['lat']!, loc['lng']!);
+        onPooledLocationChanged(vehicleLatLng);
+        
+        // 1a. Calculate Status (ETA/Proximity)
+        await _calculateStatus(driverId, passengerId, vehicleLatLng);
       }
     });
 
@@ -60,12 +67,60 @@ class TrackVehicleController {
       if (_isDisposed) return;
       onOnboardingStatusChanged(isOnboarded);
       if (isOnboarded) {
+        onStatusChanged("ONBOARDED");
         _startLocationSharing();
       } else {
         _stopLocationSharing();
       }
     });
   }
+
+  Future<void> _calculateStatus(String driverId, String passengerId, LatLng vehicleLoc) async {
+    // 1. Get Passenger Data for pickup point name
+    final passengerData = await _dbService.getPassengerData(passengerId);
+    if (passengerData == null) {
+      onStatusChanged("Calculating...");
+      return;
+    }
+    final pickupName = passengerData.pickupLocation;
+
+
+    // 2. Get Driver Route to find coords of that pickup point
+    final driverData = await _dbService.getDriverData(driverId);
+    if (driverData == null || driverData.route == null) return;
+
+    LatLng? pickupLatLng;
+    for (var point in driverData.route!) {
+      if (point['name'] == pickupName) {
+        pickupLatLng = LatLng(
+          (point['lat'] as num).toDouble(),
+          (point['lng'] as num).toDouble(),
+        );
+        break;
+      }
+    }
+
+    if (pickupLatLng == null) {
+      onStatusChanged("Calculating...");
+      return;
+    }
+
+    // 3. Distance Check
+    double distance = Geolocator.distanceBetween(
+      vehicleLoc.latitude, vehicleLoc.longitude,
+      pickupLatLng.latitude, pickupLatLng.longitude
+    );
+
+    if (distance < 50) {
+      onStatusChanged("ON LOCATION");
+    } else {
+      // 40km/h average (~11m/s)
+      int mins = (distance / 11 / 60).round();
+      if (mins < 1) mins = 1;
+      onStatusChanged("$mins min away");
+    }
+  }
+
 
   void _startLocationSharing() async {
     if (_positionSubscription != null) return;

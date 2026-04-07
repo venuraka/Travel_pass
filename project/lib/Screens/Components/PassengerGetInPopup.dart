@@ -5,13 +5,16 @@ class PassengerGetInPopup extends StatefulWidget {
   final List<PassengerModel> passengers;
   final Function(PassengerModel) onCorrect;
   final Function(PassengerModel) onIncorrect;
+  final Function(String) onCallPressed;
 
   const PassengerGetInPopup({
     super.key,
     required this.passengers,
     required this.onCorrect,
     required this.onIncorrect,
+    required this.onCallPressed,
   });
+
 
   @override
   State<PassengerGetInPopup> createState() => _PassengerGetInPopupState();
@@ -153,10 +156,11 @@ class _PassengerGetInPopupState extends State<PassengerGetInPopup> {
         const SizedBox(height: 50),
 
         // Bottom Component: Hold to call
-        _buildHoldToCall(),
+        _buildHoldToCall(passenger),
       ],
     );
   }
+
 
   Widget _buildActionButton({
     required IconData icon,
@@ -177,29 +181,32 @@ class _PassengerGetInPopupState extends State<PassengerGetInPopup> {
     );
   }
 
-  Widget _buildHoldToCall() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-      margin: const EdgeInsets.symmetric(horizontal: 30),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(40),
-      ),
-      child: const Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.call_rounded, color: Colors.white60, size: 20),
-          SizedBox(width: 12),
-          Text(
-            "HOLD TO GET A CALL",
-            style: TextStyle(
-              color: Colors.white60,
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
-              letterSpacing: 1.0,
+  Widget _buildHoldToCall(PassengerModel passenger) {
+    return GestureDetector(
+      onLongPress: () => widget.onCallPressed(passenger.phone),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+        margin: const EdgeInsets.symmetric(horizontal: 30),
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(40),
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.call_rounded, color: Colors.white60, size: 20),
+            SizedBox(width: 12),
+            Text(
+              "HOLD TO GET A CALL",
+              style: TextStyle(
+                color: Colors.white60,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+                letterSpacing: 1.0,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

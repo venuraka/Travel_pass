@@ -56,6 +56,9 @@ class _StartjourneyState extends State<Startjourney> {
           builder: (context, setPopupState) {
             return PassengerGetInPopup(
               passengers: remainingPassengers,
+              onCallPressed: (phone) {
+                _controller.makeCall(phone);
+              },
               onCorrect: (passenger) async {
                 await _controller.markOnboarded(passenger.uid, true);
                 setPopupState(() {
@@ -83,6 +86,7 @@ class _StartjourneyState extends State<Startjourney> {
                 }
               },
             );
+
           },
         );
       },
@@ -108,35 +112,32 @@ class _StartjourneyState extends State<Startjourney> {
           ),
 
           // 2. Next Passenger Card (Positioned at the bottom)
-          if (currentPassenger != null)
+          if (_controller.passengers.isNotEmpty)
             Align(
               alignment: Alignment.bottomCenter,
               child: NextPassengerCard(
                 passengers: _controller.passengers,
                 currentIndex: _controller.currentPassengerIndex,
                 status: _controller.currentStatus,
-                onCallPressed: () {
-                  _controller.makeCall();
+                onCallPressed: (phone) {
+                  _controller.makeCall(phone);
                 },
                 onPageChanged: (index) {
                   setState(() {
                     _controller.setPassengerIndex(index);
                   });
                 },
+                isAtFinalDestination: _controller.isAtFinalDestination, // Added
+                onFinishJourney: () async {
+                  await _controller.finishJourney();
+                  if (mounted) {
+                    Navigator.pop(context);
+                  }
+                },
               ),
             ),
-          
-          if (currentPassenger == null && _controller.passengers.isNotEmpty)
-             const Align(
-              alignment: Alignment.bottomCenter,
-               child: Card(
-                 color: Colors.black87,
-                 child: Padding(
-                   padding: EdgeInsets.all(20.0),
-                   child: Text("All passengers reached", style: TextStyle(color: Colors.white)),
-                 ),
-               ),
-             )
+
+
         ],
       ),
     );

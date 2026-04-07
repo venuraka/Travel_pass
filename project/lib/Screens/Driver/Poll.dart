@@ -10,6 +10,8 @@ import 'PassengerSummery.dart';
 import '../../services/Database.dart';
 import '../../models/PollModel.dart';
 import '../../models/DriverModel.dart';
+import '../../models/NotificationModel.dart'; // Added
+
 
 class PollScreen extends StatefulWidget {
   const PollScreen({super.key});
@@ -141,7 +143,20 @@ class _PollScreenState extends State<PollScreen> {
           createdAt: Timestamp.now(),
         );
         await _dbService.createPoll(newPoll);
+
+        // Check if today is in the added dates
+        final now = DateTime.now();
+        final today = DateTime.utc(now.year, now.month, now.day);
+        if (datesToAdd.any((d) => d.isAtSameMomentAs(today))) {
+          // Send notification and trigger FCM for passengers
+          await _dbService.notifyPassengersOfTracking(
+            _currentDriver!.uid,
+            _currentDriver!.name,
+          );
+        }
+
       }
+
 
       // --- Handle Removals: remove dates from their respective documents ---
       if (datesToRemove.isNotEmpty) {

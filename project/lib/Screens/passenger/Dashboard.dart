@@ -8,6 +8,8 @@ import 'Attendance.dart';
 import 'TrackVehicle.dart';
 import '../../controllers/PassengerDashboardController.dart';
 import '../../models/PassengerModel.dart';
+import '../../models/NotificationModel.dart'; // Added
+
 
 // --- Constants (Unified with Driver Dashboard) ---
 const Color primaryGreen = Color(0xFF05A664);
@@ -38,17 +40,21 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
 
   StreamSubscription? _unreadCountSubscription;
   StreamSubscription? _attendanceSubscription;
+  StreamSubscription? _notificationSubscription;
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    _controller.initFCM(); // Added for push notifications
   }
+
 
   @override
   void dispose() {
     _unreadCountSubscription?.cancel();
     _attendanceSubscription?.cancel();
+    _notificationSubscription?.cancel();
     super.dispose();
   }
 
@@ -102,8 +108,93 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
             }
           });
         }
+
+        // Initialize real-time tracking notification listener
+        if (_notificationSubscription == null && _passenger != null) {
+          _notificationSubscription = _controller
+              .getLatestNotificationsStream(_passenger!.driverId)
+              .listen((notifications) {
+            if (mounted && notifications.isNotEmpty) {
+              final latest = notifications.first;
+              if (latest.type == 'location_tracking') {
+                _showTrackingNotification(latest);
+              }
+            }
+          });
+        }
       }
     }
+  }
+
+  void _showTrackingNotification(NotificationModel notification) {
+    // Prevent multiple overlapping notifications
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: primaryGreen,
+        duration: const Duration(seconds: 15),
+        behavior: SnackBarBehavior.floating,
+        padding: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+        content: InkWell(
+          onTap: () {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            if (_passenger != null) {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => TrackVehicle(
+                    driverId: _passenger!.driverId,
+                    passengerId: _passenger!.uid,
+                  ),
+                ),
+              );
+            }
+          },
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+            child: Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(8.r),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.location_on_rounded, color: Colors.white, size: 20.r),
+                ),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        notification.title,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        notification.message,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: 12.sp,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 14.r),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -194,18 +285,23 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
 
               const SizedBox(height: 30),
 
-              // --- Track Vehicle Button (REPOSITIONED HERE) ---
+              // --- Track Vehicle Button ---
               if (_passenger?.driverId != null)
-                StreamBuilder<bool>(
+                StreamBuilder<Map<String, bool>>(
                   stream: _controller.getTrackingEligibilityStream(
                     _passenger!.driverId,
+                    _passenger!.uid,
                   ),
                   builder: (context, snapshot) {
-                    final bool isEligible = snapshot.data ?? false;
-                    if (isEligible) {
+                    final data = snapshot.data ?? {'isVisible': false, 'isEnabled': false};
+                    final bool isVisible = data['isVisible']!;
+                    final bool isEnabled = data['isEnabled']!;
+
+                    if (isVisible) {
                       return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildFindVehicleButton(context),
+                          _buildFindVehicleButton(context, isEnabled),
                           const SizedBox(height: 35),
                         ],
                       );
@@ -213,6 +309,7 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
                     return const SizedBox.shrink();
                   },
                 ),
+
 
               // --- Overview Section ---
               Row(
@@ -395,54 +492,60 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
     );
   }
 
-  Widget _buildFindVehicleButton(BuildContext context) {
+  Widget _buildFindVehicleButton(BuildContext context, bool isEnabled) {
     return Container(
       width: double.infinity,
-      height: 65.h, // Slightly larger hero button
+      height: 65.h,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20.r), // Slightly less round for hero style
-        gradient: const LinearGradient(
-          colors: [primaryGreen, Color(0xFF048F56)], // Driver-style hero gradient
+        borderRadius: BorderRadius.circular(20.r),
+        gradient: LinearGradient(
+          colors: isEnabled 
+            ? [primaryGreen, const Color(0xFF048F56)]
+            : [const Color(0xFFB9E4D0), const Color(0xFF90D5B9)], 
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         boxShadow: [
-          BoxShadow(
-            color: primaryGreen.withOpacity(0.3),
-            blurRadius: 20.r,
-            offset: Offset(0, 10.h),
-          ),
+          if (isEnabled)
+            BoxShadow(
+              color: primaryGreen.withOpacity(0.3),
+              blurRadius: 20.r,
+              offset: Offset(0, 10.h),
+            ),
         ],
       ),
       child: ElevatedButton(
         onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Hold the button to track vehicle"),
-              duration: Duration(seconds: 2),
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        },
-        onLongPress: () async {
-          // Check attendance status before allowing tracking
-          final status = await _controller.getTodayAttendanceStatus();
-          if (status != 'Present') {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text(
-                    "Mark 'Present' to track the vehicle.",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  backgroundColor: Colors.redAccent,
-                  behavior: SnackBarBehavior.floating,
+          if (isEnabled) {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text("Hold the button to track vehicle"),
+                duration: Duration(seconds: 2),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    Icon(Icons.info_outline_rounded, color: Colors.white, size: 18.r),
+                    SizedBox(width: 10.w),
+                    const Expanded(
+                      child: Text("Please mark your attendance to enable tracking."),
+                    ),
+                  ],
                 ),
-              );
-            }
-            return;
+                backgroundColor: Colors.redAccent,
+                duration: const Duration(seconds: 3),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
           }
-
+        },
+        onLongPress: isEnabled ? () async {
           if (mounted && _passenger != null) {
             Navigator.push(
               context,
@@ -454,9 +557,10 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
               ),
             );
           }
-        },
+        } : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: primaryGreen,
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
           foregroundColor: Colors.white,
           padding: EdgeInsets.zero,
           shape: RoundedRectangleBorder(
@@ -482,6 +586,7 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
       ),
     );
   }
+
 
   Widget _buildAttendanceCard() {
     return Container(

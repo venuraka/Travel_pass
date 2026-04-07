@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:project/Screens/Driver/Dashboard.dart';
+import 'package:flutter/services.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'Screens/Driver/Dashboard.dart';
 import 'Screens/UserRegistration/Login.dart';
 import 'Screens/UserRegistration/SignUp.dart';
 import 'Screens/passenger/Dashboard.dart';
 import 'firebase_options.dart';
+import 'services/PushNotificationService.dart';
 import 'utils/AuthWrapper.dart';
 import 'config/AppConfig.dart';
 
@@ -13,10 +16,18 @@ void main() async {
   // 1. Ensures Flutter widgets are ready before initializing Firebase
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 2. Initialize Firebase with your project options
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  // 2. Lock orientation to Portrait Only
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]);
 
-  // 3. Load API keys securely from native platform (Info.plist / AndroidManifest)
+  // 3. Initialize Firebase with your project options
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  
+  // 4. Set up FCM Background handler
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
+  // 5. Load API keys securely from native platform (Info.plist / AndroidManifest)
   await AppConfig.init();
 
   runApp(const MyApp());
@@ -40,11 +51,8 @@ class MyApp extends StatelessWidget {
             fontFamily: 'Poppins',
             scaffoldBackgroundColor: Colors.white,
           ),
-
-          // Set the initial route to AuthWrapper
-          // home: const GoogleSignUpPage(),
-          // home: const DriverDashboardScreen(),
-          home: const  PassengerDashboardApp(),
+          // home: const PassengerDashboardApp(),
+          home: const DriverDashboardScreen(),
         );
       },
     );

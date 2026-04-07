@@ -2,11 +2,18 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
 
 class RealtimeDatabaseService {
-  final FirebaseDatabase _db = FirebaseDatabase.instance;
+  // Use the specific RTDB URL provided for the Asia region
+  // REMOVED trailing slash as it can cause connection string parsing issues
+  final FirebaseDatabase _db = FirebaseDatabase.instanceFor(
+    app: FirebaseDatabase.instance.app,
+    databaseURL: 'https://travelpass-40736-default-rtdb.asia-southeast1.firebasedatabase.app',
+  );
 
   /// Updates the driver's location in the realtime database.
   Future<void> updateDriverLocation(String driverId, double lat, double lng) async {
+    if (driverId.isEmpty) return;
     try {
+      debugPrint("RTDB: Updating driver location for $driverId: $lat, $lng");
       await _db.ref('locations/$driverId/driver').set({
         'lat': lat,
         'lng': lng,
@@ -16,12 +23,14 @@ class RealtimeDatabaseService {
       // Also update the pool
       await _updatePooledLocation(driverId);
     } catch (e) {
-      debugPrint("Error updating driver location: $e");
+      debugPrint("RTDB Error updating driver location: $e");
     }
   }
 
+
   /// Updates a passenger's location in the realtime database if they are onboard.
   Future<void> updatePassengerLocation(String driverId, String passengerId, double lat, double lng) async {
+    if (driverId.isEmpty || passengerId.isEmpty) return;
     try {
       await _db.ref('locations/$driverId/passengers/$passengerId').set({
         'lat': lat,
@@ -38,8 +47,14 @@ class RealtimeDatabaseService {
 
   /// Sets whether a passenger is onboarded.
   Future<void> setOnboarded(String driverId, String passengerId, bool onboarded) async {
+    if (driverId.isEmpty || passengerId.isEmpty) return;
     try {
       await _db.ref('status/$driverId/passengers/$passengerId/onboarded').set(onboarded);
+      // If removed from onboarding, cleanup their location from the pool
+      if (!onboarded) {
+        await _db.ref('locations/$driverId/passengers/$passengerId').remove();
+        await _updatePooledLocation(driverId);
+      }
     } catch (e) {
       debugPrint("Error setting onboarded status: $e");
     }
@@ -47,12 +62,14 @@ class RealtimeDatabaseService {
 
   /// Returns a stream of whether a passenger is onboarded.
   Stream<bool> getOnboardedStream(String driverId, String passengerId) {
+    if (driverId.isEmpty || passengerId.isEmpty) return Stream.value(false);
     return _db.ref('status/$driverId/passengers/$passengerId/onboarded').onValue.map((event) {
       return (event.snapshot.value as bool?) ?? false;
     });
   }
 
   /// Calculates and updates the pooled location based on all active locations.
+  /// Uses a mean/weighted average of the driver and all onboarded passengers.
   Future<void> _updatePooledLocation(String driverId) async {
     try {
       final snapshot = await _db.ref('locations/$driverId').get();
@@ -62,26 +79,39 @@ class RealtimeDatabaseService {
       double totalLat = 0;
       double totalLng = 0;
       int count = 0;
+      
+      final now = DateTime.now().millisecondsSinceEpoch;
+      const int staleThreshold = 60000; // 60 seconds
 
-      // Extract driver location
+      // 1. Extract and Validate Driver Location
       if (data.containsKey('driver')) {
         final driverLoc = data['driver'] as Map<dynamic, dynamic>;
-        totalLat += (driverLoc['lat'] as num).toDouble();
-        totalLng += (driverLoc['lng'] as num).toDouble();
-        count++;
+        final ts = (driverLoc['timestamp'] as num?)?.toInt() ?? 0;
+        
+        // Only include if not stale or if it's the only point
+        if (now - ts < staleThreshold) {
+          totalLat += (driverLoc['lat'] as num).toDouble();
+          totalLng += (driverLoc['lng'] as num).toDouble();
+          count++;
+        }
       }
 
-      // Extract passenger locations
+      // 2. Extract and Validate Onboarded Passenger Locations
       if (data.containsKey('passengers')) {
         final passengers = data['passengers'] as Map<dynamic, dynamic>;
         passengers.forEach((key, value) {
           final pLoc = value as Map<dynamic, dynamic>;
-          totalLat += (pLoc['lat'] as num).toDouble();
-          totalLng += (pLoc['lng'] as num).toDouble();
-          count++;
+          final ts = (pLoc['timestamp'] as num?)?.toInt() ?? 0;
+          
+          if (now - ts < staleThreshold) {
+            totalLat += (pLoc['lat'] as num).toDouble();
+            totalLng += (pLoc['lng'] as num).toDouble();
+            count++;
+          }
         });
       }
 
+      // 3. Update the Pooled Node
       if (count > 0) {
         final pooledLat = totalLat / count;
         final pooledLng = totalLng / count;
@@ -100,6 +130,7 @@ class RealtimeDatabaseService {
 
   /// Returns a stream of the pooled location for a specific driver.
   Stream<Map<String, double>> getPooledLocationStream(String driverId) {
+    if (driverId.isEmpty) return Stream.value({});
     return _db.ref('locations/$driverId/pooled').onValue.map((event) {
       final data = event.snapshot.value as Map<dynamic, dynamic>?;
       if (data != null) {
@@ -112,3 +143,4 @@ class RealtimeDatabaseService {
     });
   }
 }
+

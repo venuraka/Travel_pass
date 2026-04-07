@@ -13,6 +13,13 @@ import GoogleMaps
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
 
+        // ✅ Register for Remote Notifications (Required for FCM on iOS)
+        if #available(iOS 10.0, *) {
+          UNUserNotificationCenter.current().delegate = self as? UNUserNotificationCenterDelegate
+        }
+        application.registerForRemoteNotifications()
+
+
         // ✅ Start Flutter engine (VERY IMPORTANT for UIScene)
         flutterEngine.run()
         GeneratedPluginRegistrant.register(with: flutterEngine)

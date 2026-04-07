@@ -1,6 +1,7 @@
 // lib/services/database_service.dart
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:uuid/uuid.dart';
 
 import '../models/DriverModel.dart';
 import '../models/PassengerModel.dart';
@@ -8,6 +9,7 @@ import '../models/PollModel.dart';
 import '../models/UpdateModel.dart';
 import '../models/AttendanceModel.dart'; // Added // Added
 import '../models/RedemptionModel.dart'; // New Import
+import '../models/NotificationModel.dart'; // Added
 
 class DatabaseService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -108,7 +110,6 @@ class DatabaseService {
   /// Creates a new poll in the 'polls' collection.
   Future<void> createPoll(PollModel poll) async {
     try {
-      // Use the poll's ID as the document ID
       await _db.collection('polls').doc(poll.id).set(poll.toMap());
     } catch (e) {
       debugPrint("Error creating poll: $e");
@@ -116,7 +117,70 @@ class DatabaseService {
     }
   }
 
+  // --- Notification Methods ---
+
+  /// Creates a new notification in the 'notifications' collection.
+  Future<void> createNotification(NotificationModel notification) async {
+    try {
+      await _db.collection('notifications').doc(notification.id).set(notification.toMap());
+    } catch (e) {
+      debugPrint("Error creating notification: $e");
+      rethrow;
+    }
+  }
+
+  /// Streams the most recent notifications for a specific driver.
+  Stream<List<NotificationModel>> getLatestNotificationsStream(String driverId) {
+    // Only fetch notifications from the last 5 minutes to avoid showing old ones on load
+    final fiveMinsAgo = DateTime.now().subtract(const Duration(minutes: 5));
+    
+    return _db.collection('notifications')
+        .where('driverId', isEqualTo: driverId)
+        .where('timestamp', isGreaterThan: Timestamp.fromDate(fiveMinsAgo))
+        .orderBy('timestamp', descending: true)
+        .limit(3)
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) => NotificationModel.fromMap(doc.data(), doc.id)).toList();
+        });
+  }
+
+  /// Sends a trigger to notify all passengers of this driver that tracking is enabled.
+  Future<void> notifyPassengersOfTracking(String driverId, String driverName) async {
+    // 1. Create the Firestore notification (for in-app alerts)
+    final notification = NotificationModel(
+      id: const Uuid().v4(),
+      driverId: driverId,
+      type: 'location_tracking',
+      title: 'Tracking Enabled',
+      message: '$driverName has enabled location tracking for today.',
+      timestamp: DateTime.now(),
+    );
+    await createNotification(notification);
+
+    // 2. Note for user: In production, a Firebase Cloud Function should 
+    // listen to this 'notifications' collection and send real FCM push 
+    // notifications to the 'fcmToken' found in each passenger's document.
+    debugPrint("FCM trigger recorded for passengers of driver: $driverId");
+  }
+
+
+
+  Future<PassengerModel?> getPassengerData(String uid) async {
+    try {
+      final doc = await _db.collection('passenger').doc(uid).get();
+      if (doc.exists && doc.data() != null) {
+        return PassengerModel.fromMap(doc.data()!);
+      }
+      return null;
+    } catch (e) {
+      debugPrint("Error fetching passenger data: $e");
+      rethrow;
+    }
+  }
+
   /// Fetches driver data by UID.
+
   Future<DriverModel?> getDriverData(String uid) async {
     try {
       final doc = await _db.collection('driver').doc(uid).get();
@@ -561,8 +625,22 @@ class DatabaseService {
             .toList());
   }
 
+  /// Updates the FCM token for a user (driver or passenger).
+  Future<void> updateUserFCMToken(String userId, String token, String userType) async {
+    try {
+      await _db.collection(userType).doc(userId).update({
+        'fcmToken': token,
+        'fcmTokenUpdatedAt': Timestamp.now(),
+      });
+    } catch (e) {
+      debugPrint("Error updating FCM token for $userId: $e");
+      rethrow;
+    }
+  }
+
   /// Creates a payment request in a new collection.
   Future<void> requestPayment(String driverId, double amount) async {
+
     try {
       await _db.collection('paymentRequests').add({
         'driverId': driverId,

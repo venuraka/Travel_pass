@@ -6,9 +6,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../services/Database.dart';
+import '../services/PushNotificationService.dart';
 import '../models/PassengerModel.dart';
 import '../models/PollModel.dart';
 import '../models/AttendanceModel.dart';
+import '../models/NotificationModel.dart';
 
 class PassengerDashboardController {
   final DatabaseService _dbService = DatabaseService();
@@ -18,7 +20,21 @@ class PassengerDashboardController {
   // In a full GetX/Provider setup, these would be reactive.
   // Here, the View will call methods and setState based on Future results.
 
+  Future<void> initFCM() async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      await PushNotificationService.initialize();
+      final token = await PushNotificationService.getToken();
+      if (token != null) {
+        await _dbService.updateUserFCMToken(user.uid, token, 'passenger');
+        debugPrint("Passenger FCM Token updated: $token");
+      }
+      PushNotificationService.listenForeground();
+    }
+  }
+
   Future<Map<String, dynamic>> loadDashboardData() async {
+
     try {
       final user = _auth.currentUser;
       if (user == null) {
@@ -173,14 +189,36 @@ class PassengerDashboardController {
     return _dbService.getJourneyStatusStream(driverId);
   }
 
-  /// Combined stream that returns true only if both a poll is active and journey is started.
-  Stream<bool> getTrackingEligibilityStream(String driverId) {
-    return Rx.combineLatest2(
-      _dbService.getTodayPollStatusStream(driverId),
+  /// Returns a stream of notifications for the current passenger's driver.
+  Stream<List<NotificationModel>> getLatestNotificationsStream(String driverId) {
+    return _dbService.getLatestNotificationsStream(driverId);
+  }
+
+  /// Combined stream that returns eligibility info:
+
+  /// - isVisible: if journey is started AND today's poll exists
+  /// - isEnabled: if attendance is 'Present'
+  Stream<Map<String, bool>> getTrackingEligibilityStream(String driverId, String passengerId) {
+    return Rx.combineLatest3(
       _dbService.getJourneyStatusStream(driverId),
-      (bool hasPoll, bool isStarted) => hasPoll && isStarted,
+      _dbService.getPassengerAttendanceStream(passengerId),
+      _dbService.getTodayPollStatusStream(driverId), // Added Poll check
+      (bool isStarted, AttendanceModel? attendance, bool hasPollToday) {
+        final today = _normalizeDate(DateTime.now());
+        final dateKey = "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
+        
+        final status = attendance?.records[dateKey] ?? 'Pending';
+        final isPresent = status == 'Present';
+
+        return {
+          'isVisible': isStarted && hasPollToday,
+          'isEnabled': isPresent,
+        };
+      },
     );
   }
+
+
 
   /// Returns today's attendance status for the current passenger.
   Future<String> getTodayAttendanceStatus() async {
