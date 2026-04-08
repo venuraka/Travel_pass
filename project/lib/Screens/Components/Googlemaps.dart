@@ -81,6 +81,7 @@ class _GoogleMapsStatefulState extends State<_GoogleMapsStateful> {
               myLocationEnabled: widget.myLocationEnabled,
               myLocationButtonEnabled: false,
               zoomControlsEnabled: false,
+              compassEnabled: false,
               markers: widget.markers,
               polylines: widget.polylines,
             ),
@@ -97,21 +98,22 @@ class _GoogleMapsStatefulState extends State<_GoogleMapsStateful> {
         ),
 
         // Current location button (BOTTOM RIGHT)
-        SafeArea(
-          child: Align(
-            alignment: Alignment.bottomRight,
-            child: Padding(
-              padding: EdgeInsets.only(
-                right: 16, 
-                bottom: 16 + widget.bottomPadding, // Use padding to avoid UI elements
-              ),
-              child: _circleButton(
-                icon: Icons.my_location,
-                onTap: _goToMyLocation,
+        if (widget.showMyLocationButton)
+          SafeArea(
+            child: Align(
+              alignment: Alignment.bottomRight,
+              child: Padding(
+                padding: EdgeInsets.only(
+                  right: 16, 
+                  bottom: 16 + widget.bottomPadding, // Use padding to avoid UI elements
+                ),
+                child: _circleButton(
+                  icon: Icons.my_location,
+                  onTap: _goToMyLocation,
+                ),
               ),
             ),
           ),
-        ),
       ],
     );
   }

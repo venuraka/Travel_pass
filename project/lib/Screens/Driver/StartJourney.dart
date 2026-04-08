@@ -112,6 +112,7 @@ class _StartjourneyState extends State<Startjourney> {
             polylines: _controller.polylines,
             bottomPadding: _controller.passengers.isNotEmpty ? 330 : 0,
             myLocationEnabled: false, // We use pooled location arrow instead
+            showMyLocationButton: false, // Added to remove duplicate button
             onMapCreated: (mapController) {
               _controller.setMapController(mapController);
             },
@@ -119,7 +120,7 @@ class _StartjourneyState extends State<Startjourney> {
 
           // 2. Navigation Control Buttons (Re-center and North/Compass)
           Positioned(
-            bottom: _controller.passengers.isNotEmpty ? 340 : 100,
+            bottom: _controller.passengers.isNotEmpty ? 280 : 100,
             right: 16,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.end,
