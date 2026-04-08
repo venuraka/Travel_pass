@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:ui' as ui;
+import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -108,10 +110,35 @@ class StartJourneyController {
     await _fetchDriverRoute(driverId);
 
     // 2. Fetch passengers for this driver
-    _allPassengers = await _dbService.getPassengersByDriver(driverId);
+    final allPossiblePassengers = await _dbService.getPassengersByDriver(driverId);
+    
+    // Fetch today's attendance for these passengers
+    final now = DateTime.now();
+    final dateKey = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+    
+    try {
+      final attendanceSnap = await FirebaseFirestore.instance
+          .collection('attendance')
+          .where('driverId', isEqualTo: driverId)
+          .get();
+      
+      Map<String, String> attendanceMap = {};
+      for (var doc in attendanceSnap.docs) {
+        final records = doc.data()['records'] as Map<String, dynamic>? ?? {};
+        attendanceMap[doc.id] = records[dateKey] ?? 'Not Marked';
+      }
+
+      // Filter: ONLY include "Present" passengers
+      _allPassengers = allPossiblePassengers.where((p) => attendanceMap[p.uid] == 'Present').toList();
+    } catch (e) {
+      if (kDebugMode) {
+        print('Failed to fetch attendance for passengers: $e');
+      }
+      _allPassengers = []; // Default to empty if attendance check fails
+    }
     
     // 3. Initial markers
-    _updateMarkers();
+    await _updateMarkers();
     
     // 4. Start location tracking
     await _startLocationTracking(driverId);
@@ -134,7 +161,7 @@ class StartJourneyController {
       // Draw outer glow/shadow
       final glowPaint = ui.Paint()
         ..color = const ui.Color(0x304285F4)
-        ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 12);
+        ..maskFilter = ui.MaskFilter.blur(ui.BlurStyle.normal, 12);
       canvas.drawCircle(center, size / 2.4, glowPaint);
 
       // Draw white circle background
@@ -177,6 +204,54 @@ class StartJourneyController {
     }
   }
 
+  /// Creates a custom pickup marker icon with the passenger count.
+  Future<BitmapDescriptor> _getPickupMarkerIcon(int count) async {
+    const double size = 70;
+    final recorder = ui.PictureRecorder();
+    final canvas = ui.Canvas(recorder);
+    
+    // Draw outer glow
+    final glowPaint = ui.Paint()
+      ..color = Colors.orange.withOpacity(0.3)
+      ..maskFilter = ui.MaskFilter.blur(ui.BlurStyle.normal, 4);
+    canvas.drawCircle(const ui.Offset(size / 2, size / 2), size / 2.2, glowPaint);
+
+    // Draw orange circle (marker body)
+    final paint = ui.Paint()..color = Colors.orange;
+    canvas.drawCircle(ui.Offset(size / 2, size / 2), size / 3.0, paint);
+    
+    // Draw white border
+    final borderPaint = ui.Paint()
+      ..color = Colors.white
+      ..style = ui.PaintingStyle.stroke
+      ..strokeWidth = 2.5;
+    canvas.drawCircle(ui.Offset(size / 2, size / 2), size / 3.0, borderPaint);
+
+    // Draw text (count)
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: '$count',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 18,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      textDirection: TextDirection.ltr,
+    );
+    textPainter.layout();
+    textPainter.paint(
+      canvas,
+      ui.Offset((size - textPainter.width) / 2, (size - textPainter.height) / 2),
+    );
+
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(size.toInt(), size.toInt());
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    
+    return BitmapDescriptor.bytes(byteData!.buffer.asUint8List());
+  }
+
   Future<void> _fetchDriverRoute(String driverId) async {
     // Perform a one-time connection and rules test
     await _rtDbService.testConnection();
@@ -192,33 +267,76 @@ class StartJourneyController {
   Future<void> _updatePolylines() async {
     if (_driverRoute == null || _driverRoute!.isEmpty) return;
 
-    try {
-      // Use driver's current position as starting point if available, else first route point
-      LatLng origin = (_lastPooledPosition != null) 
-          ? _lastPooledPosition! 
-          : LatLng((_driverRoute![0]['lat'] as num).toDouble(), (_driverRoute![0]['lng'] as num).toDouble());
+    // Calculate passenger counts per location (same as _updateMarkers)
+    Map<String, int> pickupCounts = {};
+    for (var passenger in _allPassengers) {
+      final loc = passenger.pickupLocation;
+      pickupCounts[loc] = (pickupCounts[loc] ?? 0) + 1;
+    }
 
-      LatLng destination = LatLng(
-        (_driverRoute!.last['lat'] as num).toDouble(),
-        (_driverRoute!.last['lng'] as num).toDouble(),
-      );
-
-      // Intermediate waypoints
-      List<LatLng> waypoints = [];
-      if (_driverRoute!.length > 2) {
-        waypoints = _driverRoute!
-            .sublist(1, _driverRoute!.length - 1)
-            .map((p) => LatLng((p['lat'] as num).toDouble(), (p['lng'] as num).toDouble()))
-            .toList();
+    // Filter route points: keep only destinations and pickups with passengers
+    List<LatLng> targetWaypoints = [];
+    for (var i = 1; i < _driverRoute!.length - 1; i++) {
+      final point = _driverRoute![i];
+      final role = point['role'] ?? 'pickup';
+      final name = point['name'] as String;
+      
+      if (role == 'destination' || (pickupCounts[name] ?? 0) > 0) {
+        targetWaypoints.add(LatLng(
+          (point['lat'] as num).toDouble(),
+          (point['lng'] as num).toDouble(),
+        ));
       }
+    }
 
-      final List<LatLng> roadPoints = await _placeService.getDirections(origin, destination, waypoints);
+    // Origin is current position or original start
+    LatLng origin = (_lastPooledPosition != null) 
+        ? _lastPooledPosition! 
+        : LatLng((_driverRoute![0]['lat'] as num).toDouble(), (_driverRoute![0]['lng'] as num).toDouble());
+
+    // Destination is always the final point in the original route
+    LatLng destination = LatLng(
+      (_driverRoute!.last['lat'] as num).toDouble(),
+      (_driverRoute!.last['lng'] as num).toDouble(),
+    );
+
+    try {
+      final List<LatLng> roadPoints = await _placeService.getDirections(origin, destination, targetWaypoints);
 
       _polylines = {
         Polyline(
           polylineId: const PolylineId('route_line'),
           points: roadPoints,
-          color: const ui.Color(0xFF4285F4), // Google Maps blue for route
+          color: const Color(0xFF4285F4), // Google Maps blue for route
+          width: 6,
+          geodesic: true,
+        ),
+      };
+      
+      // Notify UI of new polyline state
+      onLocationChanged(Position(
+        latitude: origin.latitude,
+        longitude: origin.longitude,
+        timestamp: DateTime.now(),
+        accuracy: 0, altitude: 0, heading: _heading, speed: 0, speedAccuracy: 0,
+        altitudeAccuracy: 0, headingAccuracy: 0,
+      ));
+    } catch (e) {
+      if (kDebugMode) {
+        print('Failed to fetch road directions: $e');
+      }
+      // Fallback to straight lines connecting available points
+      final List<LatLng> straightPoints = [
+        origin,
+        ...targetWaypoints,
+        destination
+      ];
+
+      _polylines = {
+        Polyline(
+          polylineId: const PolylineId('route_line'),
+          points: straightPoints,
+          color: const Color(0xFF4285F4).withOpacity(0.5),
           width: 6,
           geodesic: true,
         ),
@@ -231,27 +349,6 @@ class StartJourneyController {
         accuracy: 0, altitude: 0, heading: _heading, speed: 0, speedAccuracy: 0,
         altitudeAccuracy: 0, headingAccuracy: 0,
       ));
-    } catch (e) {
-      if (kDebugMode) {
-        print('Failed to fetch road directions: $e');
-      }
-      // Fallback to straight lines if Directions API fails
-      final List<LatLng> straightPoints = _driverRoute!
-          .map((p) => LatLng(
-                (p['lat'] as num).toDouble(),
-                (p['lng'] as num).toDouble(),
-              ))
-          .toList();
-
-      _polylines = {
-        Polyline(
-          polylineId: const PolylineId('route_line'),
-          points: straightPoints,
-          color: const ui.Color(0xFF4285F4).withOpacity(0.5),
-          width: 6,
-          geodesic: true,
-        ),
-      };
     }
   }
 
@@ -355,21 +452,53 @@ class StartJourneyController {
     final driverData = await _dbService.getDriverData(_currentDriverId!);
     if (driverData == null || driverData.route == null) return;
 
+    // Group current available passengers by their pickup location
+    Map<String, int> pickupCounts = {};
+    for (var passenger in _allPassengers) {
+      final loc = passenger.pickupLocation;
+      pickupCounts[loc] = (pickupCounts[loc] ?? 0) + 1;
+    }
+
     for (var point in driverData.route!) {
       final role = point['role'] ?? 'pickup';
-      final color = role == 'pickup' ? BitmapDescriptor.hueOrange : BitmapDescriptor.hueRed;
+      final name = point['name'] as String;
       
-      newMarkers.add(
-        Marker(
-          markerId: MarkerId(point['name'] as String),
-          position: LatLng(
-            (point['lat'] as num).toDouble(),
-            (point['lng'] as num).toDouble(),
+      if (role == 'pickup') {
+        final count = pickupCounts[name] ?? 0;
+        
+        // ONLY display pickup point if there is at least one passenger
+        if (count > 0) {
+          final icon = await _getPickupMarkerIcon(count);
+          newMarkers.add(
+            Marker(
+              markerId: MarkerId(name),
+              position: LatLng(
+                (point['lat'] as num).toDouble(),
+                (point['lng'] as num).toDouble(),
+              ),
+              infoWindow: InfoWindow(
+                title: name,
+                snippet: '$count passengers waiting',
+              ),
+              icon: icon,
+              anchor: const Offset(0.5, 0.5),
+            ),
+          );
+        }
+      } else {
+        // Destination points always displayed
+        newMarkers.add(
+          Marker(
+            markerId: MarkerId(name),
+            position: LatLng(
+              (point['lat'] as num).toDouble(),
+              (point['lng'] as num).toDouble(),
+            ),
+            infoWindow: InfoWindow(title: name),
+            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
           ),
-          infoWindow: InfoWindow(title: point['name'] as String),
-          icon: BitmapDescriptor.defaultMarkerWithHue(color),
-        ),
-      );
+        );
+      }
     }
     _staticMarkers = newMarkers;
     
