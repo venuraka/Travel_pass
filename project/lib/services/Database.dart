@@ -496,10 +496,13 @@ class DatabaseService {
   Stream<List<UpdateModel>> getUpdatesStream(String driverId) {
     return _db.collection('updates')
         .where('driverId', isEqualTo: driverId)
-        .orderBy('timestamp', descending: true)
+        // .orderBy('timestamp', descending: true) // Removed to avoid Index requirement
         .snapshots()
         .map((snapshot) {
-      return snapshot.docs.map((doc) => UpdateModel.fromMap(doc.data(), doc.id)).toList();
+      final updates = snapshot.docs.map((doc) => UpdateModel.fromMap(doc.data(), doc.id)).toList();
+      // Sort client-side
+      updates.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      return updates;
     });
   }
 
@@ -547,11 +550,17 @@ class DatabaseService {
     return _db
         .collection('redemptions')
         .where('driverId', isEqualTo: driverId)
-        .orderBy('date', descending: true)
+        // .orderBy('date', descending: true) // Removed to avoid Index requirement
         .snapshots()
-        .map((snapshot) => snapshot.docs
+        .map((snapshot) {
+          final redemptions = snapshot.docs
             .map((doc) => RedemptionModel.fromMap(doc.data(), doc.id))
-            .toList());
+            .toList();
+          
+          // Sort client-side
+          redemptions.sort((a, b) => b.date.compareTo(a.date));
+          return redemptions;
+        });
   }
 
 
