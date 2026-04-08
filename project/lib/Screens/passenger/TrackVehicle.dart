@@ -26,6 +26,9 @@ class TrackVehicle extends StatefulWidget {
 class _TrackVehicleState extends State<TrackVehicle> {
   late TrackVehicleController _controller;
   LatLng? _pooledLocation;
+  LatLng? _passengerLocation; // Added
+  LatLng? _pickupLocation; // Added
+  List<LatLng> _walkingPath = []; // Added
   bool _isOnboarded = false;
   String _currentStatus = "Calculating...";
   String _nextStop = "Calculating..."; // Added
@@ -87,6 +90,27 @@ class _TrackVehicleState extends State<TrackVehicle> {
           });
         }
       },
+      onPassengerLocationChanged: (LatLng loc) {
+        if (mounted) {
+          setState(() {
+            _passengerLocation = loc;
+          });
+        }
+      },
+      onPickupLocationAcquired: (LatLng loc) {
+        if (mounted) {
+          setState(() {
+            _pickupLocation = loc;
+          });
+        }
+      },
+      onWalkingPathChanged: (List<LatLng> path) {
+        if (mounted) {
+          setState(() {
+            _walkingPath = path;
+          });
+        }
+      },
     );
     _controller.init(); // Use init instead of direct startTracking if we want to fetch pData first
   }
@@ -99,24 +123,61 @@ class _TrackVehicleState extends State<TrackVehicle> {
 
   @override
   Widget build(BuildContext context) {
+    // Build Markers
+    final Set<Marker> markers = {};
+    if (_pooledLocation != null) {
+      markers.add(
+        Marker(
+          markerId: const MarkerId('pooled_vehicle'),
+          position: _pooledLocation!,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+          infoWindow: const InfoWindow(title: 'Vehicle Location'),
+        ),
+      );
+    }
+    if (_passengerLocation != null) {
+      markers.add(
+        Marker(
+          markerId: const MarkerId('passenger_location'),
+          position: _passengerLocation!,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+          infoWindow: const InfoWindow(title: 'My Location'),
+        ),
+      );
+    }
+    if (_pickupLocation != null && !_isOnboarded) {
+      markers.add(
+        Marker(
+          markerId: const MarkerId('pickup_location'),
+          position: _pickupLocation!,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
+          infoWindow: const InfoWindow(title: 'Pickup Point'),
+        ),
+      );
+    }
+
+    // Build Polylines
+    final Set<Polyline> polylines = {};
+    if (_walkingPath.isNotEmpty && !_isOnboarded) {
+      polylines.add(
+        Polyline(
+          polylineId: const PolylineId('walking_route'),
+          points: _walkingPath,
+          color: Colors.orange,
+          width: 5,
+        ),
+      );
+    }
+
     return Scaffold(
       body: Stack(
         children: [
           // Google Map
           GoogleMaps(
             initialPosition: _pooledLocation,
-            markers: _pooledLocation != null
-                ? {
-                    Marker(
-                      markerId: const MarkerId('pooled_vehicle'),
-                      position: _pooledLocation!,
-                      icon: BitmapDescriptor.defaultMarkerWithHue(
-                        BitmapDescriptor.hueGreen,
-                      ),
-                      infoWindow: const InfoWindow(title: "Vehicle Location"),
-                    )
-                  }
-                : {},
+            markers: markers,
+            polylines: polylines,
+            bottomPadding: 240, 
           ),
 
           // Journey Info Card (Bottom Positioned)

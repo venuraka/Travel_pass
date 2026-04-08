@@ -147,8 +147,9 @@ class PlaceService {
   Future<List<LatLng>> getDirections(
     LatLng origin,
     LatLng destination,
-    List<LatLng> waypoints,
-  ) async {
+    List<LatLng> waypoints, {
+    String mode = 'driving', // Added
+  }) async {
     // Construct waypoints string
     String waypointsString = '';
     if (waypoints.isNotEmpty) {
@@ -163,6 +164,7 @@ class PlaceService {
       'origin': '${origin.latitude},${origin.longitude}',
       'destination': '${destination.latitude},${destination.longitude}',
       'key': apiKey,
+      'mode': mode, // Added
     };
 
     if (waypointsString.isNotEmpty) {

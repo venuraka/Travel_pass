@@ -5,6 +5,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../services/Database.dart';
 import '../services/RealtimeDatabase.dart';
+import '../services/PlaceService.dart'; // Added
+import '../config/AppConfig.dart'; // Added
 import '../models/PassengerModel.dart';
 
 class TrackVehicleController {
@@ -26,6 +28,9 @@ class TrackVehicleController {
   final Function(int) onOnboardedCountChanged; // Added
   final Function(LatLng, String) onDestinationAcquired; // Added
   final Function(int) onProgressIndexChanged; // Added
+  final Function(LatLng) onPassengerLocationChanged; // Added
+  final Function(LatLng) onPickupLocationAcquired; // Added
+  final Function(List<LatLng>) onWalkingPathChanged; // Added
 
   TrackVehicleController({
     required this.onPooledLocationChanged,
@@ -35,6 +40,9 @@ class TrackVehicleController {
     required this.onOnboardedCountChanged,
     required this.onDestinationAcquired,
     required this.onProgressIndexChanged, // Added
+    required this.onPassengerLocationChanged,
+    required this.onPickupLocationAcquired,
+    required this.onWalkingPathChanged,
   });
 
 
@@ -42,6 +50,8 @@ class TrackVehicleController {
     final user = _auth.currentUser;
     if (user == null) return;
     _passengerId = user.uid;
+
+    _placeService = PlaceService(AppConfig.googleMapsApiKey); // Added
 
     // 1. Fetch passenger data
     final pData = await _dbService.getPassengerData(_passengerId!);
@@ -56,11 +66,16 @@ class TrackVehicleController {
   StreamSubscription? _progressSubscription;
   StreamSubscription? _destSubscription;
   StreamSubscription? _attendanceSubscription;
-  LatLng? _currentVehicleLoc;
-  LatLng? _currentPassengerLoc;
+  LatLng? _currentVehicleLoc; // Restored
+  LatLng? _currentPassengerLoc; // Restored
   LatLng? _routeDestination;
   LatLng? _nextStopLoc;
+  LatLng? _myPickupLoc;
   bool _isOnboarded = false;
+  PlaceService? _placeService;
+  
+  LatLng? _lastPathFetchPassengerPos;
+  LatLng? _lastPathFetchPickupPos;
 
   void startTracking(String driverId, String passengerId) {
     _driverId = driverId;
@@ -147,43 +162,46 @@ class TrackVehicleController {
     if (passengerData == null) return;
     
     final pickupName = passengerData.pickupLocation;
-    LatLng? myPickupLoc;
     
     // Find my pickup coords from driver route
     final driverData = await _dbService.getDriverData(_driverId!);
     if (driverData != null && driverData.route != null) {
       for (var point in driverData.route!) {
         if (point['name'] == pickupName) {
-          myPickupLoc = LatLng((point['lat'] as num).toDouble(), (point['lng'] as num).toDouble());
+          _myPickupLoc = LatLng((point['lat'] as num).toDouble(), (point['lng'] as num).toDouble());
+          onPickupLocationAcquired(_myPickupLoc!); // Notify UI
           break;
         }
       }
     }
 
-    if (myPickupLoc == null) return;
+    if (_myPickupLoc == null) return;
 
     // Distance vehicle to pickup
     double busDist = Geolocator.distanceBetween(
       _currentVehicleLoc!.latitude, _currentVehicleLoc!.longitude,
-      myPickupLoc.latitude, myPickupLoc.longitude
+      _myPickupLoc!.latitude, _myPickupLoc!.longitude
     );
 
     // If passenger is moving, calculate their ETA to pickup
     if (_currentPassengerLoc != null) {
+      onPassengerLocationChanged(_currentPassengerLoc!); // Notify UI
+      
       double pDist = Geolocator.distanceBetween(
         _currentPassengerLoc!.latitude, _currentPassengerLoc!.longitude,
-        myPickupLoc.latitude, myPickupLoc.longitude
+        _myPickupLoc!.latitude, _myPickupLoc!.longitude
       );
 
       if (pDist > 50) {
+         _calculateWalkingPath(_currentPassengerLoc!, _myPickupLoc!); // Calculate path
+
         // Orange Status: Passenger moving to spot
         int pMins = (pDist / 1.4 / 60).round();
         if (pMins < 1) pMins = 1;
-        onStatusChanged("SPOT: $pMins min"); // Use a short code or "Wait" as per previous optimization
-        // Actually, user said: "if he is comming to pickup point there should be display estimated time to pickup point"
-        // I'll use "Wait: $pMins min" or "$pMins min wait" to keep it short.
         onStatusChanged("$pMins min wait"); 
         return;
+      } else {
+        onWalkingPathChanged([]); // Clear path if close
       }
     }
 
@@ -191,6 +209,36 @@ class TrackVehicleController {
     int busMins = (busDist / 11 / 60).round();
     if (busMins < 1) busMins = 1;
     onStatusChanged("$busMins min pickup");
+  }
+
+  bool _isFetchingPath = false;
+  Future<void> _calculateWalkingPath(LatLng passengerLoc, LatLng pickupLoc) async {
+    if (_isFetchingPath || _placeService == null) return;
+
+    // Throttle: only re-fetch if they moved > 20 meters
+    if (_lastPathFetchPassengerPos != null && _lastPathFetchPickupPos != null) {
+      double dP = Geolocator.distanceBetween(
+        passengerLoc.latitude, passengerLoc.longitude,
+        _lastPathFetchPassengerPos!.latitude, _lastPathFetchPassengerPos!.longitude
+      );
+      double dPick = Geolocator.distanceBetween(
+        pickupLoc.latitude, pickupLoc.longitude,
+        _lastPathFetchPickupPos!.latitude, _lastPathFetchPickupPos!.longitude
+      );
+      if (dP < 20 && dPick < 10) return;
+    }
+
+    _isFetchingPath = true;
+    try {
+      final path = await _placeService!.getDirections(passengerLoc, pickupLoc, [], mode: 'walking');
+      onWalkingPathChanged(path);
+      _lastPathFetchPassengerPos = passengerLoc;
+      _lastPathFetchPickupPos = pickupLoc;
+    } catch (e) {
+      if (kDebugMode) print('TrackVehicleController: Failed to fetch walking path: $e');
+    } finally {
+      _isFetchingPath = false;
+    }
   }
 
 
