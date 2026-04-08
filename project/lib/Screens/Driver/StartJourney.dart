@@ -73,7 +73,7 @@ class _StartjourneyState extends State<Startjourney> {
                 }
               },
               onIncorrect: (passenger) async {
-                await _controller.markOnboarded(passenger.uid, false);
+                await _controller.markAsAbsent(passenger.uid);
                 setPopupState(() {
                   remainingPassengers.removeWhere((p) => p.uid == passenger.uid);
                 });
@@ -110,20 +110,30 @@ class _StartjourneyState extends State<Startjourney> {
           GoogleMaps(
             markers: _controller.markers,
             polylines: _controller.polylines,
-            bottomPadding: _controller.passengers.isNotEmpty ? 280 : 0,
+            bottomPadding: _controller.passengers.isNotEmpty ? 330 : 0,
             myLocationEnabled: false, // We use pooled location arrow instead
             onMapCreated: (mapController) {
               _controller.setMapController(mapController);
             },
           ),
 
-          // 2. Re-center button (shown when camera is not following)
-          if (!_controller.isFollowingCamera)
-            Positioned(
-              bottom: _controller.passengers.isNotEmpty ? 300 : 24,
-              left: 16,
-              child: _buildRecenterButton(),
+          // 2. Navigation Control Buttons (Re-center and North/Compass)
+          Positioned(
+            bottom: _controller.passengers.isNotEmpty ? 340 : 100,
+            right: 16,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // North Button (shown if map is rotated or just for convenience)
+                _buildNorthButton(),
+                const SizedBox(height: 60),
+                // Re-center button (shown when camera is not following)
+                if (!_controller.isFollowingCamera)
+                  _buildRecenterButton(),
+              ],
             ),
+          ),
 
           // 3. Next Passenger Card (Positioned at the bottom)
           if (_controller.passengers.isNotEmpty)
@@ -153,6 +163,37 @@ class _StartjourneyState extends State<Startjourney> {
 
 
         ],
+      ),
+    );
+  }
+
+  /// Builds a circular "North" button to reset map orientation.
+  Widget _buildNorthButton() {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _controller.resetMapRotation();
+        });
+      },
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: const Icon(
+          Icons.explore,
+          color: Color(0xFF1A73E8),
+          size: 24,
+        ),
       ),
     );
   }

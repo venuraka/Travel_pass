@@ -7,11 +7,14 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/Database.dart';
 import '../services/RealtimeDatabase.dart';
+import '../services/PlaceService.dart';
 import '../models/PassengerModel.dart';
+import '../config/AppConfig.dart';
 
 class StartJourneyController {
   final DatabaseService _dbService = DatabaseService();
   final RealtimeDatabaseService _rtDbService = RealtimeDatabaseService();
+  late final PlaceService _placeService = PlaceService(AppConfig.googleMapsApiKey);
   
   static const _channel = MethodChannel('com.travelpass.app/phone');
 
@@ -28,6 +31,7 @@ class StartJourneyController {
   // Real-time status for the card
   String _currentStatus = "Calculating...";
   Set<Marker> _markers = {};
+  Set<Marker> _staticMarkers = {}; // Cached route markers
   Set<Polyline> _polylines = {};
 
   // Navigation arrow fields
@@ -80,6 +84,20 @@ class StartJourneyController {
     _isFollowingCamera = false;
   }
 
+  /// Resets the map's rotation and tilt to North-up and flat.
+  void resetMapRotation() {
+    _mapController?.animateCamera(
+      CameraUpdate.newCameraPosition(
+        CameraPosition(
+          target: _lastPooledPosition ?? const LatLng(0, 0),
+          zoom: 17,
+          bearing: 0,
+          tilt: 0,
+        ),
+      ),
+    );
+  }
+
   Future<void> init(String driverId) async {
     _currentDriverId = driverId;
     
@@ -99,7 +117,7 @@ class StartJourneyController {
     await _startLocationTracking(driverId);
 
     // 5. Build initial polylines
-    _updatePolylines();
+    await _updatePolylines();
 
     // 6. Subscribe to Pooled Location for higher accuracy
     _startPooledSubscription(driverId);
@@ -171,25 +189,70 @@ class StartJourneyController {
     }
   }
 
-  void _updatePolylines() {
+  Future<void> _updatePolylines() async {
     if (_driverRoute == null || _driverRoute!.isEmpty) return;
 
-    final List<LatLng> points = _driverRoute!
-        .map((p) => LatLng(
-              (p['lat'] as num).toDouble(),
-              (p['lng'] as num).toDouble(),
-            ))
-        .toList();
+    try {
+      // Use driver's current position as starting point if available, else first route point
+      LatLng origin = (_lastPooledPosition != null) 
+          ? _lastPooledPosition! 
+          : LatLng((_driverRoute![0]['lat'] as num).toDouble(), (_driverRoute![0]['lng'] as num).toDouble());
 
-    _polylines = {
-      Polyline(
-        polylineId: const PolylineId('route_line'),
-        points: points,
-        color: const ui.Color(0xFF4285F4), // Google Maps blue for route
-        width: 6,
-        geodesic: true,
-      ),
-    };
+      LatLng destination = LatLng(
+        (_driverRoute!.last['lat'] as num).toDouble(),
+        (_driverRoute!.last['lng'] as num).toDouble(),
+      );
+
+      // Intermediate waypoints
+      List<LatLng> waypoints = [];
+      if (_driverRoute!.length > 2) {
+        waypoints = _driverRoute!
+            .sublist(1, _driverRoute!.length - 1)
+            .map((p) => LatLng((p['lat'] as num).toDouble(), (p['lng'] as num).toDouble()))
+            .toList();
+      }
+
+      final List<LatLng> roadPoints = await _placeService.getDirections(origin, destination, waypoints);
+
+      _polylines = {
+        Polyline(
+          polylineId: const PolylineId('route_line'),
+          points: roadPoints,
+          color: const ui.Color(0xFF4285F4), // Google Maps blue for route
+          width: 6,
+          geodesic: true,
+        ),
+      };
+      
+      onLocationChanged(Position(
+        latitude: origin.latitude,
+        longitude: origin.longitude,
+        timestamp: DateTime.now(),
+        accuracy: 0, altitude: 0, heading: _heading, speed: 0, speedAccuracy: 0,
+        altitudeAccuracy: 0, headingAccuracy: 0,
+      ));
+    } catch (e) {
+      if (kDebugMode) {
+        print('Failed to fetch road directions: $e');
+      }
+      // Fallback to straight lines if Directions API fails
+      final List<LatLng> straightPoints = _driverRoute!
+          .map((p) => LatLng(
+                (p['lat'] as num).toDouble(),
+                (p['lng'] as num).toDouble(),
+              ))
+          .toList();
+
+      _polylines = {
+        Polyline(
+          polylineId: const PolylineId('route_line'),
+          points: straightPoints,
+          color: const ui.Color(0xFF4285F4).withOpacity(0.5),
+          width: 6,
+          geodesic: true,
+        ),
+      };
+    }
   }
 
   void _startPooledSubscription(String driverId) {
@@ -228,12 +291,34 @@ class StartJourneyController {
   }
 
   void _updateMarkersWithPooled(LatLng pooledPosition) {
-    // Keep existing markers (stops) and update/add the navigation arrow
-    final Set<Marker> updatedMarkers = Set.from(_markers);
-    
-    // Remove old pooled marker if it exists
-    updatedMarkers.removeWhere((m) => m.markerId.value == 'pooled_location');
+    if (_isDisposed) return;
 
+    // Calculate bearing between previous and current pooled position for arrow rotation
+    if (_lastPooledPosition != null) {
+      double calculatedBearing = Geolocator.bearingBetween(
+        _lastPooledPosition!.latitude,
+        _lastPooledPosition!.longitude,
+        pooledPosition.latitude,
+        pooledPosition.longitude,
+      );
+      
+      double distance = Geolocator.distanceBetween(
+        _lastPooledPosition!.latitude,
+        _lastPooledPosition!.longitude,
+        pooledPosition.latitude,
+        pooledPosition.longitude,
+      );
+
+      if (distance > 0.5) { // Small threshold to avoid twitching
+        _heading = calculatedBearing;
+      }
+    }
+
+    _lastPooledPosition = pooledPosition;
+    
+    // Combine static markers with the dynamic pooled location arrow
+    final updatedMarkers = Set<Marker>.from(_staticMarkers);
+    
     updatedMarkers.add(
       Marker(
         markerId: const MarkerId('pooled_location'),
@@ -241,27 +326,29 @@ class StartJourneyController {
         icon: _navigationArrowIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
         rotation: _heading,
         anchor: const Offset(0.5, 0.5),
-        flat: true, // Flat on the map surface, rotates with the map
+        flat: true,
         zIndex: 100,
       ),
     );
 
     _markers = updatedMarkers;
+    
+    // Notify UI
     onLocationChanged(Position(
       latitude: pooledPosition.latitude,
       longitude: pooledPosition.longitude,
       timestamp: DateTime.now(),
-      accuracy: 0,
-      altitude: 0,
-      heading: _heading,
-      speed: 0,
-      speedAccuracy: 0,
-      altitudeAccuracy: 0,
-      headingAccuracy: 0,
+      accuracy: 0, altitude: 0, heading: _heading, speed: 0, speedAccuracy: 0,
+      altitudeAccuracy: 0, headingAccuracy: 0,
     ));
+
+    // Follow camera if enabled
+    if (_isFollowingCamera) {
+      _animateCameraToPosition(pooledPosition);
+    }
   }
 
-  void _updateMarkers() async {
+  Future<void> _updateMarkers() async {
     final Set<Marker> newMarkers = {};
     if (_currentDriverId == null) return;
 
@@ -284,7 +371,14 @@ class StartJourneyController {
         ),
       );
     }
-    _markers = newMarkers;
+    _staticMarkers = newMarkers;
+    
+    // If we already have a pooled location, merge it too
+    if (_lastPooledPosition != null) {
+      _updateMarkersWithPooled(_lastPooledPosition!);
+    } else {
+      _markers = _staticMarkers;
+    }
   }
 
   Future<void> _startLocationTracking(String driverId) async {
@@ -511,6 +605,22 @@ class StartJourneyController {
       await _rtDbService.setOnboarded(_currentDriverId!, passengerId, onboarded);
     }
   }
+
+  Future<void> markAsAbsent(String passengerId) async {
+    if (_currentDriverId != null) {
+      // 1. Update RTDB status
+      await _rtDbService.setOnboarded(_currentDriverId!, passengerId, false);
+      
+      // 2. Update Firestore Attendance record to 'Absent'
+      await _dbService.updateAttendance(
+        passengerId, 
+        _currentDriverId!, 
+        DateTime.now(), 
+        'Absent'
+      );
+    }
+  }
+
 
   void nextPassenger() {
     if (_currentPassengerIndex < _allPassengers.length) {

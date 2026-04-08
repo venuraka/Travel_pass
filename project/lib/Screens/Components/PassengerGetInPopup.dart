@@ -133,12 +133,20 @@ class _PassengerGetInPopupState extends State<PassengerGetInPopup> {
           padding: const EdgeInsets.symmetric(horizontal: 30),
           child: Row(
             children: [
-              // Incorrect Button (Red Cross)
               Expanded(
                 child: _buildActionButton(
                   icon: Icons.close_rounded,
                   color: const Color(0xFFFF4D4D),
-                  onTap: () => widget.onIncorrect(passenger),
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text("Hold to mark as absent"),
+                        duration: Duration(seconds: 1),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
+                  onLongPress: () => _showConfirmationDialog(passenger),
                 ),
               ),
               const SizedBox(width: 20),
@@ -148,6 +156,7 @@ class _PassengerGetInPopupState extends State<PassengerGetInPopup> {
                   icon: Icons.check_rounded,
                   color: const Color(0xFF05A664),
                   onTap: () => widget.onCorrect(passenger),
+                  onLongPress: null,
                 ),
               ),
             ],
@@ -165,10 +174,13 @@ class _PassengerGetInPopupState extends State<PassengerGetInPopup> {
   Widget _buildActionButton({
     required IconData icon,
     required Color color,
-    required VoidCallback onTap,
+    required VoidCallback? onTap,
+    required VoidCallback? onLongPress,
   }) {
     return InkWell(
       onTap: onTap,
+      onLongPress: onLongPress,
+      borderRadius: BorderRadius.circular(20),
       child: Container(
         height: 100,
         decoration: BoxDecoration(
@@ -178,6 +190,43 @@ class _PassengerGetInPopupState extends State<PassengerGetInPopup> {
         ),
         child: Icon(icon, color: color, size: 50),
       ),
+    );
+  }
+
+  void _showConfirmationDialog(PassengerModel passenger) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1E1E1E),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          title: const Text(
+            "Mark as Absent?",
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+          content: Text(
+            "Are you sure to mark ${passenger.name} as absent? This will update their attendance and remove them from the tracking list.",
+            style: const TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("CANCEL", style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                widget.onIncorrect(passenger);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF4D4D),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: const Text("CONFIRM", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
     );
   }
 
