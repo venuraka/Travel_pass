@@ -171,7 +171,7 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
           }
         })
         .catchError((error) {
-          debugPrint("Autocomplete error: $error");
+          // Handle autocomplete error internally
         });
   }
 

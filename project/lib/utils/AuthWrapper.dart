@@ -94,7 +94,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
         return {'role': 'passenger', 'isApproved': registered};
       }
     } catch (e) {
-      debugPrint("Error checking passenger msg: $e");
+      // Handle error internally
     }
 
     // Not found

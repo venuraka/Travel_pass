@@ -6,11 +6,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../services/Database.dart';
-import '../services/PushNotificationService.dart';
 import '../models/PassengerModel.dart';
 import '../models/PollModel.dart';
 import '../models/AttendanceModel.dart';
-import '../models/NotificationModel.dart';
 
 class PassengerDashboardController {
   final DatabaseService _dbService = DatabaseService();
@@ -20,18 +18,7 @@ class PassengerDashboardController {
   // In a full GetX/Provider setup, these would be reactive.
   // Here, the View will call methods and setState based on Future results.
 
-  Future<void> initFCM() async {
-    final user = _auth.currentUser;
-    if (user != null) {
-      await PushNotificationService.initialize();
-      final token = await PushNotificationService.getToken();
-      if (token != null) {
-        await _dbService.updateUserFCMToken(user.uid, token, 'passenger');
-        debugPrint("Passenger FCM Token updated: $token");
-      }
-      PushNotificationService.listenForeground();
-    }
-  }
+
 
   Future<Map<String, dynamic>> loadDashboardData() async {
 
@@ -131,7 +118,6 @@ class PassengerDashboardController {
             .where((u) => u.timestamp.isAfter(lastCheckTime))
             .length;
       } catch (e) {
-        debugPrint("Error fetching unread count: $e");
         // Non-critical, continue
       }
 
@@ -141,7 +127,6 @@ class PassengerDashboardController {
         final driverData = await _dbService.getDriverData(passenger.driverId);
         driverPhone = driverData?.phone;
       } catch (e) {
-        debugPrint("Error fetching driver phone: $e");
       }
 
       return {
@@ -152,7 +137,6 @@ class PassengerDashboardController {
         'driverPhone': driverPhone,
       };
     } catch (e) {
-      debugPrint("Error loading dashboard data: $e");
       return {'error': e.toString()};
     }
   }
@@ -191,10 +175,7 @@ class PassengerDashboardController {
     return _dbService.getJourneyStatusStream(driverId);
   }
 
-  /// Returns a stream of notifications for the current passenger's driver.
-  Stream<List<NotificationModel>> getLatestNotificationsStream(String driverId) {
-    return _dbService.getLatestNotificationsStream(driverId);
-  }
+
 
   /// Combined stream specifically for the "Today's Status" section
   Stream<Map<String, dynamic>> getTodayStatusCombinedStream(String driverId, String passengerId) {

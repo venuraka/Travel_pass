@@ -97,7 +97,6 @@ class _TrackVehicleState extends State<TrackVehicle> {
               attendanceCount: _isOnboarded ? 1 : 0, // Placeholder
 
               onCallPressed: () {
-                print("Call pressed");
               },
             ),
           ),

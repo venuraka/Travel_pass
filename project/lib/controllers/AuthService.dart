@@ -32,7 +32,6 @@ class AuthService {
       );
       return MyUserModel.fromFirebaseUser(result.user!);
     } catch (e) {
-      print("Sign Up Error: ${e.toString()}");
       rethrow;
     }
   }
@@ -46,7 +45,6 @@ class AuthService {
       );
       return MyUserModel.fromFirebaseUser(result.user!);
     } catch (e) {
-      print("Login Error: ${e.toString()}");
       rethrow;
     }
   }
@@ -71,7 +69,6 @@ class AuthService {
       UserCredential result = await _auth.signInWithCredential(credential);
       return MyUserModel.fromFirebaseUser(result.user!);
     } catch (e) {
-      print("Google Sign-In Error: $e");
       rethrow;
     }
   }
@@ -83,7 +80,6 @@ class AuthService {
       await _googleSignIn.signOut();
       await _auth.signOut();
     } catch (e) {
-      print("Sign Out Error: $e");
     }
   }
 }

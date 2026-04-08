@@ -79,7 +79,6 @@ class TodayPassengersController {
         'noPoll': false,
       };
     } catch (e) {
-      debugPrint("Error loading today passengers: $e");
       return {'error': e.toString()};
     }
   }
@@ -101,7 +100,6 @@ class TodayPassengersController {
 
       await _dbService.updateAttendance(passengerId, user.uid, today, dbStatus);
     } catch (e) {
-      debugPrint("Error marking attendance: $e");
       rethrow;
     }
   }

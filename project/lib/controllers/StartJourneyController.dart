@@ -181,28 +181,22 @@ class StartJourneyController {
   }
 
   Future<void> _startLocationTracking(String driverId) async {
-    debugPrint("[LocationTracking] Checking permissions...");
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      debugPrint("[LocationTracking] GPS Service is DISABLED");
       return;
     }
 
     LocationPermission permission = await Geolocator.checkPermission();
-    debugPrint("[LocationTracking] Current permission state: $permission");
     
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
-      debugPrint("[LocationTracking] Requested permission state: $permission");
       if (permission == LocationPermission.denied) return;
     }
 
     if (permission == LocationPermission.deniedForever) {
-      debugPrint("[LocationTracking] Permissions are denied forever. Cannot start tracking.");
       return;
     }
 
-    debugPrint("[LocationTracking] Starting location stream...");
     
     late LocationSettings locationSettings;
     if (defaultTargetPlatform == TargetPlatform.android) {
@@ -347,7 +341,6 @@ class StartJourneyController {
     _autoFinishTimer?.cancel();
     _autoFinishTimer = Timer(const Duration(minutes: 2), () {
       if (!_isDisposed && _isAtFinalDestination) {
-        debugPrint("Auto-finishing journey after destination wait...");
         finishJourney();
       }
     });

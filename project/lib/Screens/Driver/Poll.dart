@@ -10,7 +10,7 @@ import 'PassengerSummery.dart';
 import '../../services/Database.dart';
 import '../../models/PollModel.dart';
 import '../../models/DriverModel.dart';
-import '../../models/NotificationModel.dart'; // Added
+
 
 
 class PollScreen extends StatefulWidget {
@@ -82,7 +82,6 @@ class _PollScreenState extends State<PollScreen> {
         }
       }
     } catch (e) {
-      debugPrint("Error fetching data: $e");
       if (mounted) {
         CustomSnackBar.showError(context, "Error loading data: $e");
       }
@@ -144,22 +143,7 @@ class _PollScreenState extends State<PollScreen> {
         );
         await _dbService.createPoll(newPoll);
 
-        // Notify passengers that a new poll has been added
-        await _dbService.notifyPassengersOfNewPoll(
-          _currentDriver!.uid,
-          _currentDriver!.name,
-          datesToAdd.length,
-        );
 
-        // Also check if today is in the added dates to trigger tracking notification
-        final now = DateTime.now();
-        final today = DateTime.utc(now.year, now.month, now.day);
-        if (datesToAdd.any((d) => d.isAtSameMomentAs(today))) {
-          await _dbService.notifyPassengersOfTracking(
-            _currentDriver!.uid,
-            _currentDriver!.name,
-          );
-        }
       }
 
 
@@ -201,7 +185,6 @@ class _PollScreenState extends State<PollScreen> {
         CustomSnackBar.showSuccess(context, "Poll updated successfully!");
       }
     } catch (e) {
-      debugPrint("Error saving polls: $e");
       if (mounted) {
         CustomSnackBar.showError(context, "Error saving polls: $e");
       }

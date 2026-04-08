@@ -14,7 +14,6 @@ class SettingsController {
       if (user == null) return null;
       return await _dbService.getDriverData(user.uid);
     } catch (e) {
-      debugPrint("SettingsController Error (getSettings): $e");
       rethrow;
     }
   }
@@ -71,7 +70,6 @@ class SettingsController {
         );
       }
     } catch (e) {
-      debugPrint("SettingsController Error (saveSettings): $e");
       rethrow;
     }
   }

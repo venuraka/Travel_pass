@@ -19,11 +19,6 @@ class AppConfig {
         await _channel.invokeMethod<String>('getGoogleMapsApiKey') ?? '';
     _androidCertificateHash =
         await _channel.invokeMethod<String>('getAndroidCertificateHash') ?? '';
-    
-    // ignore: avoid_print
-    print("[AppConfig] API Key loaded: ${_googleMapsApiKey.isNotEmpty}");
-    // ignore: avoid_print
-    print("[AppConfig] Android Hash loaded: $_androidCertificateHash");
   }
   
   /// The Google Maps / Places / Directions API key.

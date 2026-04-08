@@ -262,9 +262,7 @@ class _UpdateRouteScreenState extends State<UpdateRouteScreen> {
             });
           }
         })
-        .catchError((error) {
-          debugPrint("Autocomplete error: $error");
-        });
+        .catchError((error) {});
   }
 
   Future<void> _selectSuggestion(Map<String, dynamic> prediction) async {

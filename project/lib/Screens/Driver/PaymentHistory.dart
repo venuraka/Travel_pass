@@ -53,7 +53,6 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                   setState(() {
                     final person = PaidPassenger.removeAt(i);
                     AriasPayment.add(person);
-                    print("Marked as Paid Passenger");
                   });
                 },
                 background: Container(
@@ -109,7 +108,6 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
   Widget _buildPhoneIcon(Color color) {
     return InkWell(
       onTap: () {
-        print("Calling passenger...");
       },
       child: Padding(
         padding: const EdgeInsets.all(8.0),

@@ -8,7 +8,6 @@ import 'Attendance.dart';
 import 'TrackVehicle.dart';
 import '../../controllers/PassengerDashboardController.dart';
 import '../../models/PassengerModel.dart';
-import '../../models/NotificationModel.dart'; // Added
 
 
 // --- Constants (Unified with Driver Dashboard) ---
@@ -40,13 +39,11 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
 
   StreamSubscription? _unreadCountSubscription;
   StreamSubscription? _attendanceSubscription;
-  StreamSubscription? _notificationSubscription;
 
   @override
   void initState() {
     super.initState();
     _loadData();
-    _controller.initFCM(); // Added for push notifications
   }
 
 
@@ -54,7 +51,6 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
   void dispose() {
     _unreadCountSubscription?.cancel();
     _attendanceSubscription?.cancel();
-    _notificationSubscription?.cancel();
     super.dispose();
   }
 
@@ -98,136 +94,24 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
 
         // Initialize real-time attendance dates listener
         if (_attendanceSubscription == null && _passenger != null) {
-          debugPrint("[Dashboard] Setting up attendance dates stream for passenger=${_passenger!.uid}, driver=${_passenger!.driverId}");
           _attendanceSubscription = _controller
               .getAttendanceDatesStream(_passenger!.uid, _passenger!.driverId)
               .listen((dates) {
-            debugPrint("[Dashboard] Received ${dates.length} dates to mark from stream");
-            for (var d in dates) {
-              debugPrint("[Dashboard]   Date: ${d['label']} status=${d['status']}");
-            }
             if (mounted) {
               setState(() {
                 _datesToMark = dates;
               });
             }
           }, onError: (error) {
-            debugPrint("[Dashboard] ERROR in attendance dates stream: $error");
           });
         }
 
-        // Initialize real-time tracking notification listener
-        if (_notificationSubscription == null && _passenger != null) {
-          _notificationSubscription = _controller
-              .getLatestNotificationsStream(_passenger!.driverId)
-              .listen((notifications) {
-            
-            if (mounted && notifications.isNotEmpty) {
-              final latest = notifications.first;
-              
-              // Only alert if we haven't seen this ID in this session
-              // AND if it was created in the last 2 minutes (truly real-time)
-              final isNew = !_seenNotificationIds.contains(latest.id);
-              final isRecent = latest.timestamp.isAfter(
-                DateTime.now().subtract(const Duration(minutes: 2)),
-              );
 
-              if (isNew && isRecent) {
-                _seenNotificationIds.add(latest.id);
-                if (latest.type == 'location_tracking' || latest.type == 'poll_added') {
-                  _handleInAppNotification(latest);
-                }
-              }
-            }
-          }, onError: (e) {
-            // Silently ignore or show minimal debug info
-          });
-        }
       }
     }
   }
 
-  void _handleInAppNotification(NotificationModel notification) {
-    // Prevent multiple overlapping notifications
-    ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
-    final bool isTracking = notification.type == 'location_tracking';
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: isTracking ? primaryGreen : Colors.blueAccent,
-        duration: const Duration(seconds: 15),
-        behavior: SnackBarBehavior.floating,
-        padding: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
-        content: InkWell(
-          onTap: () {
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            if (isTracking) {
-              if (_passenger != null) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => TrackVehicle(
-                      driverId: _passenger!.driverId,
-                      passengerId: _passenger!.uid,
-                    ),
-                  ),
-                );
-              }
-            } else {
-              // Scroll to attendance mark card (approximate jump or just dismiss)
-              // For simplicity, we just notify them they can mark it now.
-            }
-          },
-          child: Container(
-            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-            child: Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(8.r),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    isTracking ? Icons.location_on_rounded : Icons.event_note_rounded, 
-                    color: Colors.white, 
-                    size: 20.r
-                  ),
-                ),
-                SizedBox(width: 12.w),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        notification.title,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Text(
-                        notification.message,
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.9),
-                          fontSize: 12.sp,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Icon(Icons.arrow_forward_ios_rounded, color: Colors.white70, size: 14.r),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -685,7 +569,6 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
         status: status,
       );
     } catch (e) {
-      debugPrint("Error updating today status: $e");
     }
   }
 

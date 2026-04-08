@@ -11,12 +11,10 @@ class RealtimeDatabaseService {
   /// Performs a one-time connection test to the database.
   Future<void> testConnection() async {
     try {
-      debugPrint("[RTDB] CONNECTION TEST: Attempting to read root rules...");
       // A simple read to the root or a 'status' node to check connectivity
       await _db.ref('.info/connected').get();
-      debugPrint("[RTDB] CONNECTION TEST: REACHED SERVER (Check console rules if write fails)");
     } catch (e) {
-      debugPrint("[RTDB] CONNECTION TEST: FAILED - $e");
+      // Log connection error silently or handle internally
     }
   }
 
@@ -32,15 +30,11 @@ class RealtimeDatabaseService {
         'lng': lng,
         'timestamp': ServerValue.timestamp,
       });
-      debugPrint("[RTDB] SUCCESS: Location updated in Firebase");
       
       // Also update the pool
       await _updatePooledLocation(driverId);
     } catch (e) {
-      if (e.toString().contains('permission_denied') || e.toString().contains('unknown')) {
-        debugPrint("[RTDB] ERROR: Permission Denied or Unknown error. CHECK SECURITY RULES in Firebase Console.");
-      }
-      debugPrint("[RTDB] ERROR DETAIL: Failed to update location: $e");
+      // Location update failed silently
     }
   }
 
@@ -58,7 +52,6 @@ class RealtimeDatabaseService {
       // Also update the pool
       await _updatePooledLocation(driverId);
     } catch (e) {
-      debugPrint("Error updating passenger location: $e");
     }
   }
 
@@ -73,7 +66,6 @@ class RealtimeDatabaseService {
         await _updatePooledLocation(driverId);
       }
     } catch (e) {
-      debugPrint("Error setting onboarded status: $e");
     }
   }
 
@@ -141,7 +133,6 @@ class RealtimeDatabaseService {
         });
       }
     } catch (e) {
-      debugPrint("Error updating pooled location: $e");
     }
   }
 

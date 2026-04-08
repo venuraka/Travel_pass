@@ -31,7 +31,6 @@ class PlaceService {
       },
     };
 
-    debugPrint("PlaceService: Sending headers: $headers");
 
     final response = await http.post(
       uri,
@@ -43,7 +42,6 @@ class PlaceService {
       }),
     );
 
-    debugPrint("PlaceService: Response status: ${response.statusCode}");
 
     if (response.statusCode == 200) {
       final result = json.decode(response.body);
@@ -57,10 +55,8 @@ class PlaceService {
             };
           }),
         );
-        debugPrint("PlaceService: Found ${suggestions.length} suggestions");
         return suggestions;
       }
-      debugPrint("PlaceService: Zero results found or empty suggestions");
       return [];
     } else {
       debugPrint("PlaceService: HTTP Error: ${response.body}");
@@ -111,7 +107,7 @@ class PlaceService {
       }
       throw Exception('Location data missing in response');
     } else {
-      debugPrint("PlaceService: Details Error: ${response.body}");
+    // Removed debugPrint for Details Error
       throw Exception('Failed to load place details: ${response.body}');
     }
   }
@@ -179,7 +175,6 @@ class PlaceService {
       queryParameters,
     );
 
-    debugPrint("PlaceService: Fetching directions...");
     final headers = {
       if (Platform.isIOS) 'X-Ios-Bundle-Identifier': 'com.venuraka.travelpass',
       if (Platform.isAndroid) ...{
@@ -196,7 +191,7 @@ class PlaceService {
         final points = result['routes'][0]['overview_polyline']['points'];
         return _decodePolyline(points);
       }
-      debugPrint("PlaceService: Directions Error: ${result['error_message']}");
+    // Removed debugPrint for Directions Error
       throw Exception(result['error_message']);
     } else {
       debugPrint("PlaceService: HTTP Error: ${response.body}");

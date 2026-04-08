@@ -16,11 +16,10 @@ class PhoneUtils {
     const platform = MethodChannel('com.travelpass.app/phone');
     try {
       await platform.invokeMethod('makeCall', {'phoneNumber': cleanNumber});
-    } on PlatformException catch (e) {
-      debugPrint('Error launching dialer: $e');
+    } on PlatformException {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error opening dialer: ${e.message}')),
+          SnackBar(content: Text('Error opening dialer')),
         );
       }
     }

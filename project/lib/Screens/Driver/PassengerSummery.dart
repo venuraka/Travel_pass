@@ -115,7 +115,6 @@ class PassengersummeryScreen extends StatelessWidget {
   Widget _buildPhoneIcon(Color color) {
     return InkWell(
       onTap: () {
-        print("Calling passenger...");
       },
       child: Padding(
         padding: const EdgeInsets.all(8.0),

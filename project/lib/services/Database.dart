@@ -9,7 +9,6 @@ import '../models/PollModel.dart';
 import '../models/UpdateModel.dart';
 import '../models/AttendanceModel.dart'; // Added // Added
 import '../models/RedemptionModel.dart'; // New Import
-import '../models/NotificationModel.dart'; // Added
 
 class DatabaseService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
@@ -18,7 +17,6 @@ class DatabaseService {
     try {
       await _db.collection('driver').doc(driver.uid).set(driver.toMap());
     } catch (e) {
-      debugPrint("Error saving driver: $e");
       rethrow;
     }
   }
@@ -36,7 +34,6 @@ class DatabaseService {
         'vehicleType': vehicleType,
       });
     } catch (e) {
-      debugPrint("Error updating driver vehicle details: $e");
       rethrow;
     }
   }
@@ -48,7 +45,6 @@ class DatabaseService {
     try {
       await _db.collection('driver').doc(uid).update({'route': route});
     } catch (e) {
-      debugPrint("Error updating driver route: $e");
       rethrow;
     }
   }
@@ -68,7 +64,6 @@ class DatabaseService {
       }
       return null;
     } catch (e) {
-      debugPrint("Error finding driver by plate: $e");
       rethrow;
     }
   }
@@ -110,72 +105,11 @@ class DatabaseService {
     try {
       await _db.collection('polls').doc(poll.id).set(poll.toMap());
     } catch (e) {
-      debugPrint("Error creating poll: $e");
       rethrow;
     }
   }
 
-  // --- Notification Methods ---
 
-  /// Creates a new notification in the 'notifications' collection.
-  Future<void> createNotification(NotificationModel notification) async {
-    try {
-      await _db.collection('notifications').doc(notification.id).set(notification.toMap());
-    } catch (e) {
-      debugPrint("Error creating notification: $e");
-      rethrow;
-    }
-  }
-
-  /// Streams the most recent notifications for a specific driver.
-  Stream<List<NotificationModel>> getLatestNotificationsStream(String driverId) {
-    return _db.collection('notifications')
-        .where('driverId', isEqualTo: driverId)
-        .snapshots()
-        .map((snapshot) {
-          final notifications = snapshot.docs
-              .map((doc) => NotificationModel.fromMap(doc.data(), doc.id))
-              .toList();
-          
-          // Sort by timestamp descending manually in Dart to avoid Index requirements
-          notifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-          return notifications;
-        });
-  }
-
-  /// Sends a trigger to notify all passengers of this driver that a new poll has been added/updated.
-  Future<void> notifyPassengersOfNewPoll(String driverId, String driverName, int dateCount) async {
-    final notification = NotificationModel(
-      id: const Uuid().v4(),
-      driverId: driverId,
-      type: 'poll_added',
-      title: 'New Poll Available',
-      message: '$driverName has added $dateCount new date(s) to the schedule. Please mark your attendance.',
-      timestamp: DateTime.now(),
-    );
-    await createNotification(notification);
-    debugPrint("Poll notification trigger recorded for passengers of driver: $driverId");
-  }
-
-
-  /// Sends a trigger to notify all passengers of this driver that tracking is enabled.
-  Future<void> notifyPassengersOfTracking(String driverId, String driverName) async {
-    // 1. Create the Firestore notification (for in-app alerts)
-    final notification = NotificationModel(
-      id: const Uuid().v4(),
-      driverId: driverId,
-      type: 'location_tracking',
-      title: 'Tracking Enabled',
-      message: '$driverName has enabled location tracking for today.',
-      timestamp: DateTime.now(),
-    );
-    await createNotification(notification);
-
-    // 2. Note for user: In production, a Firebase Cloud Function should 
-    // listen to this 'notifications' collection and send real FCM push 
-    // notifications to the 'fcmToken' found in each passenger's document.
-    debugPrint("FCM trigger recorded for passengers of driver: $driverId");
-  }
 
 
 
@@ -187,7 +121,6 @@ class DatabaseService {
       }
       return null;
     } catch (e) {
-      debugPrint("Error fetching passenger data: $e");
       rethrow;
     }
   }
@@ -225,7 +158,6 @@ class DatabaseService {
       }
       return null;
     } catch (e) {
-      debugPrint("Error fetching driver data: $e");
       rethrow;
     }
   }
@@ -242,7 +174,6 @@ class DatabaseService {
           .map((doc) => PollModel.fromMap(doc.data(), doc.id))
           .toList();
     } catch (e) {
-      debugPrint("Error fetching polls: $e");
       rethrow;
     }
   }
@@ -254,7 +185,6 @@ class DatabaseService {
         'activeDates': activeDates.map((d) => Timestamp.fromDate(d)).toList(),
       });
     } catch (e) {
-      debugPrint("Error updating poll dates: $e");
       rethrow;
     }
   }
@@ -264,7 +194,6 @@ class DatabaseService {
     try {
       await _db.collection('polls').doc(docId).delete();
     } catch (e) {
-      debugPrint("Error deleting poll: $e");
       rethrow;
     }
   }
@@ -303,7 +232,6 @@ class DatabaseService {
           .map((doc) => PassengerModel.fromMap(doc.data()))
           .toList();
     } catch (e) {
-      debugPrint("Error fetching registered passengers: $e");
       rethrow;
     }
   }
@@ -320,7 +248,6 @@ class DatabaseService {
           .map((doc) => PassengerModel.fromMap(doc.data()))
           .toList();
     } catch (e) {
-      debugPrint("Error fetching passengers by driver: $e");
       rethrow;
     }
   }
@@ -332,7 +259,6 @@ class DatabaseService {
     try {
       await _db.collection('updates').doc(update.id).set(update.toMap());
     } catch (e) {
-      debugPrint("Error saving update: $e");
       rethrow;
     }
   }
@@ -345,9 +271,6 @@ class DatabaseService {
         // .orderBy('timestamp', descending: true) // Removed to avoid Index requirement
         .snapshots()
         .map((snapshot) {
-          debugPrint(
-            "Fetched ${snapshot.docs.length} updates for driver: $driverId",
-          );
           final updates = snapshot.docs
               .map((doc) => UpdateModel.fromMap(doc.data(), doc.id))
               .toList();
@@ -375,7 +298,6 @@ class DatabaseService {
         if (badgePreference != null) 'badgePreference': badgePreference,
       });
     } catch (e) {
-      debugPrint("Error updating driver settings: $e");
       rethrow;
     }
   }
@@ -405,11 +327,7 @@ class DatabaseService {
       }
 
       await batch.commit();
-      debugPrint(
-        "Adjusted payment amount by $delta for ${querySnapshot.docs.length} $paymentType passengers.",
-      );
     } catch (e) {
-      debugPrint("Error batch adjusting $paymentType passengers: $e");
       rethrow;
     }
   }
@@ -442,7 +360,6 @@ class DatabaseService {
         'records': {dateKey: status},
       }, SetOptions(merge: true));
     } catch (e) {
-      debugPrint("Error updating attendance: $e");
       rethrow;
     }
   }
@@ -460,7 +377,6 @@ class DatabaseService {
         'records.$dateKey': FieldValue.delete(),
       });
     } catch (e) {
-      debugPrint("Error removing attendance: $e");
     }
   }
 
@@ -473,7 +389,6 @@ class DatabaseService {
       }
       return null;
     } catch (e) {
-      debugPrint("Error fetching attendance: $e");
       rethrow;
     }
   }
@@ -490,7 +405,6 @@ class DatabaseService {
         'pickupLocation': pickupLocation,
       });
     } catch (e) {
-      debugPrint("Error updating passenger details: $e");
       rethrow;
     }
   }
@@ -502,7 +416,6 @@ class DatabaseService {
         'isJourneyStarted': isStarted,
       });
     } catch (e) {
-      debugPrint("Error updating journey status: $e");
       rethrow;
     }
   }
@@ -554,7 +467,6 @@ class DatabaseService {
       }
       return 'Not Marked';
     } catch (e) {
-      debugPrint("Error fetching today's attendance status: $e");
       return 'Error';
     }
   }
@@ -642,18 +554,7 @@ class DatabaseService {
             .toList());
   }
 
-  /// Updates the FCM token for a user (driver or passenger).
-  Future<void> updateUserFCMToken(String userId, String token, String userType) async {
-    try {
-      await _db.collection(userType).doc(userId).update({
-        'fcmToken': token,
-        'fcmTokenUpdatedAt': Timestamp.now(),
-      });
-    } catch (e) {
-      debugPrint("Error updating FCM token for $userId: $e");
-      rethrow;
-    }
-  }
+
 
   /// Creates a payment request in a new collection.
   Future<void> requestPayment(String driverId, double amount) async {
@@ -666,7 +567,6 @@ class DatabaseService {
         'status': 'Pending',
       });
     } catch (e) {
-      debugPrint("Error requesting payment: $e");
       rethrow;
     }
   }

@@ -40,7 +40,6 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   @override // Added initState
   void initState() {
     super.initState();
-    _controller.initFCM(); // Added for push notifications
     _loadDashboardData();
     
     // Real-time stream for passenger count
