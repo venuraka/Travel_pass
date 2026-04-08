@@ -130,4 +130,10 @@ class DriverDashboardController {
     if (uid == null) return Stream.value(0);
     return _dbService.getPendingPassengersCountStream(uid);
   }
+  /// Returns a stream for the current driver's name.
+  Stream<String> getDriverNameStream() {
+    final uid = getDriverId();
+    if (uid == null) return Stream.value('Driver');
+    return _dbService.getDriverNameStream(uid);
+  }
 }

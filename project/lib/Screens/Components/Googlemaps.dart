@@ -8,6 +8,8 @@ class GoogleMaps extends StatelessWidget {
   final Set<Polyline> polylines;
   final bool showMyLocationButton;
   final double bottomPadding; // Added
+  final Function(GoogleMapController)? onMapCreated;
+  final bool myLocationEnabled;
 
   const GoogleMaps({
     super.key,
@@ -16,6 +18,8 @@ class GoogleMaps extends StatelessWidget {
     this.polylines = const {},
     this.showMyLocationButton = true,
     this.bottomPadding = 0, // Default 0
+    this.onMapCreated,
+    this.myLocationEnabled = true,
   });
 
   @override
@@ -26,6 +30,8 @@ class GoogleMaps extends StatelessWidget {
       polylines: polylines,
       showMyLocationButton: showMyLocationButton,
       bottomPadding: bottomPadding,
+      onMapCreated: onMapCreated,
+      myLocationEnabled: myLocationEnabled,
     );
   }
 }
@@ -36,6 +42,8 @@ class _GoogleMapsStateful extends StatefulWidget {
   final Set<Polyline> polylines;
   final bool showMyLocationButton;
   final double bottomPadding;
+  final Function(GoogleMapController)? onMapCreated;
+  final bool myLocationEnabled;
 
   const _GoogleMapsStateful({
     this.initialPosition,
@@ -43,6 +51,8 @@ class _GoogleMapsStateful extends StatefulWidget {
     this.polylines = const {},
     this.showMyLocationButton = true,
     required this.bottomPadding,
+    this.onMapCreated,
+    this.myLocationEnabled = true,
   });
 
   @override
@@ -63,9 +73,12 @@ class _GoogleMapsStatefulState extends State<_GoogleMapsStateful> {
       children: [
             // 1. Google Map (Fills the entire screen)
             GoogleMap(
-              onMapCreated: (c) => controller = c,
+              onMapCreated: (c) {
+                controller = c;
+                widget.onMapCreated?.call(c);
+              },
               initialCameraPosition: _initialPosition,
-              myLocationEnabled: true,
+              myLocationEnabled: widget.myLocationEnabled,
               myLocationButtonEnabled: false,
               zoomControlsEnabled: false,
               markers: widget.markers,

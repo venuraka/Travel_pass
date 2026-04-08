@@ -36,6 +36,8 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   StreamSubscription? _countSubscription;
   StreamSubscription? _pollSubscription;
   StreamSubscription? _reminderSubscription;
+  String _driverName = 'Loading...';
+  StreamSubscription? _nameSubscription;
 
   @override // Added initState
   void initState() {
@@ -69,6 +71,15 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
         });
       }
     });
+
+    // Real-time stream for driver name
+    _nameSubscription = _controller.getDriverNameStream().listen((name) {
+      if (mounted) {
+        setState(() {
+          _driverName = name;
+        });
+      }
+    });
   }
 
   @override
@@ -76,6 +87,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     _countSubscription?.cancel();
     _pollSubscription?.cancel();
     _reminderSubscription?.cancel();
+    _nameSubscription?.cancel();
     super.dispose();
   }
 
@@ -148,7 +160,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                       ),
                       SizedBox(height: 4.h),
                       Text(
-                        'Venuraka',
+                        _driverName,
                         style: TextStyle(
                           fontSize: 26.sp,
                           fontWeight: FontWeight.w800,

@@ -110,10 +110,22 @@ class _StartjourneyState extends State<Startjourney> {
           GoogleMaps(
             markers: _controller.markers,
             polylines: _controller.polylines,
-            bottomPadding: _controller.passengers.isNotEmpty ? 280 : 0, // Push button up if card is visible
+            bottomPadding: _controller.passengers.isNotEmpty ? 280 : 0,
+            myLocationEnabled: false, // We use pooled location arrow instead
+            onMapCreated: (mapController) {
+              _controller.setMapController(mapController);
+            },
           ),
 
-          // 2. Next Passenger Card (Positioned at the bottom)
+          // 2. Re-center button (shown when camera is not following)
+          if (!_controller.isFollowingCamera)
+            Positioned(
+              bottom: _controller.passengers.isNotEmpty ? 300 : 24,
+              left: 16,
+              child: _buildRecenterButton(),
+            ),
+
+          // 3. Next Passenger Card (Positioned at the bottom)
           if (_controller.passengers.isNotEmpty)
             Align(
               alignment: Alignment.bottomCenter,
@@ -141,6 +153,50 @@ class _StartjourneyState extends State<Startjourney> {
 
 
         ],
+      ),
+    );
+  }
+
+  /// Builds a Google Maps-style "Re-center" button.
+  Widget _buildRecenterButton() {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _controller.reCenterCamera();
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.15),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.navigation,
+              color: const Color(0xFF1A73E8),
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Re-center',
+              style: TextStyle(
+                color: const Color(0xFF1A73E8),
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

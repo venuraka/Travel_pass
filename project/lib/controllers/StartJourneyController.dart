@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
@@ -22,13 +23,19 @@ class StartJourneyController {
   String? _currentDriverId;
   bool _isAtFinalDestination = false;
   Timer? _autoFinishTimer;
-  StreamSubscription? _pooledSubscription; // Added
+  StreamSubscription? _pooledSubscription;
 
   // Real-time status for the card
   String _currentStatus = "Calculating...";
   Set<Marker> _markers = {};
-  Set<Polyline> _polylines = {}; // Added
+  Set<Polyline> _polylines = {};
 
+  // Navigation arrow fields
+  GoogleMapController? _mapController;
+  double _heading = 0;
+  BitmapDescriptor? _navigationArrowIcon;
+  bool _isFollowingCamera = true;
+  LatLng? _lastPooledPosition;
 
   // State
   List<PassengerModel> get passengers => _allPassengers;
@@ -40,7 +47,8 @@ class StartJourneyController {
   bool get isAtFinalDestination => _isAtFinalDestination;
   String get currentStatus => _currentStatus;
   Set<Marker> get markers => _markers;
-  Set<Polyline> get polylines => _polylines; // Added
+  Set<Polyline> get polylines => _polylines;
+  bool get isFollowingCamera => _isFollowingCamera;
 
   final Function(Position) onLocationChanged;
   final Function(List<PassengerModel>) onProximityReached;
@@ -50,9 +58,34 @@ class StartJourneyController {
     required this.onProximityReached,
   });
 
+  /// Sets the Google Map controller for camera animations.
+  void setMapController(GoogleMapController controller) {
+    _mapController = controller;
+    // If we already have a pooled position, center the camera immediately
+    if (_lastPooledPosition != null) {
+      _animateCameraToPosition(_lastPooledPosition!);
+    }
+  }
+
+  /// Resumes camera following and re-centers on pooled location.
+  void reCenterCamera() {
+    _isFollowingCamera = true;
+    if (_lastPooledPosition != null) {
+      _animateCameraToPosition(_lastPooledPosition!);
+    }
+  }
+
+  /// Pauses camera following (e.g., when user pans manually).
+  void pauseCameraFollow() {
+    _isFollowingCamera = false;
+  }
+
   Future<void> init(String driverId) async {
     _currentDriverId = driverId;
     
+    // 0. Create the navigation arrow icon
+    await _createNavigationArrowIcon();
+
     // 1. Fetch driver data for route
     await _fetchDriverRoute(driverId);
 
@@ -70,6 +103,60 @@ class StartJourneyController {
 
     // 6. Subscribe to Pooled Location for higher accuracy
     _startPooledSubscription(driverId);
+  }
+
+  /// Creates a custom blue navigation arrow icon (like Google Maps navigation).
+  Future<void> _createNavigationArrowIcon() async {
+    try {
+      const double size = 140;
+      final recorder = ui.PictureRecorder();
+      final canvas = ui.Canvas(recorder);
+      final center = ui.Offset(size / 2, size / 2);
+
+      // Draw outer glow/shadow
+      final glowPaint = ui.Paint()
+        ..color = const ui.Color(0x304285F4)
+        ..maskFilter = const ui.MaskFilter.blur(ui.BlurStyle.normal, 12);
+      canvas.drawCircle(center, size / 2.4, glowPaint);
+
+      // Draw white circle background
+      final whitePaint = ui.Paint()
+        ..color = const ui.Color(0xFFFFFFFF)
+        ..style = ui.PaintingStyle.fill;
+      canvas.drawCircle(center, size / 3.2, whitePaint);
+
+      // Draw blue navigation arrow (chevron/triangle)
+      final arrowPaint = ui.Paint()
+        ..color = const ui.Color(0xFF4285F4)
+        ..style = ui.PaintingStyle.fill;
+
+      final arrow = ui.Path();
+      // Top tip
+      arrow.moveTo(size / 2, size / 2 - size / 4.2);
+      // Bottom right
+      arrow.lineTo(size / 2 + size / 5.2, size / 2 + size / 5);
+      // Center notch
+      arrow.lineTo(size / 2, size / 2 + size / 9);
+      // Bottom left
+      arrow.lineTo(size / 2 - size / 5.2, size / 2 + size / 5);
+      arrow.close();
+
+      canvas.drawPath(arrow, arrowPaint);
+
+      final picture = recorder.endRecording();
+      final image = await picture.toImage(size.toInt(), size.toInt());
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+
+      if (byteData != null) {
+        _navigationArrowIcon = BitmapDescriptor.bytes(
+          byteData.buffer.asUint8List(),
+        );
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Failed to create navigation arrow icon: $e');
+      }
+    }
   }
 
   Future<void> _fetchDriverRoute(String driverId) async {
@@ -98,8 +185,8 @@ class StartJourneyController {
       Polyline(
         polylineId: const PolylineId('route_line'),
         points: points,
-        color: const Color(0xFF05A664), // primaryGreen match
-        width: 5,
+        color: const ui.Color(0xFF4285F4), // Google Maps blue for route
+        width: 6,
         geodesic: true,
       ),
     };
@@ -113,16 +200,35 @@ class StartJourneyController {
       final lng = data['lng']!;
       final pooledLatLng = LatLng(lat, lng);
 
-      // Add/Update the specific Pooled Location Marker
+      // Store the latest pooled position
+      _lastPooledPosition = pooledLatLng;
+
+      // Add/Update the navigation arrow marker
       _updateMarkersWithPooled(pooledLatLng);
-      
-      // We don't overwrite the phone location, but we inform the UI 
-      // if it wants to show the most "accurate" dot
+
+      // Animate camera to follow
+      if (_isFollowingCamera) {
+        _animateCameraToPosition(pooledLatLng);
+      }
     });
   }
 
+  /// Animates the camera to center on the given position with a navigation-like view.
+  void _animateCameraToPosition(LatLng position) {
+    _mapController?.animateCamera(
+      CameraUpdate.newCameraPosition(
+        CameraPosition(
+          target: position,
+          zoom: 17,
+          bearing: _heading,
+          tilt: 45, // Tilted view like navigation mode
+        ),
+      ),
+    );
+  }
+
   void _updateMarkersWithPooled(LatLng pooledPosition) {
-    // Keep existing markers (stops) and update/add the pooled dot
+    // Keep existing markers (stops) and update/add the navigation arrow
     final Set<Marker> updatedMarkers = Set.from(_markers);
     
     // Remove old pooled marker if it exists
@@ -132,10 +238,11 @@ class StartJourneyController {
       Marker(
         markerId: const MarkerId('pooled_location'),
         position: pooledPosition,
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-        infoWindow: const InfoWindow(title: 'Optimized Accuracy Location'),
-        zIndex: 10,
-        anchor: const Offset(0.5, 0.5), // Center it like a dot
+        icon: _navigationArrowIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+        rotation: _heading,
+        anchor: const Offset(0.5, 0.5),
+        flat: true, // Flat on the map surface, rotates with the map
+        zIndex: 100,
       ),
     );
 
@@ -146,7 +253,7 @@ class StartJourneyController {
       timestamp: DateTime.now(),
       accuracy: 0,
       altitude: 0,
-      heading: 0,
+      heading: _heading,
       speed: 0,
       speedAccuracy: 0,
       altitudeAccuracy: 0,
@@ -183,6 +290,9 @@ class StartJourneyController {
   Future<void> _startLocationTracking(String driverId) async {
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
+      if (kDebugMode) {
+        print('Geolocator: Location service is NOT enabled');
+      }
       return;
     }
 
@@ -190,25 +300,51 @@ class StartJourneyController {
     
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) return;
+      if (permission == LocationPermission.denied) {
+        if (kDebugMode) {
+          print('Geolocator: Permission denied');
+        }
+        return;
+      }
     }
 
     if (permission == LocationPermission.deniedForever) {
+      if (kDebugMode) {
+        print('Geolocator: Permission denied forever');
+      }
       return;
     }
 
-    
+    // Get an initial position immediately (one-shot) and write to RTDB
+    // This ensures data gets to RTDB even if the stream below fails
+    try {
+      final initialPosition = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+      );
+      _heading = initialPosition.heading;
+      _rtDbService.updateDriverLocation(driverId, initialPosition.latitude, initialPosition.longitude);
+      onLocationChanged(initialPosition);
+      if (kDebugMode) {
+        print('Geolocator: Initial position acquired: ${initialPosition.latitude}, ${initialPosition.longitude}');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Geolocator: Failed to get initial position: $e');
+      }
+    }
+
+    // Now start continuous tracking
     late LocationSettings locationSettings;
     if (defaultTargetPlatform == TargetPlatform.android) {
       locationSettings = AndroidSettings(
         accuracy: LocationAccuracy.high,
         distanceFilter: 5,
-        forceLocationManager: true,
+        forceLocationManager: false, // Use FusedLocationProvider (more reliable)
         intervalDuration: const Duration(seconds: 5),
         foregroundNotificationConfig: const ForegroundNotificationConfig(
           notificationText: "Travel Pass is tracking your location to inform passengers.",
           notificationTitle: "Journey in Progress",
-          enableWakeLock: true,
+          enableWakeLock: false, // Avoid SecurityException on some devices
         ),
       );
     } else if (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.macOS) {
@@ -225,10 +361,17 @@ class StartJourneyController {
       );
     }
 
+    if (kDebugMode) {
+      print('Geolocator: Starting continuous location stream for driver: $driverId');
+    }
+
     _positionSubscription = Geolocator.getPositionStream(
       locationSettings: locationSettings,
     ).listen((Position position) {
       if (_isDisposed) return;
+
+      // Capture heading for the navigation arrow rotation
+      _heading = position.heading;
       
       onLocationChanged(position);
       
@@ -237,6 +380,14 @@ class StartJourneyController {
       
       // Check proximity and update status
       _checkProximity(position);
+
+      if (kDebugMode) {
+        print('Geolocator: Position update -> ${position.latitude}, ${position.longitude}');
+      }
+    }, onError: (error) {
+      if (kDebugMode) {
+        print('Geolocator: Stream error: $error');
+      }
     });
   }
 
@@ -397,6 +548,3 @@ class StartJourneyController {
     _autoFinishTimer?.cancel();
   }
 }
-
-
-

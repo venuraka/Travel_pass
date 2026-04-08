@@ -2,7 +2,7 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/foundation.dart';
 
 class RealtimeDatabaseService {
-  // Try default initialization first, fallback to explicit if default doesn't have the URL
+  // Must use instanceFor with explicit URL — this RTDB is in asia-southeast1, not the default US region
   final FirebaseDatabase _db = FirebaseDatabase.instanceFor(
     app: FirebaseDatabase.instance.app,
     databaseURL: 'https://travelpass-40736-default-rtdb.asia-southeast1.firebasedatabase.app',
@@ -14,7 +14,9 @@ class RealtimeDatabaseService {
       // A simple read to the root or a 'status' node to check connectivity
       await _db.ref('.info/connected').get();
     } catch (e) {
-      // Log connection error silently or handle internally
+      if (kDebugMode) {
+        print('RTDB Connection Test Failed: $e');
+      }
     }
   }
 
@@ -33,8 +35,13 @@ class RealtimeDatabaseService {
       
       // Also update the pool
       await _updatePooledLocation(driverId);
+      if (kDebugMode) {
+        print('RTDB: Driver location updated for $driverId');
+      }
     } catch (e) {
-      // Location update failed silently
+      if (kDebugMode) {
+        print('RTDB: Failed to update driver location: $e');
+      }
     }
   }
 
@@ -52,6 +59,9 @@ class RealtimeDatabaseService {
       // Also update the pool
       await _updatePooledLocation(driverId);
     } catch (e) {
+      if (kDebugMode) {
+        print('RTDB: Failed to update passenger location: $e');
+      }
     }
   }
 
@@ -66,6 +76,9 @@ class RealtimeDatabaseService {
         await _updatePooledLocation(driverId);
       }
     } catch (e) {
+      if (kDebugMode) {
+        print('RTDB: Failed to set onboarded status: $e');
+      }
     }
   }
 
@@ -133,6 +146,9 @@ class RealtimeDatabaseService {
         });
       }
     } catch (e) {
+      if (kDebugMode) {
+        print('RTDB: Failed to update pooled location: $e');
+      }
     }
   }
 

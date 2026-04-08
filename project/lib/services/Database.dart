@@ -570,4 +570,13 @@ class DatabaseService {
       rethrow;
     }
   }
+  /// Returns a stream of the driver's name.
+  Stream<String> getDriverNameStream(String driverId) {
+    return _db.collection('driver').doc(driverId).snapshots().map((doc) {
+      if (doc.exists && doc.data() != null) {
+        return doc.data()!['name'] ?? 'Driver';
+      }
+      return 'Driver';
+    });
+  }
 }
