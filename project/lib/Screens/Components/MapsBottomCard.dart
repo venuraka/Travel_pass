@@ -10,6 +10,7 @@ class NextPassengerCard extends StatefulWidget {
   final List<PassengerModel> passengers;
   final int currentIndex;
   final String status;
+  final Color statusColor; // Added
   final Function(String)? onCallPressed;
   final Function(int) onPageChanged;
   final VoidCallback? onFinishJourney; // Added
@@ -21,6 +22,7 @@ class NextPassengerCard extends StatefulWidget {
     required this.passengers,
     required this.currentIndex,
     required this.status,
+    this.statusColor = kPrimaryTextColor, // Added default
     this.onCallPressed,
     required this.onPageChanged,
     this.onFinishJourney, // Added
@@ -126,29 +128,35 @@ class _NextPassengerCardState extends State<NextPassengerCard> {
                               p.name.toLowerCase(),
                               style: const TextStyle(
                                 color: kPrimaryTextColor,
-                                fontSize: 24.0,
-                                fontWeight: FontWeight.w700,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 8.0),
-                            Text(
-                              p.pickupLocation.toLowerCase(),
-                              style: const TextStyle(
-                                color: kPrimaryTextColor,
                                 fontSize: 22.0,
                                 fontWeight: FontWeight.w700,
                               ),
                               textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            const SizedBox(height: 12.0),
+                            const SizedBox(height: 6.0),
                             Text(
-                              widget.status,
+                              p.pickupLocation.toLowerCase(),
                               style: const TextStyle(
                                 color: kPrimaryTextColor,
                                 fontSize: 20.0,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 8.0),
+                            Text(
+                              widget.status,
+                              style: TextStyle(
+                                color: widget.statusColor,
+                                fontSize: 18.0,
                                 fontWeight: FontWeight.w900,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         );

@@ -68,11 +68,11 @@ class TrackVehicleController {
       onOnboardingStatusChanged(isOnboarded);
       if (isOnboarded) {
         onStatusChanged("ONBOARDED");
-        _startLocationSharing();
-      } else {
-        _stopLocationSharing();
       }
     });
+
+    // 3. Start location sharing immediately when tracking begins
+    _startLocationSharing();
   }
 
   Future<void> _calculateStatus(String driverId, String passengerId, LatLng vehicleLoc) async {

@@ -143,6 +143,7 @@ class _StartjourneyState extends State<Startjourney> {
                 passengers: _controller.passengers,
                 currentIndex: _controller.currentPassengerIndex,
                 status: _controller.currentStatus,
+                statusColor: _controller.statusColor, // Added
                 onCallPressed: (phone) {
                   _controller.makeCall(phone);
                 },

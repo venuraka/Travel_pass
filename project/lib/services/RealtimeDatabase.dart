@@ -166,5 +166,20 @@ class RealtimeDatabaseService {
       return {};
     });
   }
+
+  /// Returns a stream of a specific passenger's location.
+  Stream<Map<String, double>> getPassengerLocationStream(String driverId, String passengerId) {
+    if (driverId.isEmpty || passengerId.isEmpty) return Stream.value({});
+    return _db.ref('locations/$driverId/passengers/$passengerId').onValue.map((event) {
+      final data = event.snapshot.value as Map<dynamic, dynamic>?;
+      if (data != null) {
+        return {
+          'lat': (data['lat'] as num).toDouble(),
+          'lng': (data['lng'] as num).toDouble(),
+        };
+      }
+      return {};
+    });
+  }
 }
 

@@ -32,9 +32,13 @@ class StartJourneyController {
 
   // Real-time status for the card
   String _currentStatus = "Calculating...";
+  Color _statusColor = const Color(0xFF05A664); // Default green
   Set<Marker> _markers = {};
   Set<Marker> _staticMarkers = {}; // Cached route markers
   Set<Polyline> _polylines = {};
+  
+  StreamSubscription? _passengerLocationExtSubscription;
+  LatLng? _currentPassengerLocation;
 
   // Navigation arrow fields
   GoogleMapController? _mapController;
@@ -52,6 +56,7 @@ class StartJourneyController {
 
   bool get isAtFinalDestination => _isAtFinalDestination;
   String get currentStatus => _currentStatus;
+  Color get statusColor => _statusColor;
   Set<Marker> get markers => _markers;
   Set<Polyline> get polylines => _polylines;
   bool get isFollowingCamera => _isFollowingCamera;
@@ -148,6 +153,33 @@ class StartJourneyController {
 
     // 6. Subscribe to Pooled Location for higher accuracy
     _startPooledSubscription(driverId);
+
+    // 7. Subscribe to the first passenger's location
+    _subscribeToCurrentPassengerLocation();
+  }
+
+  void _subscribeToCurrentPassengerLocation() {
+    _passengerLocationExtSubscription?.cancel();
+    _currentPassengerLocation = null;
+
+    final p = currentPassenger;
+    if (p == null || _currentDriverId == null) return;
+
+    _passengerLocationExtSubscription = _rtDbService.getPassengerLocationStream(_currentDriverId!, p.uid).listen((loc) {
+      if (loc.containsKey('lat') && loc.containsKey('lng')) {
+        _currentPassengerLocation = LatLng(loc['lat']!, loc['lng']!);
+        // Trigger proximity check update if we have driver position
+        if (_lastPooledPosition != null) {
+          _checkProximity(Position(
+            latitude: _lastPooledPosition!.latitude,
+            longitude: _lastPooledPosition!.longitude,
+            timestamp: DateTime.now(),
+            accuracy: 0, altitude: 0, heading: _heading, speed: 0, speedAccuracy: 0,
+            altitudeAccuracy: 0, headingAccuracy: 0,
+          ));
+        }
+      }
+    });
   }
 
   /// Creates a custom blue navigation arrow icon (like Google Maps navigation).
@@ -651,6 +683,7 @@ class StartJourneyController {
 
     if (distance < 50) {
       _currentStatus = "On Location";
+      _statusColor = const Color(0xFF05A664);
       List<PassengerModel> proximalPassengers = [];
       for (var passenger in _allPassengers) {
         if (passenger.pickupLocation == targetPassenger.pickupLocation) {
@@ -664,9 +697,34 @@ class StartJourneyController {
         onProximityReached(proximalPassengers);
       }
     } else {
-      int mins = (distance / 11 / 60).round();
-      if (mins < 1) mins = 1;
-      _currentStatus = "$mins min to pickup";
+      // Logic for Dynamic Status
+      if (_currentPassengerLocation != null) {
+        // Calculate passenger's distance to pickup
+        double pDistance = Geolocator.distanceBetween(
+          _currentPassengerLocation!.latitude, _currentPassengerLocation!.longitude,
+          targetLatLng.latitude, targetLatLng.longitude
+        );
+
+        if (pDistance > 50) {
+           // Passenger is not at pickup point - show passenger's ETA in Orange
+           int pMins = (pDistance / 1.4 / 60).round(); // Assume walking/slow speed 1.4m/s (~5km/h)
+           if (pMins < 1) pMins = 1;
+           _currentStatus = "$pMins min wait"; // Shortened
+           _statusColor = Colors.orange;
+        } else {
+           // Passenger reached pickup - show driver's ETA in Green
+           int mins = (distance / 11 / 60).round();
+           if (mins < 1) mins = 1;
+           _currentStatus = "$mins min pickup"; // Shortened
+           _statusColor = const Color(0xFF05A664);
+        }
+      } else {
+        // Fallback to driver ETA if passenger location not available
+        int mins = (distance / 11 / 60).round();
+        if (mins < 1) mins = 1;
+        _currentStatus = "$mins min pickup"; // Shortened
+        _statusColor = const Color(0xFF05A664);
+      }
     }
   }
 
@@ -752,8 +810,9 @@ class StartJourneyController {
 
 
   void nextPassenger() {
-    if (_currentPassengerIndex < _allPassengers.length) {
+    if (_currentPassengerIndex < _allPassengers.length - 1) {
       _currentPassengerIndex++;
+      _subscribeToCurrentPassengerLocation();
     }
   }
 
@@ -761,12 +820,14 @@ class StartJourneyController {
   void previousPassenger() {
     if (_currentPassengerIndex > 0) {
       _currentPassengerIndex--;
+      _subscribeToCurrentPassengerLocation();
     }
   }
 
   void setPassengerIndex(int index) {
     if (index >= 0 && index < _allPassengers.length) {
       _currentPassengerIndex = index;
+      _subscribeToCurrentPassengerLocation();
     }
   }
 
@@ -784,6 +845,7 @@ class StartJourneyController {
     _isDisposed = true;
     _positionSubscription?.cancel();
     _pooledSubscription?.cancel(); // Cancel pooled too
+    _passengerLocationExtSubscription?.cancel(); // Added
     _autoFinishTimer?.cancel();
   }
 }
