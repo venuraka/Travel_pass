@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/PassengerModel.dart';
+import './MarqueeText.dart';
 
 // --- Color Definitions (Approximated from image) ---
 const Color kCardBackgroundColor = Color(0xFF121415);
@@ -124,39 +125,31 @@ class _NextPassengerCardState extends State<NextPassengerCard> {
                         return Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: <Widget>[
-                            Text(
-                              p.name.toLowerCase(),
+                            MarqueeText(
+                              text: p.name.toLowerCase(),
                               style: const TextStyle(
                                 color: kPrimaryTextColor,
                                 fontSize: 22.0,
                                 fontWeight: FontWeight.w700,
                               ),
-                              textAlign: TextAlign.center,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 6.0),
-                            Text(
-                              p.pickupLocation.toLowerCase(),
+                            MarqueeText(
+                              text: p.pickupLocation.toLowerCase(),
                               style: const TextStyle(
                                 color: kPrimaryTextColor,
                                 fontSize: 20.0,
                                 fontWeight: FontWeight.w700,
                               ),
-                              textAlign: TextAlign.center,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 8.0),
-                            Text(
-                              widget.status,
+                            MarqueeText(
+                              text: widget.status,
                               style: TextStyle(
                                 color: widget.statusColor,
                                 fontSize: 18.0,
                                 fontWeight: FontWeight.w900,
                               ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         );
@@ -272,6 +265,8 @@ class JourneyInfoCard extends StatelessWidget {
   final String busArrivalTime;
   final String nextStop;
   final int attendanceCount;
+  final bool isOnboarded;
+  final int progressIndex; // Added
   final VoidCallback? onCallPressed;
 
   const JourneyInfoCard({
@@ -279,6 +274,8 @@ class JourneyInfoCard extends StatelessWidget {
     required this.busArrivalTime,
     required this.nextStop,
     required this.attendanceCount,
+    this.isOnboarded = false,
+    this.progressIndex = 0, // Added
     this.onCallPressed,
   });
 
@@ -297,66 +294,58 @@ class JourneyInfoCard extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: const <Widget>[
-              Text(
-                'Swipe up if you have arrived at the pickup spot',
-                style: TextStyle(
-                  color: kPrimaryTextColor,
-                  fontSize: 14.0,
-                  fontWeight: FontWeight.w600,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-          const SizedBox(height: 24.0),
+
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
-              const Text(
-                'Bus Will Come on',
-                style: TextStyle(
-                  color: kSecondaryTextColor,
+              Text(
+                isOnboarded ? 'Drop-off ETA' : 'Bus Will Come on',
+                style: const TextStyle(
+                  color: kPrimaryTextColor,
                   fontSize: 18.0,
                 ),
               ),
               const SizedBox(width: 8.0),
-              Text(
-                busArrivalTime,
-                style: const TextStyle(
-                  color: kSecondaryTextColor,
-                  fontSize: 18.0,
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: MarqueeText(
+                  text: busArrivalTime,
+                  style: const TextStyle(
+                    color: kSecondaryTextColor,
+                    fontSize: 18.0,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16.0),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              const Text(
-                'Next Stop',
-                style: TextStyle(
-                  color: kPrimaryTextColor,
-                  fontSize: 18.0,
-                  fontWeight: FontWeight.w500,
+          if (progressIndex != 999) ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                const Text(
+                  'Next Stop',
+                  style: TextStyle(
+                    color: kPrimaryTextColor,
+                    fontSize: 18.0,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8.0),
-              Text(
-                nextStop,
-                style: const TextStyle(
-                  color: kSecondaryTextColor,
-                  fontSize: 18.0,
-                  fontWeight: FontWeight.w600,
+                const SizedBox(width: 8.0),
+                Expanded(
+                  child: MarqueeText(
+                    text: nextStop,
+                    style: const TextStyle(
+                      color: kSecondaryTextColor,
+                      fontSize: 18.0,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16.0),
+              ],
+            ),
+            const SizedBox(height: 16.0),
+          ],
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[

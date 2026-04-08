@@ -28,6 +28,10 @@ class _TrackVehicleState extends State<TrackVehicle> {
   LatLng? _pooledLocation;
   bool _isOnboarded = false;
   String _currentStatus = "Calculating...";
+  String _nextStop = "Calculating..."; // Added
+  int _onboardedCount = 0; // Added
+  int _progressIndex = 0; // Added
+  LatLng? _routeDestination; // Added
 
 
   @override
@@ -55,9 +59,36 @@ class _TrackVehicleState extends State<TrackVehicle> {
           });
         }
       },
+      onNextStopChanged: (String nextStop) {
+        if (mounted) {
+          setState(() {
+            _nextStop = nextStop;
+          });
+        }
+      },
+      onOnboardedCountChanged: (int count) {
+        if (mounted) {
+          setState(() {
+            _onboardedCount = count;
+          });
+        }
+      },
+      onDestinationAcquired: (LatLng dest, String name) {
+        if (mounted) {
+          setState(() {
+            _routeDestination = dest;
+          });
+        }
+      },
+      onProgressIndexChanged: (int index) {
+        if (mounted) {
+          setState(() {
+            _progressIndex = index;
+          });
+        }
+      },
     );
-    _controller.startTracking(widget.driverId, widget.passengerId);
-
+    _controller.init(); // Use init instead of direct startTracking if we want to fetch pData first
   }
 
   @override
@@ -93,9 +124,10 @@ class _TrackVehicleState extends State<TrackVehicle> {
             alignment: Alignment.bottomCenter,
             child: JourneyInfoCard(
               busArrivalTime: _currentStatus,
-              nextStop: _isOnboarded ? "Sharing your location" : "Waiting for pick up",
-              attendanceCount: _isOnboarded ? 1 : 0, // Placeholder
-
+              nextStop: _nextStop,
+              attendanceCount: _onboardedCount,
+              isOnboarded: _isOnboarded,
+              progressIndex: _progressIndex, // Added
               onCallPressed: () {
               },
             ),

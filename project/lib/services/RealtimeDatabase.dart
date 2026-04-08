@@ -168,6 +168,7 @@ class RealtimeDatabaseService {
   }
 
   /// Returns a stream of a specific passenger's location.
+  /// Returns a stream of a specific passenger's location.
   Stream<Map<String, double>> getPassengerLocationStream(String driverId, String passengerId) {
     if (driverId.isEmpty || passengerId.isEmpty) return Stream.value({});
     return _db.ref('locations/$driverId/passengers/$passengerId').onValue.map((event) {
@@ -179,6 +180,88 @@ class RealtimeDatabaseService {
         };
       }
       return {};
+    });
+  }
+
+  /// Updates the final destination of the route for synchronization.
+  Future<void> updateRouteDestination(String driverId, double lat, double lng, String name) async {
+    if (driverId.isEmpty) return;
+    try {
+      await _db.ref('status/$driverId/destination').set({
+        'lat': lat,
+        'lng': lng,
+        'name': name,
+        'timestamp': ServerValue.timestamp,
+      });
+    } catch (e) {
+      if (kDebugMode) print('RTDB: Failed to update destination: $e');
+    }
+  }
+
+  /// Returns a stream of the route's final destination.
+  Stream<Map<String, dynamic>> getRouteDestinationStream(String driverId) {
+    if (driverId.isEmpty) return Stream.value({});
+    return _db.ref('status/$driverId/destination').onValue.map((event) {
+      final data = event.snapshot.value as Map<dynamic, dynamic>?;
+      if (data != null) {
+        return {
+          'lat': (data['lat'] as num).toDouble(),
+          'lng': (data['lng'] as num).toDouble(),
+          'name': data['name'] as String,
+        };
+      }
+      return {};
+    });
+  }
+
+  /// Updates the current journey target (next stop).
+  Future<void> updateJourneyProgress(String driverId, int index, String targetName, double targetLat, double targetLng) async {
+    if (driverId.isEmpty) return;
+    try {
+      await _db.ref('status/$driverId/progress').set({
+        'index': index,
+        'target_name': targetName,
+        'target_lat': targetLat,
+        'target_lng': targetLng,
+        'timestamp': ServerValue.timestamp,
+      });
+    } catch (e) {
+      if (kDebugMode) print('RTDB: Failed to update progress: $e');
+    }
+  }
+
+  /// Returns a stream of the journey's current progress.
+  Stream<Map<String, dynamic>> getJourneyProgressStream(String driverId) {
+    if (driverId.isEmpty) return Stream.value({});
+    return _db.ref('status/$driverId/progress').onValue.map((event) {
+      final data = event.snapshot.value as Map<dynamic, dynamic>?;
+      if (data != null) {
+        return {
+          'index': (data['index'] as num).toInt(),
+          'target_name': data['target_name'] as String,
+          'target_lat': (data['target_lat'] as num).toDouble(),
+          'target_lng': (data['target_lng'] as num).toDouble(),
+        };
+      }
+      return {};
+    });
+  }
+
+  /// Returns a stream of the total count of onboarded passengers for a driver.
+  Stream<int> getOnboardedCountStream(String driverId) {
+    if (driverId.isEmpty) return Stream.value(0);
+    return _db.ref('status/$driverId/passengers').onValue.map((event) {
+      final data = event.snapshot.value as Map<dynamic, dynamic>?;
+      if (data == null) return 0;
+      
+      int count = 0;
+      data.forEach((key, value) {
+        final pStatus = value as Map<dynamic, dynamic>;
+        if (pStatus['onboarded'] == true) {
+          count++;
+        }
+      });
+      return count;
     });
   }
 }

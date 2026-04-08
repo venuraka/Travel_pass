@@ -38,7 +38,9 @@ class StartJourneyController {
   Set<Polyline> _polylines = {};
   
   StreamSubscription? _passengerLocationExtSubscription;
+  StreamSubscription? _onboardedCountSubscription; // Added
   LatLng? _currentPassengerLocation;
+  int _onboardedCount = 0; // Added
 
   // Navigation arrow fields
   GoogleMapController? _mapController;
@@ -156,6 +158,81 @@ class StartJourneyController {
 
     // 7. Subscribe to the first passenger's location
     _subscribeToCurrentPassengerLocation();
+
+    // 8. Share initial journey progress
+    _shareJourneyProgress();
+
+    // 9. Subscribe to onboarded count for summary logic
+    _onboardedCountSubscription = _rtDbService.getOnboardedCountStream(driverId).listen((count) {
+      _onboardedCount = count;
+      // Trigger update if we have position
+      if (_lastPooledPosition != null) {
+        _checkProximity(Position(
+          latitude: _lastPooledPosition!.latitude,
+          longitude: _lastPooledPosition!.longitude,
+          timestamp: DateTime.now(),
+          accuracy: 0, altitude: 0, heading: _heading, speed: 0, speedAccuracy: 0,
+          altitudeAccuracy: 0, headingAccuracy: 0,
+        ));
+      }
+    });
+  }
+
+  void _shareJourneyProgress() async {
+    if (_currentDriverId == null) return;
+    
+    // Share Final Destination once
+    if (_driverRoute != null && _driverRoute!.isNotEmpty) {
+      final last = _driverRoute!.last;
+      await _rtDbService.updateRouteDestination(
+        _currentDriverId!,
+        (last['lat'] as num).toDouble(),
+        (last['lng'] as num).toDouble(),
+        last['name'] as String,
+      );
+    }
+    
+    _updateRTDBNextStop();
+  }
+
+  void _updateRTDBNextStop() {
+    if (_currentDriverId == null) return;
+
+    final p = currentPassenger;
+    if (p != null) {
+      LatLng? pLatLng;
+      if (_driverRoute != null) {
+        for (var point in _driverRoute!) {
+          if (point['name'] == p.pickupLocation) {
+            pLatLng = LatLng(
+              (point['lat'] as num).toDouble(),
+              (point['lng'] as num).toDouble(),
+            );
+            break;
+          }
+        }
+      }
+
+      if (pLatLng != null) {
+        _rtDbService.updateJourneyProgress(
+          _currentDriverId!,
+          _currentPassengerIndex,
+          p.name,
+          pLatLng.latitude,
+          pLatLng.longitude,
+        );
+      }
+    } else if (_driverRoute != null && _driverRoute!.isNotEmpty) {
+       // All passengers picked or none left, show final destination
+       final last = _driverRoute!.last;
+       _rtDbService.updateJourneyProgress(
+          _currentDriverId!,
+          999, // Special index for destination
+          last['name'] as String,
+          (last['lat'] as num).toDouble(),
+          (last['lng'] as num).toDouble(),
+       );
+    }
   }
 
   void _subscribeToCurrentPassengerLocation() {
@@ -293,6 +370,7 @@ class StartJourneyController {
     if (driverData != null && driverData.route != null) {
       _driverRoute = driverData.route;
       _updatePolylines(); // Refresh line when data arrives
+      _shareJourneyProgress(); // Ensure destination is shared as soon as route is known
     }
   }
 
@@ -726,6 +804,27 @@ class StartJourneyController {
         _statusColor = const Color(0xFF05A664);
       }
     }
+
+    // Check if ALL passengers are onboarded to switch to Drop-off summary mode
+    if (_onboardedCount >= _allPassengers.length && _allPassengers.isNotEmpty) {
+       // All are onboarded, switch focus to final destination
+       if (_driverRoute != null && _driverRoute!.isNotEmpty) {
+          final last = _driverRoute!.last;
+          final lastLatLng = LatLng((last['lat'] as num).toDouble(), (last['lng'] as num).toDouble());
+          
+          double dDistance = Geolocator.distanceBetween(
+            position.latitude, position.longitude,
+            lastLatLng.latitude, lastLatLng.longitude
+          );
+
+          double kms = dDistance / 1000;
+          int mins = (dDistance / 11 / 60).round(); // Assume 40km/h ~ 11m/s
+          if (mins < 1) mins = 1;
+
+          _currentStatus = "${kms.toStringAsFixed(1)} km | $mins min to dest";
+          _statusColor = const Color(0xFF05A664);
+       }
+    }
   }
 
   Future<void> _checkDestinationProximity(Position position) async {
@@ -813,6 +912,7 @@ class StartJourneyController {
     if (_currentPassengerIndex < _allPassengers.length - 1) {
       _currentPassengerIndex++;
       _subscribeToCurrentPassengerLocation();
+      _updateRTDBNextStop(); // Share update
     }
   }
 
@@ -821,6 +921,7 @@ class StartJourneyController {
     if (_currentPassengerIndex > 0) {
       _currentPassengerIndex--;
       _subscribeToCurrentPassengerLocation();
+      _updateRTDBNextStop(); // Share update
     }
   }
 
@@ -828,6 +929,7 @@ class StartJourneyController {
     if (index >= 0 && index < _allPassengers.length) {
       _currentPassengerIndex = index;
       _subscribeToCurrentPassengerLocation();
+      _updateRTDBNextStop(); // Share update
     }
   }
 
@@ -845,7 +947,8 @@ class StartJourneyController {
     _isDisposed = true;
     _positionSubscription?.cancel();
     _pooledSubscription?.cancel(); // Cancel pooled too
-    _passengerLocationExtSubscription?.cancel(); // Added
+    _passengerLocationExtSubscription?.cancel();
+    _onboardedCountSubscription?.cancel(); // Added
     _autoFinishTimer?.cancel();
   }
 }
