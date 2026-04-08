@@ -147,6 +147,12 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
           position: position,
           infoWindow: InfoWindow(title: id),
           icon: icon,
+          draggable: true,
+          consumeTapEvents: true,
+          onDragStart: (position) {
+            CustomSnackBar.showSuccess(context, "Dragging marker...");
+          },
+          onDragEnd: (newPosition) => _handleMarkerDragEnd(id, newPosition),
         ),
       );
     });
@@ -155,6 +161,44 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
 
     // Attempt to draw route if we have enough points
     _getRoute();
+  }
+
+  Future<void> _handleMarkerDragEnd(String id, LatLng newPosition) async {
+    // 1. Identify which controller to update
+    TextEditingController? controller;
+    BitmapDescriptor icon = BitmapDescriptor.defaultMarker;
+
+    if (id == "Start") {
+      controller = _startController;
+      icon = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen);
+    } else if (id == "End") {
+      controller = _endController;
+      icon = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed);
+    } else if (id.startsWith("Pickup ")) {
+      final indexStr = id.split(" ").last;
+      final index = int.tryParse(indexStr);
+      if (index != null && index > 0 && index <= _pickupPoints.length) {
+        controller = _pickupPoints[index - 1]['controller'];
+        icon = BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue);
+      }
+    }
+
+    if (controller != null) {
+      setState(() => _isLoading = true);
+      try {
+        final address = await _placeService.getAddressFromLatLng(newPosition);
+        controller.text = address;
+
+        // Re-add marker to sync internal position state and trigger route update
+        _addMarker(id, newPosition, icon);
+      } catch (e) {
+        if (mounted) {
+          CustomSnackBar.showError(context, "Failed to update address: $e");
+        }
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
+      }
+    }
   }
 
   // --- Autocomplete Logic ---
