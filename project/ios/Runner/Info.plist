@@ -24,6 +24,8 @@
 	<string>????</string>
 	<key>GoogleMapsAPIKey</key>
     <string>AIzaSyAo5wRg4mAa6QaDYC9DCpiPySplDHiKZb0</string>
+	<key>OpenWeatherApiKey</key>
+	<string>PLACEHOLDER_OPENWEATHER_KEY</string>
 
 
 	<key>CFBundleURLTypes</key>

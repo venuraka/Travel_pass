@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/Database.dart';
-import '../models/PollModel.dart'; // Added
-import 'package:flutter/foundation.dart'; // Added
+import '../models/PollModel.dart';
+import 'package:flutter/foundation.dart';
+import 'package:geolocator/geolocator.dart';
+import '../services/WeatherService.dart';
+import '../services/NotificationService.dart';
 
 class DriverDashboardController {
   final DatabaseService _dbService = DatabaseService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final WeatherService _weatherService = WeatherService();
+  final PushNotificationService _notificationService = PushNotificationService();
 
 
 
@@ -71,11 +76,47 @@ class DriverDashboardController {
     return _auth.currentUser?.uid;
   }
 
-  /// Sets the journey as started in the database.
+  /// Sets the journey as started in the database and sends weather alerts.
   Future<void> startJourney() async {
     final uid = getDriverId();
     if (uid != null) {
+      // 1. Mark journey as started in DB
       await _dbService.updateJourneyStatus(uid, true);
+
+      // 2. TRIGGER WEATHER-BASED NOTIFICATIONS
+      try {
+        // Get current driver location
+        Position position = await Geolocator.getCurrentPosition();
+        
+        // Fetch weather recommendation
+        final rec = await _weatherService.getWeatherRecommendation(
+          position.latitude, 
+          position.longitude
+        );
+
+        // Get UIDs of all "Present" passengers
+        final presentIds = await _dbService.getPresentPassengerIds(uid);
+
+        if (presentIds.isNotEmpty) {
+          await _notificationService.sendNotificationToPassengers(
+            passengerIds: presentIds,
+            title: rec['title'] ?? 'Journey Started!',
+            body: rec['body'] ?? 'Your bus is on the way.',
+            data: {
+              'type': 'weather_alert',
+              'weather_type': rec['type']
+            },
+          );
+          
+          if (kDebugMode) {
+            print('✅ Weather notification sent: ${rec['title']}');
+          }
+        }
+      } catch (e) {
+        if (kDebugMode) {
+          print('❌ Error in weather notification: $e');
+        }
+      }
     }
   }
 

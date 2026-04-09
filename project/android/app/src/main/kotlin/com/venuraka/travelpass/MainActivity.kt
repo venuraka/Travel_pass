@@ -31,6 +31,18 @@ class MainActivity : FlutterActivity() {
                             result.error("NOT_FOUND", "Google Maps API key not found in AndroidManifest", null)
                         }
                     }
+                    "getOpenWeatherApiKey" -> {
+                        try {
+                            val appInfo = packageManager.getApplicationInfo(
+                                packageName,
+                                PackageManager.GET_META_DATA
+                            )
+                            val key = appInfo.metaData?.getString("com.travelpass.OPEN_WEATHER_API_KEY") ?: ""
+                            result.success(key)
+                        } catch (e: Exception) {
+                            result.error("NOT_FOUND", "OpenWeather API key not found in AndroidManifest", null)
+                        }
+                    }
                     "getAndroidCertificateHash" -> {
                         val hash = getCertificateFingerprint(packageManager, packageName)
                         if (hash != null) {

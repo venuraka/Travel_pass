@@ -550,6 +550,31 @@ class DatabaseService {
     });
   }
 
+  /// Returns a list of passenger UIDs who are marked 'Present' for today for a specific driver.
+  Future<List<String>> getPresentPassengerIds(String driverId) async {
+    try {
+      final now = DateTime.now().toUtc();
+      final dateKey =
+          "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+
+      final snapshot = await _db
+          .collection('attendance')
+          .where('driverId', isEqualTo: driverId)
+          .get();
+
+      List<String> presentIds = [];
+      for (var doc in snapshot.docs) {
+        final records = doc.data()['records'] as Map<String, dynamic>? ?? {};
+        if (records[dateKey] == 'Present') {
+          presentIds.add(doc.id);
+        }
+      }
+      return presentIds;
+    } catch (e) {
+      return [];
+    }
+  }
+
   /// Returns a stream of the newest updates for a specific driver.
   Stream<List<UpdateModel>> getUpdatesStream(String driverId) {
     return _db.collection('updates')

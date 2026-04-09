@@ -68,6 +68,9 @@ import GoogleMaps
         if call.method == "getGoogleMapsApiKey" {
             let key = Bundle.main.object(forInfoDictionaryKey: "GoogleMapsAPIKey") as? String ?? ""
             result(key)
+        } else if call.method == "getOpenWeatherApiKey" {
+            let key = Bundle.main.object(forInfoDictionaryKey: "OpenWeatherApiKey") as? String ?? ""
+            result(key)
         } else {
             result(FlutterMethodNotImplemented)
         }

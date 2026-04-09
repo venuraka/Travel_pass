@@ -44,6 +44,9 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyCK-PvLT45Ne5D9C0re_Alw131M9uu2E6M"
             />
+        <meta-data
+            android:name="com.travelpass.OPEN_WEATHER_API_KEY"
+            android:value="PLACEHOLDER_OPENWEATHER_KEY" />
 
 
     </application>
