@@ -201,6 +201,48 @@ class PlaceService {
     }
   }
 
+  /// Fetches the duration (in seconds) between origin and destination.
+  /// Uses the Directions API.
+  Future<int> getDurationInSeconds(LatLng origin, LatLng destination) async {
+    final queryParameters = {
+      'origin': '${origin.latitude},${origin.longitude}',
+      'destination': '${destination.latitude},${destination.longitude}',
+      'key': apiKey,
+      'mode': 'driving',
+    };
+
+    final uri = Uri.https(
+      'maps.googleapis.com',
+      '/maps/api/directions/json',
+      queryParameters,
+    );
+
+    final headers = {
+      if (Platform.isIOS) 'X-Ios-Bundle-Identifier': 'com.venuraka.travelpass',
+      if (Platform.isAndroid) ...{
+        'X-Android-Package': 'com.venuraka.travelpass',
+        'X-Android-Cert': AppConfig.androidCertificateHash.replaceAll(':', '').toLowerCase(),
+      },
+    };
+
+    try {
+      final response = await http.get(uri, headers: headers);
+
+      if (response.statusCode == 200) {
+        final result = json.decode(response.body);
+        if (result['status'] == 'OK') {
+          // duration.value is in seconds
+          return result['routes'][0]['legs'][0]['duration']['value'] as int;
+        }
+        throw Exception(result['error_message'] ?? 'Unknown Directions API error');
+      }
+      return -1; // Error fallback
+    } catch (e) {
+      debugPrint("PlaceService: getDuration error: $e");
+      return -1;
+    }
+  }
+
   /// Decodes a Google Maps encoded polyline string into a list of LatLng.
   /// Simple variable-length integer decoding.
   List<LatLng> _decodePolyline(String encoded) {

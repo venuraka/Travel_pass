@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import '../models/PassengerModel.dart';
 import '../services/Database.dart';
+import '../services/NotificationService.dart';
 
 class RegisterPassengerController {
   final DatabaseService _dbService = DatabaseService();
+  final PushNotificationService _notificationService = PushNotificationService();
 
   Future<void> registerPassenger({
     required PassengerModel passenger,
@@ -35,6 +37,24 @@ class RegisterPassengerController {
 
       // Save to database
       await _dbService.savePassengerData(updatedPassenger);
+
+      // Notify Driver
+      try {
+        if (updatedPassenger.driverId.isNotEmpty) {
+          await _notificationService.sendNotificationToDriver(
+            driverId: updatedPassenger.driverId,
+            title: 'New Student Registration',
+            body: '${updatedPassenger.name} has registered for vehicle ${updatedPassenger.vehiclePlate}.',
+            data: {
+              'type': 'registration',
+              'passengerId': updatedPassenger.uid,
+              'vehiclePlate': updatedPassenger.vehiclePlate,
+            },
+          );
+        }
+      } catch (e) {
+        debugPrint('⚠️ Could not notify driver of registration: $e');
+      }
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

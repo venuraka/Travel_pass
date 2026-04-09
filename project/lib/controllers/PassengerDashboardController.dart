@@ -9,10 +9,12 @@ import '../services/Database.dart';
 import '../models/PassengerModel.dart';
 import '../models/PollModel.dart';
 import '../models/AttendanceModel.dart';
+import '../services/NotificationService.dart';
 
 class PassengerDashboardController {
   final DatabaseService _dbService = DatabaseService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final PushNotificationService _notificationService = PushNotificationService();
 
   // Observable state (simplified for this architecture)
   // In a full GetX/Provider setup, these would be reactive.
@@ -147,7 +149,29 @@ class PassengerDashboardController {
     required DateTime date,
     required String status,
   }) async {
+    // 1. Update DB
     await _dbService.updateAttendance(passengerId, driverId, date, status);
+
+    // 2. Notify Driver (Only if Absent)
+    if (status == 'Absent') {
+      try {
+        final passenger = await _dbService.getPassengerData(passengerId);
+        if (passenger != null) {
+          await _notificationService.sendNotificationToDriver(
+            driverId: driverId,
+            title: 'Attendance Update',
+            body: '${passenger.name} has marked themselves as Absent today.',
+            data: {
+              'type': 'attendance',
+              'passengerId': passengerId,
+              'status': status,
+            },
+          );
+        }
+      } catch (e) {
+        if (kDebugMode) print('⚠️ Could not notify driver of attendance: $e');
+      }
+    }
   }
 
   Future<void> removeAttendance({

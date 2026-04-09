@@ -190,6 +190,83 @@ class PushNotificationService {
       }
     }
   }
+
+  /// 🔹 Send notification specifically to a Driver
+  Future<void> sendNotificationToDriver({
+    required String driverId,
+    required String title,
+    required String body,
+    Map<String, dynamic>? data,
+  }) async {
+    try {
+      // 1️⃣ Get driver token from DB
+      final token = await _dbService.getDriverToken(driverId);
+
+      if (token == null || token.isEmpty) {
+        if (kDebugMode) {
+          print('⚠️ No FCM token found for driver: $driverId');
+        }
+        return;
+      }
+
+      // 2️⃣ Call Firebase Cloud Function
+      final HttpsCallable callable = _functions.httpsCallable('sendNotification');
+
+      await callable.call({
+        'tokens': [token], // Send as a list with one token
+        'title': title,
+        'body': body,
+        'data': data ?? {},
+      });
+
+      if (kDebugMode) {
+        print('✅ Notification sent to driver: $driverId');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error sending notification to driver: $e');
+      }
+    }
+  }
+
+  /// 🔹 Send notification to a specific group of Passengers
+  Future<void> sendNotificationToPassengers({
+    required List<String> passengerIds,
+    required String title,
+    required String body,
+    Map<String, dynamic>? data,
+  }) async {
+    if (passengerIds.isEmpty) return;
+
+    try {
+      // 1️⃣ Get tokens for these passengers
+      final tokens = await _dbService.getTokensForPassengers(passengerIds);
+
+      if (tokens.isEmpty) {
+        if (kDebugMode) print('⚠️ No FCM tokens found for requested passengers.');
+        return;
+      }
+
+      // 2️⃣ Call Firebase Cloud Function
+      final HttpsCallable callable = _functions.httpsCallable('sendNotification');
+
+      final response = await callable.call({
+        'tokens': tokens,
+        'title': title,
+        'body': body,
+        'data': data ?? {},
+      });
+
+      if (kDebugMode) {
+        print('✅ Notifications sent to ${tokens.length} passengers.');
+        print('✅ Cloud Function Result: ${response.data}');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error sending group notification: $e');
+      }
+    }
+  }
 }
 
 /// 🔥 REQUIRED: Background handler (must be top-level)

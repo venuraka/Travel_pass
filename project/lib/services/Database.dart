@@ -438,6 +438,35 @@ class DatabaseService {
     }
   }
 
+  /// Fetches FCM tokens for a specific list of passengers.
+  Future<List<String>> getTokensForPassengers(List<String> passengerIds) async {
+    try {
+      if (passengerIds.isEmpty) return [];
+      final snapshot = await _db
+          .collection('passenger')
+          .where(FieldPath.documentId, whereIn: passengerIds)
+          .get();
+
+      return snapshot.docs
+          .map((doc) => doc.data()['fcmToken'] as String?)
+          .where((token) => token != null && token.isNotEmpty)
+          .cast<String>()
+          .toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /// Fetches a driver's FCM token by UID.
+  Future<String?> getDriverToken(String driverId) async {
+    try {
+      final doc = await _db.collection('driver').doc(driverId).get();
+      return doc.data()?['fcmToken'] as String?;
+    } catch (e) {
+      return null;
+    }
+  }
+
   /// Updates the journey starting status for a driver.
   Future<void> updateJourneyStatus(String driverId, bool isStarted) async {
     try {

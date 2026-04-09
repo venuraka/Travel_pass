@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/Database.dart';
 import '../services/RealtimeDatabase.dart';
 import '../services/PlaceService.dart';
+import '../services/NotificationService.dart';
 import '../models/PassengerModel.dart';
 import '../config/AppConfig.dart';
 
@@ -17,6 +18,7 @@ class StartJourneyController {
   final DatabaseService _dbService = DatabaseService();
   final RealtimeDatabaseService _rtDbService = RealtimeDatabaseService();
   late final PlaceService _placeService = PlaceService(AppConfig.googleMapsApiKey);
+  final PushNotificationService _notificationService = PushNotificationService();
   
   static const _channel = MethodChannel('com.travelpass.app/phone');
 
@@ -29,6 +31,11 @@ class StartJourneyController {
   bool _isAtFinalDestination = false;
   Timer? _autoFinishTimer;
   StreamSubscription? _pooledSubscription;
+  
+  // Notification tracking
+  final Set<String> _notifiedStopNames = {};
+  bool _notifiedEndJourney = false;
+  DateTime? _lastEtaCheckTime;
 
   // Real-time status for the card
   String _currentStatus = "Calculating...";
@@ -775,6 +782,35 @@ class StartJourneyController {
         onProximityReached(proximalPassengers);
       }
     } else {
+      // 🟢 SMART NOTIFICATION LOGIC: 5-minute alert via API
+      final now = DateTime.now();
+      if (!_notifiedStopNames.contains(targetPassenger.pickupLocation) &&
+          (_lastEtaCheckTime == null || now.difference(_lastEtaCheckTime!).inSeconds >= 30)) {
+        
+        _lastEtaCheckTime = now;
+        final seconds = await _placeService.getDurationInSeconds(
+          LatLng(position.latitude, position.longitude),
+          targetLatLng,
+        );
+
+        if (seconds != -1 && seconds <= 300) { // 300s = 5 mins
+          _notifiedStopNames.add(targetPassenger.pickupLocation);
+          
+          // Get all present passengers for this stop
+          List<String> passengerIds = _allPassengers
+              .where((p) => p.pickupLocation == targetPassenger.pickupLocation)
+              .map((p) => p.uid)
+              .toList();
+
+          await _notificationService.sendNotificationToPassengers(
+            passengerIds: passengerIds,
+            title: 'Bus is approaching!',
+            body: 'The bus is about 5 minutes away from your pickup point.',
+            data: {'type': 'bus_near', 'stop': targetPassenger.pickupLocation},
+          );
+        }
+      }
+
       // Logic for Dynamic Status
       if (_currentPassengerLocation != null) {
         // Calculate passenger's distance to pickup
@@ -860,6 +896,32 @@ class StartJourneyController {
       }
       _currentStatus = "At Destination";
     } else {
+      // 🟢 SMART NOTIFICATION LOGIC: End of Journey reminder
+      final now = DateTime.now();
+      if (!_notifiedEndJourney && 
+          (_lastEtaCheckTime == null || now.difference(_lastEtaCheckTime!).inSeconds >= 30)) {
+        
+        _lastEtaCheckTime = now;
+        final seconds = await _placeService.getDurationInSeconds(
+          LatLng(position.latitude, position.longitude),
+          targetLatLng,
+        );
+
+        if (seconds != -1 && seconds <= 300) { // 300s = 5 mins
+          _notifiedEndJourney = true;
+          
+          // Notify ALL present passengers
+          List<String> passengerIds = _allPassengers.map((p) => p.uid).toList();
+
+          await _notificationService.sendNotificationToPassengers(
+            passengerIds: passengerIds,
+            title: 'Check your belongings!',
+            body: 'We are nearing the end of the journey. Please make sure you have all your items like bags and phones.',
+            data: {'type': 'journey_ending'},
+          );
+        }
+      }
+
       _isAtFinalDestination = false;
       _autoFinishTimer?.cancel(); // Cancel if they move away before it finishes
       int mins = (distance / 11 / 60).round();
