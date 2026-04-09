@@ -16,6 +16,7 @@ class DriverModel {
   final bool isJourneyStarted;
   final double balance;
   final String badgePreference; // Added: 'Daily', 'Monthly', or 'Both'
+  final String? fcmToken; // Added for push notifications
 
   DriverModel({
     required this.uid,
@@ -33,6 +34,7 @@ class DriverModel {
     this.isJourneyStarted = false,
     this.balance = 0.0,
     this.badgePreference = 'Both', // Default to 'Both'
+    this.fcmToken,
   });
 
   Map<String, dynamic> toMap() {
@@ -55,6 +57,7 @@ class DriverModel {
       'isJourneyStarted': isJourneyStarted,
       'balance': balance,
       'badgePreference': badgePreference,
+      'fcmToken': fcmToken,
     };
   }
 }

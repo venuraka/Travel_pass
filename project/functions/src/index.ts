@@ -7,14 +7,100 @@
  * See a full list of supported triggers at https://firebase.google.com/docs/functions
  */
 
-import {onRequest} from "firebase-functions/v2/https";
+import {onRequest, onCall} from "firebase-functions/v2/https";
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
 import * as crypto from "crypto";
 
-// Initialize Firebase Admin SDK
-admin.initializeApp();
+// Initialize Firebase Admin with explicit credentials
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const serviceAccount = require("../serviceAccountKey.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  projectId: "travelpass-40736",
+});
 const db = admin.firestore();
+
+/*
+  SEND NOTIFICATION (CALLABLE)
+  ---------------------------
+  Sends a push notification to a list of device tokens.
+  Optimized for high-priority delivery even on locked screens.
+*/
+export const sendNotification = onCall(async (request) => {
+  // 1. Verify Authentication
+  if (!request.auth) {
+    throw new Error("The function must be called while authenticated.");
+  }
+
+  const {tokens, title, body, data} = request.data;
+
+  if (!tokens || !Array.isArray(tokens) || tokens.length === 0) {
+    logger.warn("No tokens provided for notification.");
+    return {success: false, message: "No tokens provided"};
+  }
+
+  // 2. Construct Message
+  // Using sendEachForMulticast (FCM v1 compatible)
+  const message: admin.messaging.MulticastMessage = {
+    notification: {
+      title: title,
+      body: body,
+    },
+    data: data || {},
+    tokens: tokens,
+    android: {
+      priority: "high",
+      notification: {
+        sound: "default",
+        priority: "high",
+        channelId: "high_importance_channel", // Ensure this exists on device
+      },
+    },
+    apns: {
+      payload: {
+        aps: {
+          "content-available": 1,
+          "mutable-content": 1,
+          "sound": "default",
+        },
+      },
+      headers: {
+        "apns-priority": "10", // High priority for iOS
+      },
+    },
+  };
+
+  try {
+    const response = await admin.messaging().sendEachForMulticast(message);
+    logger.info(`Successfully sent ${response.successCount} notifications.`);
+
+    const errors: any[] = [];
+    if (response.failureCount > 0) {
+      response.responses.forEach((resp, idx) => {
+        if (!resp.success) {
+          logger.error(`Token ${tokens[idx]} failed:`, resp.error);
+          errors.push({
+            token: tokens[idx],
+            errorCode: resp.error?.code,
+            message: resp.error?.message,
+          });
+        }
+      });
+    }
+
+    return {
+      success: true,
+      successCount: response.successCount,
+      failureCount: response.failureCount,
+      errors: errors,
+    };
+  } catch (error) {
+    logger.error("Error sending notification:", error);
+    throw new Error("Failed to send notification.");
+  }
+});
 
 // Only export the functions you actually want to deploy.
 // If helloWorld is not needed, you can remove it.
@@ -58,7 +144,7 @@ export const payhereNotify = onRequest(async (req, res) => {
   const amountFormatted = payhereAmount; // PayHere sends amount like '1000.00'
 
   const validationString = `${merchantId}${orderId}${amountFormatted}` +
-        `${payhereCurrency}${statusCode}${hashedSecret}`;
+    `${payhereCurrency}${statusCode}${hashedSecret}`;
 
   const localMd5sig = crypto.createHash("md5")
     .update(validationString)

@@ -409,6 +409,35 @@ class DatabaseService {
     }
   }
 
+  /// Updates the FCM token for a user (driver or passenger).
+  Future<void> updateFcmToken(String collection, String uid, String token) async {
+    try {
+      await _db.collection(collection).doc(uid).set({
+        'fcmToken': token,
+      }, SetOptions(merge: true));
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Updates the FCM token for a passenger.
+  Future<List<String>> getPassengerTokensByDriver(String driverId) async {
+    try {
+      final snapshot = await _db
+          .collection('passenger')
+          .where('driverId', isEqualTo: driverId)
+          .get();
+
+      return snapshot.docs
+          .map((doc) => doc.data()['fcmToken'] as String?)
+          .where((token) => token != null && token.isNotEmpty)
+          .cast<String>()
+          .toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
   /// Updates the journey starting status for a driver.
   Future<void> updateJourneyStatus(String driverId, bool isStarted) async {
     try {

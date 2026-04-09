@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../services/NotificationService.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -44,6 +45,8 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
   void initState() {
     super.initState();
     _loadData();
+    // Refresh push notification token for this passenger
+    PushNotificationService().updateTokenForPassenger();
   }
 
 

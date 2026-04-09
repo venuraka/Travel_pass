@@ -10,6 +10,7 @@ import '../Components/CustomSnackBar.dart';
 import '../../services/Database.dart';
 import '../../models/PassengerModel.dart';
 import '../passenger/PendingApproval.dart';
+import '../../services/NotificationService.dart';
 
 class PassengerRegistrationScreen extends StatefulWidget {
   const PassengerRegistrationScreen({super.key});
@@ -184,13 +185,12 @@ class _PassengerRegistrationScreenState
       // Assuming user is already signed in via Previous screens (SignUp -> UserSelection -> Here)
       User? user = FirebaseAuth.instance.currentUser;
 
-      // If no user is signed in, we might need to rely on the passed data to create one?
-      // But typically registration happens AFTER auth.
-      // Let's assume user is signed in.
       if (user == null) {
         throw Exception("User must be signed in to register profile");
       }
 
+      final token = await PushNotificationService().getToken();
+      
       final newPassenger = PassengerModel(
         uid: user.uid,
         name: _nameController.text.trim(),
@@ -204,6 +204,7 @@ class _PassengerRegistrationScreenState
         pickupLocation: _selectedLocation!,
         role: 'passenger',
         createdAt: Timestamp.now(),
+        fcmToken: token,
       );
 
       await _dbService.savePassengerData(newPassenger);

@@ -4,8 +4,11 @@ import 'package:uuid/uuid.dart';
 import '../models/UpdateModel.dart';
 import '../services/Database.dart';
 
+import '../services/NotificationService.dart';
+
 class UpdatesController {
   final DatabaseService _dbService = DatabaseService();
+  final PushNotificationService _notificationService = PushNotificationService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final Uuid _uuid = const Uuid();
 
@@ -36,6 +39,14 @@ class UpdatesController {
       );
 
       await _dbService.saveUpdate(update);
+
+      // Trigger Push Notification
+      await _notificationService.sendPushNotification(
+        driverId: user.uid,
+        title: "New Update from Driver",
+        body: content,
+        data: {"type": "update", "driverId": user.uid},
+      );
     } catch (e) {
       debugPrint("Error sending update: $e");
       if (context.mounted) {

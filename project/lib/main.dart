@@ -8,7 +8,8 @@ import 'Screens/UserRegistration/SignUp.dart';
 import 'Screens/passenger/Dashboard.dart';
 import 'firebase_options.dart';
 import 'utils/AuthWrapper.dart';
-import 'config/AppConfig.dart';
+import 'package:project/services/NotificationService.dart';
+import 'package:project/config/AppConfig.dart';
 
 void main() async {
   // 1. Ensures Flutter widgets are ready before initializing Firebase
@@ -22,7 +23,8 @@ void main() async {
   // 3. Initialize Firebase with your project options
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   
-  // 4. Set up FCM Background handler removed
+  // 4. Initialize FCM
+  await PushNotificationService().initialize();
 
   // 5. Load API keys securely from native platform (Info.plist / AndroidManifest)
   await AppConfig.init();

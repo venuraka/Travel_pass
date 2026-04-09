@@ -7,6 +7,7 @@ import '../Components/Header.dart';
 import '../../services/Database.dart';
 import 'VehicleRegistration.dart';
 import '../Components/CustomSnackBar.dart';
+import '../../services/NotificationService.dart';
 
 class DriverRegistrationScreen extends StatefulWidget {
   const DriverRegistrationScreen({super.key});
@@ -99,12 +100,15 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
     setState(() => _isLoading = true);
 
     try {
+      final token = await PushNotificationService().getToken();
+      
       final driver = DriverModel(
         uid: user.uid,
         name: _nameController.text.trim(),
         vehiclePlate: _plateController.text.trim(),
         phone: _phoneController.text.trim(),
         email: _emailController.text.trim(),
+        fcmToken: token,
       );
 
       await _dbService.saveDriverData(driver);

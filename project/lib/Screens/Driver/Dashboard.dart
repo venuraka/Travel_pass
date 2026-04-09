@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../services/NotificationService.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../Components/BottomBar.dart';
 import 'Attendance.dart';
@@ -43,6 +44,8 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   void initState() {
     super.initState();
     _loadDashboardData();
+    // Refresh push notification token for this driver
+    PushNotificationService().updateTokenForDriver();
     
     // Real-time stream for passenger count
     _countSubscription = _controller.getTodayPassengerCountStream().listen((count) {

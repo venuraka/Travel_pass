@@ -10,6 +10,7 @@ import 'PassengerSummery.dart';
 import '../../services/Database.dart';
 import '../../models/PollModel.dart';
 import '../../models/DriverModel.dart';
+import '../../services/NotificationService.dart';
 
 
 
@@ -39,6 +40,7 @@ class _PollScreenState extends State<PollScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
   DriverModel? _currentDriver;
+  final PushNotificationService _notificationService = PushNotificationService();
   bool _isLoading = false;
 
   @override
@@ -143,7 +145,13 @@ class _PollScreenState extends State<PollScreen> {
         );
         await _dbService.createPoll(newPoll);
 
-
+        // Trigger Push Notification for new poll
+        await _notificationService.sendPushNotification(
+          driverId: _currentDriver!.uid,
+          title: "New Poll Started",
+          body: "Your driver has started a new attendance poll. Please mark your attendance.",
+          data: {"type": "poll", "driverId": _currentDriver!.uid},
+        );
       }
 
 

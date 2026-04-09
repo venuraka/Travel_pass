@@ -15,6 +15,7 @@ class PassengerModel {
   final bool registered;
   final Timestamp createdAt;
   final String paymentAmount; // Added field
+  final String? fcmToken; // Added for push notifications
 
   PassengerModel({
     required this.uid,
@@ -31,6 +32,7 @@ class PassengerModel {
     this.registered = false,
     required this.createdAt,
     this.paymentAmount = '', // Default empty
+    this.fcmToken,
   });
 
   Map<String, dynamic> toMap() {
@@ -49,6 +51,7 @@ class PassengerModel {
       'registered': registered,
       'createdAt': createdAt,
       'paymentAmount': paymentAmount, // Added
+      'fcmToken': fcmToken,
     };
   }
 
@@ -68,6 +71,7 @@ class PassengerModel {
       registered: map['registered'] ?? false,
       createdAt: map['createdAt'] ?? Timestamp.now(),
       paymentAmount: map['paymentAmount'] ?? '', // Added
+      fcmToken: map['fcmToken'],
     );
   }
 }

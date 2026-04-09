@@ -1,5 +1,9 @@
 {
   "projects": {
-    "default": "travelpass-40736"
-  }
+    "default": "travelpass-40736",
+    "firebase functions:delete pollNotifier": "travelpass-40736",
+    "prod": "travelpass-40736"
+  },
+  "targets": {},
+  "etags": {}
 }

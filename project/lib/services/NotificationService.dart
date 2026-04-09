@@ -1,0 +1,202 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
+import 'package:project/services/Database.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
+class PushNotificationService {
+  final FirebaseMessaging _fcm = FirebaseMessaging.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FlutterLocalNotificationsPlugin _localNotifications = FlutterLocalNotificationsPlugin();
+
+  // ✅ High Importance Channel for Android (Must match Cloud Function)
+  static const AndroidNotificationChannel channel = AndroidNotificationChannel(
+    'high_importance_channel', 
+    'High Importance Notifications',
+    description: 'This channel is used for essential passenger alerts.',
+    importance: Importance.max,
+  );
+
+  // ✅ Set to us-central1 as confirmed in your Firebase Console
+  final FirebaseFunctions _functions = FirebaseFunctions.instanceFor(region: 'us-central1');
+
+  final DatabaseService _dbService = DatabaseService();
+
+  static final PushNotificationService _instance =
+  PushNotificationService._internal();
+
+  factory PushNotificationService() => _instance;
+
+  PushNotificationService._internal();
+
+  /// 🔹 Initialize FCM
+  Future<void> initialize() async {
+    // 1️⃣ Request permission (iOS + Android 13+)
+    NotificationSettings settings = await _fcm.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    // 2️⃣ Initialize Local Notifications (For Foreground Popups)
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+    
+    const InitializationSettings initializationSettings = InitializationSettings(
+      android: initializationSettingsAndroid,
+      iOS: DarwinInitializationSettings(),
+    );
+
+    await _localNotifications.initialize(initializationSettings);
+
+    // 3️⃣ Create Android Channel
+    await _localNotifications
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(channel);
+
+    if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+      if (kDebugMode) {
+        print('✅ Notification permission granted');
+      }
+
+      // 4️⃣ Foreground messages listener
+      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        RemoteNotification? notification = message.notification;
+        AndroidNotification? android = message.notification?.android;
+
+        if (kDebugMode) {
+          print('📩 Foreground notification: ${notification?.title}');
+        }
+
+        // Show local notification if message contains a notification
+        if (notification != null && android != null) {
+          _localNotifications.show(
+            notification.hashCode,
+            notification.title,
+            notification.body,
+            NotificationDetails(
+              android: AndroidNotificationDetails(
+                channel.id,
+                channel.name,
+                channelDescription: channel.description,
+                icon: android.smallIcon,
+                priority: Priority.high,
+                importance: Importance.max,
+              ),
+            ),
+          );
+        }
+      });
+    } else {
+      if (kDebugMode) {
+        print('❌ Notification permission denied');
+      }
+    }
+
+    // 5️⃣ Background handler
+    FirebaseMessaging.onBackgroundMessage(
+        firebaseMessagingBackgroundHandler);
+  }
+
+  Future<String?> getToken() async {
+    return await _fcm.getToken();
+  }
+
+  /// 🔹 Update token specifically for a Driver (called from Driver Dashboard)
+  Future<void> updateTokenForDriver() async {
+    await _saveTokenToDatabase(collection: 'driver');
+  }
+
+  /// 🔹 Update token specifically for a Passenger (called from Passenger Dashboard)
+  Future<void> updateTokenForPassenger() async {
+    await _saveTokenToDatabase(collection: 'passenger');
+  }
+
+  /// 🔹 Save token to Firestore
+  Future<void> _saveTokenToDatabase({required String collection, String? newToken}) async {
+    final user = _auth.currentUser;
+
+    if (user != null) {
+      if (kDebugMode) print('👤 User detected: ${user.uid}. Fetching token...');
+      
+      String? token = newToken;
+      
+      // Retry up to 3 times if token is null (common on first boot)
+      for (int i = 0; i < 3; i++) {
+        token ??= await _fcm.getToken();
+        if (token != null) break;
+        
+        if (kDebugMode) print('⏳ Token is null, retrying in 2s... ($i/3)');
+        await Future.delayed(const Duration(seconds: 2));
+      }
+
+      if (token != null) {
+        try {
+          await _dbService.updateFcmToken(collection, user.uid, token);
+          if (kDebugMode) {
+            print('✅ FCM Token successfully saved to $collection collection: $token');
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            print('⚠️ Failed to save FCM token to $collection: $e');
+          }
+        }
+      } else {
+        if (kDebugMode) {
+          print('❌ Failed to retrieve FCM token after retries. Check Google Play Services.');
+        }
+      }
+    } else {
+      if (kDebugMode) print('ℹ️ No user logged in. Skipping token save.');
+    }
+  }
+
+  /// 🔹 Send push notification via Cloud Function
+  Future<void> sendPushNotification({
+    required String driverId,
+    required String title,
+    required String body,
+    Map<String, dynamic>? data,
+  }) async {
+    try {
+      // 1️⃣ Get tokens from DB
+      final tokens = await _dbService.getPassengerTokensByDriver(driverId);
+
+      if (tokens.isEmpty) {
+        if (kDebugMode) {
+          print('⚠️ No tokens found for driver: $driverId');
+        }
+        return;
+      }
+
+      // 2️⃣ Call Firebase Cloud Function
+      final HttpsCallable callable =
+      _functions.httpsCallable('sendNotification');
+
+      final response = await callable.call({
+        'tokens': tokens,
+        'title': title,
+        'body': body,
+        'data': data ?? {},
+      });
+
+      if (kDebugMode) {
+        print('✅ Cloud Function Result: ${response.data}');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('❌ Error sending notification: $e');
+      }
+    }
+  }
+}
+
+/// 🔥 REQUIRED: Background handler (must be top-level)
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(
+    RemoteMessage message) async {
+  if (kDebugMode) {
+    print('📩 Background message: ${message.messageId}');
+  }
+}
