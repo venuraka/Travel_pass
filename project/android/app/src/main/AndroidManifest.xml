@@ -46,7 +46,7 @@
             />
         <meta-data
             android:name="com.travelpass.OPEN_WEATHER_API_KEY"
-            android:value="PLACEHOLDER_OPENWEATHER_KEY" />
+            android:value="648b81e24eaba35c85388932820a1391" />
 
 
     </application>
