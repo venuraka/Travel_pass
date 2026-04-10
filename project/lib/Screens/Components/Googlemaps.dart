@@ -158,13 +158,47 @@ class _GoogleMapsStatefulState extends State<_GoogleMapsStateful> {
     // 2. Fallback to standard GPS
     bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
     if (!serviceEnabled) {
-      await Geolocator.openLocationSettings();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Location services are disabled.")),
+        );
+      }
       return;
     }
 
-    final pos = await Geolocator.getCurrentPosition();
-    controller?.animateCamera(
-      CameraUpdate.newLatLngZoom(LatLng(pos.latitude, pos.longitude), 16),
-    );
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Location permissions are denied.")),
+          );
+        }
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Location permissions are permanently denied.")),
+        );
+      }
+      return;
+    }
+
+    try {
+      final pos = await Geolocator.getCurrentPosition();
+      controller?.animateCamera(
+        CameraUpdate.newLatLngZoom(LatLng(pos.latitude, pos.longitude), 16),
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error getting location: $e")),
+        );
+      }
+    }
   }
 }

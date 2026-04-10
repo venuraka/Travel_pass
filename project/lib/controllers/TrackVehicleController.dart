@@ -31,6 +31,7 @@ class TrackVehicleController {
   final Function(LatLng) onPassengerLocationChanged; // Added
   final Function(LatLng) onPickupLocationAcquired; // Added
   final Function(List<LatLng>) onWalkingPathChanged; // Added
+  final Function(List<LatLng>) onVehiclePathChanged; // Added
 
   TrackVehicleController({
     required this.onPooledLocationChanged,
@@ -43,6 +44,7 @@ class TrackVehicleController {
     required this.onPassengerLocationChanged,
     required this.onPickupLocationAcquired,
     required this.onWalkingPathChanged,
+    required this.onVehiclePathChanged,
   });
 
 
@@ -76,6 +78,8 @@ class TrackVehicleController {
   
   LatLng? _lastPathFetchPassengerPos;
   LatLng? _lastPathFetchPickupPos;
+  LatLng? _lastVehiclePathFetchVehiclePos;
+  LatLng? _lastVehiclePathFetchPickupPos;
 
   void startTracking(String driverId, String passengerId) {
     _driverId = driverId;
@@ -208,6 +212,10 @@ class TrackVehicleController {
     // Green Status: Bus moving to pickup
     int busMins = (busDist / 11 / 60).round();
     if (busMins < 1) busMins = 1;
+
+    // Calculate vehicle path to pickup
+    _calculateVehiclePath(_currentVehicleLoc!, _myPickupLoc!);
+
     onStatusChanged("$busMins min pickup");
   }
 
@@ -241,6 +249,36 @@ class TrackVehicleController {
     }
   }
 
+  bool _isFetchingVehiclePath = false;
+  Future<void> _calculateVehiclePath(LatLng vehicleLoc, LatLng pickupLoc) async {
+    if (_isFetchingVehiclePath || _placeService == null) return;
+
+    // Throttle: only re-fetch if they moved > 50 meters
+    if (_lastVehiclePathFetchVehiclePos != null && _lastVehiclePathFetchPickupPos != null) {
+      double dV = Geolocator.distanceBetween(
+        vehicleLoc.latitude, vehicleLoc.longitude,
+        _lastVehiclePathFetchVehiclePos!.latitude, _lastVehiclePathFetchVehiclePos!.longitude
+      );
+      double dPick = Geolocator.distanceBetween(
+        pickupLoc.latitude, pickupLoc.longitude,
+        _lastVehiclePathFetchPickupPos!.latitude, _lastVehiclePathFetchPickupPos!.longitude
+      );
+      if (dV < 50 && dPick < 10) return;
+    }
+
+    _isFetchingVehiclePath = true;
+    try {
+      final path = await _placeService!.getDirections(vehicleLoc, pickupLoc, [], mode: 'driving');
+      onVehiclePathChanged(path);
+      _lastVehiclePathFetchVehiclePos = vehicleLoc;
+      _lastVehiclePathFetchPickupPos = pickupLoc;
+    } catch (e) {
+      if (kDebugMode) print('TrackVehicleController: Failed to fetch vehicle path: $e');
+    } finally {
+      _isFetchingVehiclePath = false;
+    }
+  }
+
 
   void _startLocationSharing() async {
     if (_positionSubscription != null) return;
@@ -249,6 +287,10 @@ class TrackVehicleController {
     if (!serviceEnabled) return;
 
     LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    
     if (radiusPerm(permission)) {
        _positionSubscription = Geolocator.getPositionStream(
         locationSettings: const LocationSettings(

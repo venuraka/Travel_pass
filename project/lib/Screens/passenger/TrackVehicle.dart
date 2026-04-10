@@ -29,6 +29,7 @@ class _TrackVehicleState extends State<TrackVehicle> {
   LatLng? _passengerLocation; // Added
   LatLng? _pickupLocation; // Added
   List<LatLng> _walkingPath = []; // Added
+  List<LatLng> _vehiclePath = []; // Added
   bool _isOnboarded = false;
   String _currentStatus = "Calculating...";
   String _nextStop = "Calculating..."; // Added
@@ -111,6 +112,14 @@ class _TrackVehicleState extends State<TrackVehicle> {
           });
         }
       },
+      onVehiclePathChanged: (List<LatLng> path) {
+        if (mounted) {
+          setState(() {
+            _vehiclePath = path;
+            _fitBoundsOnce(); // Try to fit bounds when we have paths
+          });
+        }
+      },
     );
     _controller.init(); // Use init instead of direct startTracking if we want to fetch pData first
   }
@@ -168,6 +177,16 @@ class _TrackVehicleState extends State<TrackVehicle> {
         ),
       );
     }
+    if (_vehiclePath.isNotEmpty && !_isOnboarded) {
+      polylines.add(
+        Polyline(
+          polylineId: const PolylineId('vehicle_route'),
+          points: _vehiclePath,
+          color: Colors.green.withOpacity(0.7),
+          width: 5,
+        ),
+      );
+    }
 
     return Scaffold(
       body: Stack(
@@ -178,6 +197,9 @@ class _TrackVehicleState extends State<TrackVehicle> {
             markers: markers,
             polylines: polylines,
             bottomPadding: 240, 
+            onMapCreated: (c) {
+              _mapController = c;
+            },
           ),
 
           // Journey Info Card (Bottom Positioned)
@@ -215,4 +237,43 @@ class _TrackVehicleState extends State<TrackVehicle> {
       ),
     );
   }
+
+  GoogleMapController? _mapController;
+  bool _hasFittedBounds = false;
+
+  void _fitBoundsOnce() {
+    if (_hasFittedBounds || _mapController == null) return;
+
+    List<LatLng> points = [];
+    if (_pooledLocation != null) points.add(_pooledLocation!);
+    if (_passengerLocation != null) points.add(_passengerLocation!);
+    if (_pickupLocation != null) points.add(_pickupLocation!);
+
+    if (points.length < 2) return;
+
+    _hasFittedBounds = true;
+
+    double minLat = points.first.latitude;
+    double maxLat = points.first.latitude;
+    double minLng = points.first.longitude;
+    double maxLng = points.first.longitude;
+
+    for (var point in points) {
+      if (point.latitude < minLat) minLat = point.latitude;
+      if (point.latitude > maxLat) maxLat = point.latitude;
+      if (point.longitude < minLng) minLng = point.longitude;
+      if (point.longitude > maxLng) maxLng = point.longitude;
+    }
+
+    _mapController!.animateCamera(
+      CameraUpdate.newLatLngBounds(
+        LatLngBounds(
+          southwest: LatLng(minLat, minLng),
+          northeast: LatLng(maxLat, maxLng),
+        ),
+        100, // Padding
+      ),
+    );
+  }
 }
+
