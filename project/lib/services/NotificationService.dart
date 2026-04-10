@@ -4,6 +4,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:project/services/Database.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:project/main.dart'; // Added
+import 'package:project/Screens/passenger/PaymentHistory.dart'; // Added
+import 'package:flutter/material.dart'; // Added
 
 class PushNotificationService {
   final FirebaseMessaging _fcm = FirebaseMessaging.instance;
@@ -86,6 +89,25 @@ class PushNotificationService {
               ),
             ),
           );
+
+          // ✅ Handle Foreground Redirection
+          if (message.data['screen'] == 'payment') {
+            handleNotificationRedirect(message.data);
+          }
+        }
+      });
+
+      // 5️⃣ Handle Background Notification Taps (Tapped when app is in background but open)
+      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+        if (kDebugMode) print('📩 Notification tapped in background: ${message.data}');
+        handleNotificationRedirect(message.data);
+      });
+
+      // 6️⃣ Handle Cold Start Notification Taps (Tapped when app was totally closed)
+      _fcm.getInitialMessage().then((RemoteMessage? message) {
+        if (message != null) {
+          if (kDebugMode) print('📩 Notification tapped (Cold Start): ${message.data}');
+          handleNotificationRedirect(message.data);
         }
       });
     } else {
@@ -94,9 +116,21 @@ class PushNotificationService {
       }
     }
 
-    // 5️⃣ Background handler
+    // 7️⃣ Background handler
     FirebaseMessaging.onBackgroundMessage(
         firebaseMessagingBackgroundHandler);
+  }
+
+  /// 🔹 Handle Redirection Logic
+  void handleNotificationRedirect(Map<String, dynamic> data) {
+    if (data['screen'] == 'payment') {
+      final context = MyApp.navigatorKey.currentContext;
+      if (context != null) {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => const PaymentHistoryScreen()),
+        );
+      }
+    }
   }
 
   Future<String?> getToken() async {

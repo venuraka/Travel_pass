@@ -662,4 +662,71 @@ class DatabaseService {
       return 'Driver';
     });
   }
+
+  // --- Payment Methods ---
+
+  /// Records a successful payment in the 'payments' collection.
+  Future<void> recordPayment({
+    required String passengerId,
+    required String driverId,
+    required String amount,
+    required String type,
+    required String paymentId,
+  }) async {
+    try {
+      await _db.collection('payments').add({
+        'passengerId': passengerId,
+        'driverId': driverId,
+        'amount': amount,
+        'type': type,
+        'paymentId': paymentId,
+        'timestamp': FieldValue.serverTimestamp(),
+        'date': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Returns a stream of payment history for a specific passenger.
+  Stream<List<Map<String, dynamic>>> getPaymentHistory(String passengerId) {
+    return _db
+        .collection('payments')
+        .where('passengerId', isEqualTo: passengerId)
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
+  }
+
+  /// Checks if a daily payment was already made today.
+  Future<bool> checkIfPaidToday(String passengerId) async {
+    try {
+      final now = DateTime.now();
+      final todayStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+      final snapshot = await _db.collection('payments')
+          .where('passengerId', isEqualTo: passengerId)
+          .where('type', isEqualTo: 'Daily')
+          .get();
+      
+      return snapshot.docs.any((doc) => doc.data()['date']?.toString().startsWith(todayStr) ?? false);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// Checks if a monthly payment was already made for the current month.
+  Future<bool> checkIfPaidThisMonth(String passengerId) async {
+    try {
+      final now = DateTime.now();
+      final monthStr = "${now.year}-${now.month.toString().padLeft(2, '0')}";
+      final snapshot = await _db.collection('payments')
+          .where('passengerId', isEqualTo: passengerId)
+          .where('type', isEqualTo: 'Monthly')
+          .get();
+      
+      return snapshot.docs.any((doc) => doc.data()['date']?.toString().startsWith(monthStr) ?? false);
+    } catch (e) {
+      return false;
+    }
+  }
 }

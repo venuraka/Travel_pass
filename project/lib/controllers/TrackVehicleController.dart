@@ -9,11 +9,13 @@ import '../services/PlaceService.dart'; // Added
 import '../config/AppConfig.dart'; // Added
 import '../models/PassengerModel.dart';
 import '../models/DriverModel.dart';
+import '../services/NotificationService.dart'; // Added
 
 class TrackVehicleController {
   final DatabaseService _dbService = DatabaseService();
   final RealtimeDatabaseService _rtDbService = RealtimeDatabaseService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final PushNotificationService _notificationService = PushNotificationService(); // Added
 
   StreamSubscription<Position>? _positionSubscription;
   StreamSubscription<bool>? _onboardedSubscription;
@@ -85,6 +87,7 @@ class TrackVehicleController {
   LatLng? _nextStopLoc;
   LatLng? _myPickupLoc;
   bool _isOnboarded = false;
+  bool _notifiedDropOff = false; // Added
   PlaceService? _placeService;
   List<Map<String, dynamic>>? _driverRoute; // Added
   
@@ -275,6 +278,27 @@ class TrackVehicleController {
     _checkHasNextPickup(driverData);
 
     onStatusChanged("$busMins min pickup");
+
+    // ✅ SMART NOTIFICATION: 10 min to drop-off
+    if (_isOnboarded && !_notifiedDropOff && _routeDestination != null && _currentVehicleLoc != null) {
+      final double distToDest = Geolocator.distanceBetween(
+        _currentVehicleLoc!.latitude, _currentVehicleLoc!.longitude,
+        _routeDestination!.latitude, _routeDestination!.longitude
+      );
+      
+      // Fast estimate (11m/s)
+      final int dropOffMins = (distToDest / 11 / 60).round();
+      
+      if (dropOffMins <= 10 && dropOffMins > 0) {
+        _notifiedDropOff = true;
+        _notificationService.sendNotificationToPassengers(
+          passengerIds: [_passengerId!], 
+          title: "Almost There!", 
+          body: "You are 10 minutes away from your destination. Tap here to settle your payment.",
+          data: {'screen': 'payment'}
+        );
+      }
+    }
   }
 
   void _checkHasNextPickup(DriverModel? driverData) {

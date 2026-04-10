@@ -1,29 +1,139 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../Components/AppBar.dart';
+import '../../services/Database.dart';
+import '../../services/payment_service.dart';
+import '../../models/PassengerModel.dart';
+import '../../models/DriverModel.dart';
 
-class PaymentHistoryScreen extends StatelessWidget {
+class PaymentHistoryScreen extends StatefulWidget {
   const PaymentHistoryScreen({super.key});
 
-  // Temporary demo list for payments
-  final List<Map<String, dynamic>> payments = const [
-    {"date": "2024/12/1", "amount": "Rs 1000"},
-    {"date": "2024/12/1", "amount": "Rs 1000"},
-    {"date": "2024/12/1", "amount": "Rs 1000"},
-    {"date": "2024/12/1", "amount": "Rs 1000"},
-    {"date": "2024/12/1", "amount": "Rs 1000"},
-    {"date": "2024/12/1", "amount": "Rs 1000"},
-    {"date": "2024/12/1", "amount": "Rs 1000"},
-    {"date": "2024/12/1", "amount": "Rs 1000"},
-    {"date": "2024/12/1", "amount": "Rs 1000"},
-    {"date": "2024/12/1", "amount": "Rs 1000"},
-    {"date": "2024/12/1", "amount": "Rs 1000"},
-    {"date": "2024/12/1", "amount": "Rs 1000"},
-  ];
+  @override
+  State<PaymentHistoryScreen> createState() => _PaymentHistoryScreenState();
+}
+
+class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
+  final DatabaseService _dbService = DatabaseService();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  
+  PassengerModel? _passenger;
+  DriverModel? _driver;
+  String _attendanceStatus = 'Not Marked';
+  bool _isPaid = false;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      final pData = await _dbService.getPassengerData(user.uid);
+      if (pData != null) {
+        final dData = await _dbService.getDriverData(pData.driverId);
+        final attendance = await _dbService.getTodayAttendanceStatus(user.uid);
+        
+        bool paid = false;
+        if (pData.paymentType == 'Daily') {
+          paid = await _dbService.checkIfPaidToday(user.uid);
+        } else {
+          paid = await _dbService.checkIfPaidThisMonth(user.uid);
+        }
+
+        if (mounted) {
+          setState(() {
+            _passenger = pData;
+            _driver = dData;
+            _attendanceStatus = attendance;
+            _isPaid = paid;
+            _isLoading = false;
+          });
+        }
+      }
+    }
+  }
+
+  bool get _isButtonEnabled {
+    if (_passenger == null || _driver == null || _isPaid) return false;
+
+    if (_passenger!.paymentType == 'Daily') {
+      return _attendanceStatus == 'Present';
+    } else {
+      // Monthly logic
+      final now = DateTime.now();
+      final dueDay = (_driver!.paymentDate?.day) ?? 1;
+      return now.day >= dueDay;
+    }
+  }
+
+  String _getMonthName() {
+    final now = DateTime.now();
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return months[now.month - 1];
+  }
+
+  void _handlePayment() {
+    if (!_isButtonEnabled) return;
+
+    final amountStr = _passenger!.paymentAmount.isNotEmpty 
+        ? _passenger!.paymentAmount 
+        : (_passenger!.paymentType == 'Monthly' 
+            ? (_driver!.monthlyPaymentAmount ?? '0') 
+            : (_driver!.dailyPaymentAmount ?? '0'));
+
+    PaymentService.startOneTimePayment(
+      amount: amountStr,
+      orderId: 'PAY-${DateTime.now().millisecondsSinceEpoch}',
+      itemsDescription: '${_passenger!.paymentType} Payment - ${_getMonthName()}',
+      firstName: _passenger!.name.split(' ').first,
+      lastName: _passenger!.name.contains(' ') ? _passenger!.name.split(' ').last : 'Passenger',
+      email: _passenger!.email,
+      phone: _passenger!.phone,
+      address: _passenger!.address,
+      city: 'Colombo',
+      onCompleted: (paymentId) async {
+        await _dbService.recordPayment(
+          passengerId: _passenger!.uid,
+          driverId: _passenger!.driverId,
+          amount: amountStr,
+          type: _passenger!.paymentType,
+          paymentId: paymentId,
+        );
+        
+        // Reload to update button state
+        await _loadData();
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Payment Successful!'))
+          );
+        }
+      },
+      onError: (error) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Payment Failed: $error'))
+          );
+        }
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final Color appGreen = const Color(0xFF05A664);
     final Color bgGreenTint = const Color(0xFFF1F8F5);
+
+    if (_isLoading) {
+      return Scaffold(body: const Center(child: CircularProgressIndicator()));
+    }
 
     return Scaffold(
       backgroundColor: bgGreenTint,
@@ -36,35 +146,15 @@ class PaymentHistoryScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 10),
-
-              // --- Section 1: Arias Payment Card (Outstanding Payment) ---
-              _buildSectionHeader("Arias Outstanding Payments", appGreen), // Changed header slightly
+              _buildSectionHeader("Outstanding Payments", appGreen),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                // Using the restyled card with new wordings
-                child: _buildAriasPaymentCardRestyled(appGreen),
+                child: _buildOutstandingCard(appGreen),
               ),
-
               const SizedBox(height: 30),
-
-              // --- Section 2: Payments List Header ---
-              _buildSectionHeader("Payments", appGreen),
+              _buildSectionHeader("Recent Payments", appGreen),
               const SizedBox(height: 10),
-
-              // --- Section 3: Payments List ---
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Column(
-                  children: payments.map((payment) {
-                    return _buildPaymentRow(
-                      date: payment["date"]!,
-                      amount: payment["amount"]!,
-                      color: appGreen,
-                    );
-                  }).toList(),
-                ),
-              ),
-
+              _buildPaymentHistoryList(appGreen),
               const SizedBox(height: 20),
             ],
           ),
@@ -73,116 +163,124 @@ class PaymentHistoryScreen extends StatelessWidget {
     );
   }
 
-  // --- RESTYLED WIDGET: Wordings Updated for 'Yet to Pay' ---
-  Widget _buildAriasPaymentCardRestyled(Color color) {
+  Widget _buildOutstandingCard(Color color) {
     const Color textColor = Colors.white;
-    // Using a distinct color for outstanding payments, like Red,
-    // but sticking to the green theme for consistency, just using the solid green.
-    // If you prefer red for 'due', you can change the color: color to Colors.red in this widget.
+    final isMonthly = _passenger?.paymentType == 'Monthly';
+    
+    final amountDue = _passenger?.paymentAmount.isNotEmpty == true 
+        ? _passenger!.paymentAmount 
+        : (isMonthly ? (_driver?.monthlyPaymentAmount ?? '0') : (_driver?.dailyPaymentAmount ?? '0'));
 
     return Card(
       elevation: 6,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.0),
-      ),
-      color: color, // Retaining the green color theme
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
+      color: _isPaid ? Colors.grey : color,
       child: Container(
         padding: const EdgeInsets.all(18.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Amount and Date (Highlighted Info)
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      "Amount Due",
-                      style: TextStyle(fontSize: 14, color: textColor.withOpacity(0.8)),
-                    ),
+                    Text("Amount Due", style: TextStyle(fontSize: 14, color: textColor.withOpacity(0.8))),
                     const SizedBox(height: 4),
-                    Text(
-                      "Rs 1000",
-                      style: TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 28,
-                        color: textColor,
-                      ),
-                    ),
+                    Text("Rs $amountDue", style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 28, color: textColor)),
                   ],
                 ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
-                      "Payment Due Date",
-                      style: TextStyle(fontSize: 14, color: textColor.withOpacity(0.8)),
-                    ),
+                    Text(isMonthly ? "Due Month" : "Due Date", style: TextStyle(fontSize: 14, color: textColor.withOpacity(0.8))),
                     const SizedBox(height: 4),
                     Text(
-                      "2024/12/1",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: textColor,
-                      ),
+                      isMonthly ? _getMonthName() : DateTime.now().toString().split(' ').first.replaceAll('-', '/'),
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: textColor)
                     ),
                   ],
                 ),
               ],
             ),
+            const SizedBox(height: 15),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isButtonEnabled ? _handlePayment : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: color,
+                  disabledBackgroundColor: Colors.white.withOpacity(0.5),
+                  disabledForegroundColor: Colors.grey,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  elevation: 0,
+                ),
+                child: Text(
+                  _isPaid ? "Paid" : "Pay Now", 
+                  style: const TextStyle(fontWeight: FontWeight.bold)
+                ),
+              ),
+            ),
+            if (!_isButtonEnabled && !_isPaid)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(
+                  isMonthly 
+                    ? "Available from ${(_driver?.paymentDate?.day) ?? 1} ${_getMonthName()}"
+                    : (_attendanceStatus == 'Present' ? "Ready to Pay" : "Waiting for Attendance"),
+                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+              )
           ],
         ),
       ),
     );
   }
 
-  // Helper widget for section titles (reused from your code)
+  Widget _buildPaymentHistoryList(Color color) {
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _dbService.getPaymentHistory(_passenger!.uid),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+        final payments = snapshot.data!;
+        if (payments.isEmpty) return const Center(child: Text("No payment history found."));
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+          child: Column(
+            children: payments.map((p) {
+              return _buildPaymentRow(
+                date: p['date']?.toString().split('T').first.replaceAll('-', '/') ?? 'N/A',
+                amount: "Rs ${p['amount']}",
+                color: color,
+              );
+            }).toList(),
+          ),
+        );
+      },
+    );
+  }
+
   Widget _buildSectionHeader(String title, Color color) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Text(
         title,
         textAlign: TextAlign.center,
-        style: TextStyle(
-          color: color,
-          fontSize: 16,
-          fontWeight: FontWeight.w500,
-        ),
+        style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.w500),
       ),
     );
   }
 
-  // Helper widget for each payment row in the list
-  Widget _buildPaymentRow({
-    required String date,
-    required String amount,
-    required Color color,
-  }) {
+  Widget _buildPaymentRow({required String date, required String amount, required Color color}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Date (Slightly less prominent)
-          Text(
-            date,
-            style: const TextStyle(
-              color: Colors.black54,
-              fontSize: 14,
-            ),
-          ),
-          // Amount (Highlighted Green)
-          Text(
-            amount,
-            style: TextStyle(
-              color: color,
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
+          Text(date, style: const TextStyle(color: Colors.black54, fontSize: 14)),
+          Text(amount, style: TextStyle(color: color, fontSize: 14, fontWeight: FontWeight.w500)),
         ],
       ),
     );

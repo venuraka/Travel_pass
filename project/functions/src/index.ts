@@ -8,6 +8,7 @@
  */
 
 import {onRequest, onCall} from "firebase-functions/v2/https";
+import {onSchedule} from "firebase-functions/v2/scheduler";
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
 import * as crypto from "crypto";
@@ -21,6 +22,78 @@ admin.initializeApp({
   projectId: "travelpass-40736",
 });
 const db = admin.firestore();
+
+/*
+  SCHEDULED MONTHLY PAYMENT REMINDERS
+  ---------------------------------
+  Runs every 24 hours to alert passengers whose payment day has arrived.
+*/
+export const scheduleMonthlyPaymentReminders = onSchedule("0 8 * * *", async (event) => {
+  logger.info("Running monthly payment reminder task...");
+  const today = new Date();
+  const currentDay = today.getDate();
+
+  try {
+    const passengersSnap = await db.collection("passenger")
+      .where("paymentType", "==", "Monthly")
+      .get();
+
+    if (passengersSnap.empty) {
+      logger.info("No monthly passengers found.");
+      return;
+    }
+
+    const reminderPromises = passengersSnap.docs.map(async (doc) => {
+      const passenger = doc.data();
+      const driverId = passenger.driverId;
+      const fcmToken = passenger.fcmToken;
+
+      if (!driverId || !fcmToken) return;
+
+      const driverDoc = await db.collection("driver").doc(driverId).get();
+      if (!driverDoc.exists) return;
+
+      const driverData = driverDoc.data();
+      const paymentDate = driverData?.paymentDate?.toDate(); // Firestore Timestamp to Date
+
+      if (paymentDate && paymentDate.getDate() === currentDay) {
+        // Match! Send notification
+        const message: admin.messaging.Message = {
+          token: fcmToken,
+          notification: {
+            title: "Monthly Payment Due",
+            body: `Your travel payment for ${_getMonthName()} is due today. Tap to pay.`,
+          },
+          data: {
+            screen: "payment",
+          },
+          android: {
+            priority: "high",
+            notification: {
+              channelId: "high_importance_channel",
+            },
+          },
+        };
+
+        await admin.messaging().send(message);
+        logger.info(`Reminder sent to passenger: ${doc.id}`);
+      }
+    });
+
+    await Promise.all(reminderPromises);
+    logger.info("Schedule task completed.");
+  } catch (error) {
+    logger.error("Error in schedule task:", error);
+  }
+});
+
+function _getMonthName() {
+  const months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+  ];
+  return months[new Date().getMonth()];
+}
 
 /*
   SEND NOTIFICATION (CALLABLE)

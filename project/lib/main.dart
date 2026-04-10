@@ -10,6 +10,7 @@ import 'firebase_options.dart';
 import 'utils/AuthWrapper.dart';
 import 'package:project/services/NotificationService.dart';
 import 'package:project/config/AppConfig.dart';
+import 'package:project/Screens/passenger/PaymentHistory.dart';
 
 void main() async {
   // 1. Ensures Flutter widgets are ready before initializing Firebase
@@ -35,6 +36,8 @@ void main() async {
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
   @override
   Widget build(BuildContext context) {
     // Standard design size for mobile apps (e.g., iPhone 13)
@@ -44,6 +47,7 @@ class MyApp extends StatelessWidget {
       splitScreenMode: true,
       builder: (context, child) {
         return MaterialApp(
+          navigatorKey: navigatorKey,
           debugShowCheckedModeBanner: false,
           title: 'TravelPass',
           theme: ThemeData(
