@@ -36,6 +36,8 @@ class TrackVehicleController {
   final Function(int) onVehicleETAChanged; // Added
   final Function(int) onPassengerETAChanged; // Added
   final Function(bool) onHasNextPickupChanged; // Added
+  final Function(List<Map<String, dynamic>>) onFullRouteAcquired; // Added
+  final Function(int) onRouteIndexChanged; // Added
 
   TrackVehicleController({
     required this.onPooledLocationChanged,
@@ -52,6 +54,8 @@ class TrackVehicleController {
     required this.onVehicleETAChanged,
     required this.onPassengerETAChanged,
     required this.onHasNextPickupChanged,
+    required this.onFullRouteAcquired,
+    required this.onRouteIndexChanged,
   });
 
 
@@ -97,6 +101,9 @@ class TrackVehicleController {
     final driverData = await _dbService.getDriverData(driverId);
     if (driverData != null) {
       _driverRoute = driverData.route;
+      if (_driverRoute != null) {
+        onFullRouteAcquired(_driverRoute!);
+      }
     }
 
     // 1. Listen to pooled location
@@ -300,6 +307,7 @@ class TrackVehicleController {
     }
 
     onHasNextPickupChanged(morePickups);
+    onRouteIndexChanged(currentStopIndexInRoute);
   }
 
   int _currentProgressIndex = 0;

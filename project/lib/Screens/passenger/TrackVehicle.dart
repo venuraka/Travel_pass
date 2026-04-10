@@ -39,6 +39,8 @@ class _TrackVehicleState extends State<TrackVehicle> {
   int _vehicleETA = 0; // Added
   int _passengerETA = 0; // Added
   bool _hasNextPickup = true; // Added
+  List<Map<String, dynamic>> _fullRoute = []; // Added
+  int _currentStopIndexInRoute = -1; // Added
 
 
   @override
@@ -144,6 +146,20 @@ class _TrackVehicleState extends State<TrackVehicle> {
           });
         }
       },
+      onFullRouteAcquired: (List<Map<String, dynamic>> route) {
+        if (mounted) {
+          setState(() {
+            _fullRoute = route;
+          });
+        }
+      },
+      onRouteIndexChanged: (int index) {
+        if (mounted) {
+          setState(() {
+            _currentStopIndexInRoute = index;
+          });
+        }
+      },
     );
     _controller.init(); // Use init instead of direct startTracking if we want to fetch pData first
   }
@@ -156,8 +172,10 @@ class _TrackVehicleState extends State<TrackVehicle> {
 
   @override
   Widget build(BuildContext context) {
-    // Build Markers
+    // Build Markers based on ONBOARDING status
     final Set<Marker> markers = {};
+    
+    // 1. Vehicle Marker (Always shown)
     if (_pooledLocation != null) {
       markers.add(
         Marker(
@@ -168,25 +186,60 @@ class _TrackVehicleState extends State<TrackVehicle> {
         ),
       );
     }
-    if (_passengerLocation != null) {
-      markers.add(
-        Marker(
-          markerId: const MarkerId('passenger_location'),
-          position: _passengerLocation!,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-          infoWindow: const InfoWindow(title: 'My Location'),
-        ),
-      );
-    }
-    if (_pickupLocation != null && !_isOnboarded) {
-      markers.add(
-        Marker(
-          markerId: const MarkerId('pickup_location'),
-          position: _pickupLocation!,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
-          infoWindow: const InfoWindow(title: 'Pickup Point'),
-        ),
-      );
+
+    if (!_isOnboarded) {
+      // 2. Personal Markers (Only if NOT onboarded)
+      if (_passengerLocation != null) {
+        markers.add(
+          Marker(
+            markerId: const MarkerId('passenger_location'),
+            position: _passengerLocation!,
+            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+            infoWindow: const InfoWindow(title: 'My Location'),
+          ),
+        );
+      }
+      if (_pickupLocation != null) {
+        markers.add(
+          Marker(
+            markerId: const MarkerId('pickup_location'),
+            position: _pickupLocation!,
+            icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
+            infoWindow: const InfoWindow(title: 'My Pickup Point'),
+          ),
+        );
+      }
+    } else {
+      // 3. Journey Markers (Only if ONBOARDED)
+      // Show all remaining stops
+      if (_fullRoute.isNotEmpty) {
+        // Find starting index (either current or next)
+        int startingIndex = (_currentStopIndexInRoute != -1) ? _currentStopIndexInRoute : 0;
+        
+        for (int i = startingIndex; i < _fullRoute.length; i++) {
+          final stop = _fullRoute[i];
+          final role = stop['role'] ?? 'pickup';
+          final name = stop['name'] as String;
+          final isDestination = role == 'destination' || i == _fullRoute.length - 1;
+
+          markers.add(
+            Marker(
+              markerId: MarkerId('route_stop_$i'),
+              position: LatLng(
+                (stop['lat'] as num).toDouble(),
+                (stop['lng'] as num).toDouble(),
+              ),
+              icon: BitmapDescriptor.defaultMarkerWithHue(
+                isDestination ? BitmapDescriptor.hueRed : BitmapDescriptor.hueOrange
+              ),
+              infoWindow: InfoWindow(
+                title: isDestination ? 'Final Destination' : 'Next Pickup',
+                snippet: name,
+              ),
+            ),
+          );
+        }
+      }
     }
 
     // Build Polylines
