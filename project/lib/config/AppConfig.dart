@@ -13,6 +13,8 @@ class AppConfig {
   static String _googleMapsApiKey = '';
   static String _androidCertificateHash = '';
   static String _openWeatherApiKey = '';
+  static String _payhereMerchantId = '';
+  static String _payhereMerchantSecret = '';
 
   /// Must be called once in main() before runApp().
   static Future<void> init() async {
@@ -22,6 +24,10 @@ class AppConfig {
         await _channel.invokeMethod<String>('getAndroidCertificateHash') ?? '';
     _openWeatherApiKey =
         await _channel.invokeMethod<String>('getOpenWeatherApiKey') ?? '';
+    _payhereMerchantId =
+        await _channel.invokeMethod<String>('getPayhereMerchantId') ?? '';
+    _payhereMerchantSecret =
+        await _channel.invokeMethod<String>('getPayhereMerchantSecret') ?? '';
   }
   
   /// The Google Maps / Places / Directions API key.
@@ -29,6 +35,12 @@ class AppConfig {
 
   /// The OpenWeather API key.
   static String get openWeatherApiKey => _openWeatherApiKey;
+
+  /// The PayHere Merchant ID.
+  static String get payhereMerchantId => _payhereMerchantId;
+
+  /// The PayHere Merchant Secret (Hash).
+  static String get payhereMerchantSecret => _payhereMerchantSecret;
 
   /// The Android SHA-1 certificate hash for API restrictions.
   static String get androidCertificateHash => _androidCertificateHash;

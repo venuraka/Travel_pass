@@ -49,6 +49,14 @@
         <meta-data
             android:name="com.travelpass.OPEN_WEATHER_API_KEY"
             android:value="648b81e24eaba35c85388932820a1391" />
+        
+        <!-- PayHere Credentials -->
+        <meta-data
+            android:name="com.travelpass.PAYHERE_MERCHANT_ID"
+            android:value="1235085" />
+        <meta-data
+            android:name="com.travelpass.PAYHERE_MERCHANT_SECRET"
+            android:value="MzUzNTU2NjgwODM5MTYzODI5MTY1OTc0OTkyMzUyMzQ2ODE4MTUw" />
 
 
     </application>

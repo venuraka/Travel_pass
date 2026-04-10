@@ -43,6 +43,30 @@ class MainActivity : FlutterActivity() {
                             result.error("NOT_FOUND", "OpenWeather API key not found in AndroidManifest", null)
                         }
                     }
+                    "getPayhereMerchantId" -> {
+                        try {
+                            val appInfo = packageManager.getApplicationInfo(
+                                packageName,
+                                PackageManager.GET_META_DATA
+                            )
+                            val key = appInfo.metaData?.getString("com.travelpass.PAYHERE_MERCHANT_ID") ?: ""
+                            result.success(key)
+                        } catch (e: Exception) {
+                            result.error("NOT_FOUND", "Payhere Merchant ID not found", null)
+                        }
+                    }
+                    "getPayhereMerchantSecret" -> {
+                        try {
+                            val appInfo = packageManager.getApplicationInfo(
+                                packageName,
+                                PackageManager.GET_META_DATA
+                            )
+                            val key = appInfo.metaData?.getString("com.travelpass.PAYHERE_MERCHANT_SECRET") ?: ""
+                            result.success(key)
+                        } catch (e: Exception) {
+                            result.error("NOT_FOUND", "Payhere Merchant Secret not found", null)
+                        }
+                    }
                     "getAndroidCertificateHash" -> {
                         val hash = getCertificateFingerprint(packageManager, packageName)
                         if (hash != null) {

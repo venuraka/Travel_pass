@@ -26,6 +26,10 @@
     <string>AIzaSyAo5wRg4mAa6QaDYC9DCpiPySplDHiKZb0</string>
 	<key>OpenWeatherApiKey</key>
 	<string>648b81e24eaba35c85388932820a1391</string>
+	<key>PayhereMerchantID</key>
+	<string>1235085</string>
+	<key>PayhereMerchantSecret</key>
+	<string>MzUzNTU2NjgwODM5MTYzODI5MTY1OTc0OTkyMzUyMzQ2ODE4MTUw</string>
 
 
 	<key>CFBundleURLTypes</key>

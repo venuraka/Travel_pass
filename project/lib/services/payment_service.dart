@@ -1,5 +1,6 @@
 import 'package:payhere_mobilesdk_flutter/payhere_mobilesdk_flutter.dart';
 import 'dart:developer' as developer;
+import '../config/AppConfig.dart';
 
 class PaymentService {
   /// Initiates a one-time payment request.
@@ -26,9 +27,9 @@ class PaymentService {
   }) {
     Map paymentObject = {
       "sandbox": isSandbox,
-      "merchant_id": "1211149", // Replace with your Merchant ID
-      "merchant_secret": "xyz", // Replace with your Merchant Secret (Hash value)
-      "notify_url": "http://sample.com/notify", // Replace with your Notify URL
+      "merchant_id": AppConfig.payhereMerchantId,
+      "merchant_secret": AppConfig.payhereMerchantSecret,
+      "notify_url": "https://payherenotify-gvvnibymxq-uc.a.run.app",
       "order_id": orderId,
       "items": itemsDescription,
       "amount": amount,
@@ -80,9 +81,9 @@ class PaymentService {
     Map paymentObject = {
       "sandbox": isSandbox,
       "preapprove": true,
-      "merchant_id": "1211149",
-      "merchant_secret": "xyz",
-      "notify_url": "http://sample.com/notify",
+      "merchant_id": AppConfig.payhereMerchantId,
+      "merchant_secret": AppConfig.payhereMerchantSecret,
+      "notify_url": "https://us-central1-travelpass-40736.cloudfunctions.net/payhereNotify",
       "order_id": orderId,
       "items": itemsDescription,
       "currency": currency,

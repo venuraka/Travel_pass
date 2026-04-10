@@ -228,7 +228,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                 child: Text(
                   isMonthly 
                     ? "Available from ${(_driver?.paymentDate?.day) ?? 1} ${_getMonthName()}"
-                    : (_attendanceStatus == 'Present' ? "Ready to Pay" : "Waiting for Attendance"),
+                    : (_attendanceStatus == 'Present' ? "Ready to Pay" : "You haven't joind the journey today!"),
                   style: const TextStyle(color: Colors.white70, fontSize: 12),
                 ),
               )
