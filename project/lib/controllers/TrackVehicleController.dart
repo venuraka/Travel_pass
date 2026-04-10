@@ -8,6 +8,7 @@ import '../services/RealtimeDatabase.dart';
 import '../services/PlaceService.dart'; // Added
 import '../config/AppConfig.dart'; // Added
 import '../models/PassengerModel.dart';
+import '../models/DriverModel.dart';
 
 class TrackVehicleController {
   final DatabaseService _dbService = DatabaseService();
@@ -32,6 +33,9 @@ class TrackVehicleController {
   final Function(LatLng) onPickupLocationAcquired; // Added
   final Function(List<LatLng>) onWalkingPathChanged; // Added
   final Function(List<LatLng>) onVehiclePathChanged; // Added
+  final Function(int) onVehicleETAChanged; // Added
+  final Function(int) onPassengerETAChanged; // Added
+  final Function(bool) onHasNextPickupChanged; // Added
 
   TrackVehicleController({
     required this.onPooledLocationChanged,
@@ -45,6 +49,9 @@ class TrackVehicleController {
     required this.onPickupLocationAcquired,
     required this.onWalkingPathChanged,
     required this.onVehiclePathChanged,
+    required this.onVehicleETAChanged,
+    required this.onPassengerETAChanged,
+    required this.onHasNextPickupChanged,
   });
 
 
@@ -75,15 +82,22 @@ class TrackVehicleController {
   LatLng? _myPickupLoc;
   bool _isOnboarded = false;
   PlaceService? _placeService;
+  List<Map<String, dynamic>>? _driverRoute; // Added
   
   LatLng? _lastPathFetchPassengerPos;
   LatLng? _lastPathFetchPickupPos;
   LatLng? _lastVehiclePathFetchVehiclePos;
   LatLng? _lastVehiclePathFetchPickupPos;
 
-  void startTracking(String driverId, String passengerId) {
+  void startTracking(String driverId, String passengerId) async { // Added async
     _driverId = driverId;
     _passengerId = passengerId;
+
+    // Fetch driver route from Firestore once
+    final driverData = await _dbService.getDriverData(driverId);
+    if (driverData != null) {
+      _driverRoute = driverData.route;
+    }
 
     // 1. Listen to pooled location
     _rtDbService.getPooledLocationStream(driverId).listen((loc) async {
@@ -106,9 +120,27 @@ class TrackVehicleController {
     // 3. Listen to Journey Progress (Next Stop)
     _progressSubscription = _rtDbService.getJourneyProgressStream(driverId).listen((data) {
       if (_isDisposed || data.isEmpty) return;
-      onNextStopChanged(data['target_name']);
-      onProgressIndexChanged(data['index']); // Added
+      
+      _currentProgressIndex = data['index'];
       _nextStopLoc = LatLng(data['target_lat'], data['target_lng']);
+      
+      // Robust lookup from Firestore route
+      String finalName = data['target_name'];
+      if (_driverRoute != null) {
+        for (var point in _driverRoute!) {
+          double dist = Geolocator.distanceBetween(
+            _nextStopLoc!.latitude, _nextStopLoc!.longitude,
+            (point['lat'] as num).toDouble(), (point['lng'] as num).toDouble()
+          );
+          if (dist < 10) { // Matching coordinate
+            finalName = point['name'] as String;
+            break;
+          }
+        }
+      }
+      
+      onNextStopChanged(finalName);
+      onProgressIndexChanged(_currentProgressIndex); 
       _calculateStatus();
     });
 
@@ -153,7 +185,14 @@ class TrackVehicleController {
         );
         int mins = (dist / 11 / 60).round();
         if (mins < 1) mins = 1;
+        onVehicleETAChanged(mins);
         onStatusChanged("Drop-off in $mins min");
+
+        // Also check if more pickups remain even when onboarded
+        final driverData = await _dbService.getDriverData(_driverId!);
+        if (driverData != null) {
+          _checkHasNextPickup(driverData);
+        }
       } else {
         onStatusChanged("You are onboarded");
       }
@@ -202,9 +241,17 @@ class TrackVehicleController {
         // Orange Status: Passenger moving to spot
         int pMins = (pDist / 1.4 / 60).round();
         if (pMins < 1) pMins = 1;
+        onPassengerETAChanged(pMins);
+        
+        // Green Status: Bus moving to pickup (calculate even if passenger is moving)
+        int busMins = (busDist / 11 / 60).round();
+        if (busMins < 1) busMins = 1;
+        onVehicleETAChanged(busMins);
+
         onStatusChanged("$pMins min wait"); 
         return;
       } else {
+        onPassengerETAChanged(0);
         onWalkingPathChanged([]); // Clear path if close
       }
     }
@@ -212,12 +259,50 @@ class TrackVehicleController {
     // Green Status: Bus moving to pickup
     int busMins = (busDist / 11 / 60).round();
     if (busMins < 1) busMins = 1;
+    onVehicleETAChanged(busMins);
 
     // Calculate vehicle path to pickup
     _calculateVehiclePath(_currentVehicleLoc!, _myPickupLoc!);
 
+    // Check if more pickups remain
+    _checkHasNextPickup(driverData);
+
     onStatusChanged("$busMins min pickup");
   }
+
+  void _checkHasNextPickup(DriverModel? driverData) {
+    if (driverData == null || driverData.route == null || _isDisposed || _nextStopLoc == null) return;
+    
+    final route = driverData.route!;
+    
+    // 1. Find our current stop index in the route
+    int currentStopIndexInRoute = -1;
+    for (int i = 0; i < route.length; i++) {
+       double dist = Geolocator.distanceBetween(
+         _nextStopLoc!.latitude, _nextStopLoc!.longitude,
+         (route[i]['lat'] as num).toDouble(), (route[i]['lng'] as num).toDouble()
+       );
+       if (dist < 10) {
+         currentStopIndexInRoute = i;
+         break;
+       }
+    }
+
+    // 2. Check if any stop AFTER current one is a pickup
+    bool morePickups = false;
+    if (currentStopIndexInRoute != -1) {
+      for (int i = currentStopIndexInRoute + 1; i < route.length; i++) {
+        if (route[i]['role'] == 'pickup') {
+          morePickups = true;
+          break;
+        }
+      }
+    }
+
+    onHasNextPickupChanged(morePickups);
+  }
+
+  int _currentProgressIndex = 0;
 
   bool _isFetchingPath = false;
   Future<void> _calculateWalkingPath(LatLng passengerLoc, LatLng pickupLoc) async {

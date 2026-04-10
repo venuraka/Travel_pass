@@ -224,7 +224,7 @@ class StartJourneyController {
         _rtDbService.updateJourneyProgress(
           _currentDriverId!,
           _currentPassengerIndex,
-          p.name,
+          p.pickupLocation,
           pLatLng.latitude,
           pLatLng.longitude,
         );

@@ -36,6 +36,9 @@ class _TrackVehicleState extends State<TrackVehicle> {
   int _onboardedCount = 0; // Added
   int _progressIndex = 0; // Added
   LatLng? _routeDestination; // Added
+  int _vehicleETA = 0; // Added
+  int _passengerETA = 0; // Added
+  bool _hasNextPickup = true; // Added
 
 
   @override
@@ -117,6 +120,27 @@ class _TrackVehicleState extends State<TrackVehicle> {
           setState(() {
             _vehiclePath = path;
             _fitBoundsOnce(); // Try to fit bounds when we have paths
+          });
+        }
+      },
+      onVehicleETAChanged: (int mins) {
+        if (mounted) {
+          setState(() {
+            _vehicleETA = mins;
+          });
+        }
+      },
+      onPassengerETAChanged: (int mins) {
+        if (mounted) {
+          setState(() {
+            _passengerETA = mins;
+          });
+        }
+      },
+      onHasNextPickupChanged: (bool hasNext) {
+        if (mounted) {
+          setState(() {
+            _hasNextPickup = hasNext;
           });
         }
       },
@@ -206,11 +230,13 @@ class _TrackVehicleState extends State<TrackVehicle> {
           Align(
             alignment: Alignment.bottomCenter,
             child: JourneyInfoCard(
-              busArrivalTime: _currentStatus,
+              vehicleETA: _vehicleETA,
+              passengerETA: _passengerETA,
               nextStop: _nextStop,
               attendanceCount: _onboardedCount,
               isOnboarded: _isOnboarded,
-              progressIndex: _progressIndex, // Added
+              progressIndex: _progressIndex,
+              hasNextPickup: _hasNextPickup,
               onCallPressed: () {
               },
             ),

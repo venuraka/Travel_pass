@@ -262,22 +262,32 @@ class _NextPassengerCardState extends State<NextPassengerCard> {
 
 // --- Journey Info Card (For generic info, not used in Next Passenger flow) ---
 class JourneyInfoCard extends StatelessWidget {
-  final String busArrivalTime;
+  final int vehicleETA; // Minutes
+  final int passengerETA; // Minutes
   final String nextStop;
   final int attendanceCount;
   final bool isOnboarded;
-  final int progressIndex; // Added
+  final int progressIndex;
+  final bool hasNextPickup; // Added
   final VoidCallback? onCallPressed;
 
   const JourneyInfoCard({
     super.key,
-    required this.busArrivalTime,
+    required this.vehicleETA,
+    required this.passengerETA,
     required this.nextStop,
     required this.attendanceCount,
     this.isOnboarded = false,
-    this.progressIndex = 0, // Added
+    this.progressIndex = 0,
+    this.hasNextPickup = true,
     this.onCallPressed,
   });
+
+  Color _getWalkingColor() {
+    if (passengerETA > vehicleETA) return Colors.redAccent;
+    if (passengerETA < vehicleETA) return Colors.greenAccent;
+    return Colors.orangeAccent;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -290,100 +300,167 @@ class JourneyInfoCard extends StatelessWidget {
           topRight: Radius.circular(30.0),
         ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-
+          // --- Main ETA Row ---
           Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Text(
-                isOnboarded ? 'Drop-off ETA' : 'Bus Will Come on',
-                style: const TextStyle(
-                  color: kPrimaryTextColor,
-                  fontSize: 18.0,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Vehicle ETA Column
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isOnboarded ? 'Drop-off ETA' : 'Vehicle Arrival',
+                      style: const TextStyle(
+                        color: kPrimaryTextColor,
+                        fontSize: 14.0,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '$vehicleETA mins',
+                      style: const TextStyle(
+                        color: kSecondaryTextColor,
+                        fontSize: 22.0,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 8.0),
+              
+              // Separator or Icon
+              Container(
+                height: 40,
+                width: 1,
+                color: Colors.white12,
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+              ),
+
+              // Passenger/NextStop Column
               Expanded(
-                child: MarqueeText(
-                  text: busArrivalTime,
-                  style: const TextStyle(
-                    color: kSecondaryTextColor,
-                    fontSize: 18.0,
-                    fontWeight: FontWeight.bold,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (!isOnboarded) ...[
+                      const Text(
+                        'Your Walking Time',
+                        style: TextStyle(
+                          color: kPrimaryTextColor,
+                          fontSize: 14.0,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$passengerETA mins',
+                        style: TextStyle(
+                          color: _getWalkingColor(),
+                          fontSize: 22.0,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ] else ...[
+                      const Text(
+                        'Next Destination',
+                        style: TextStyle(
+                          color: kPrimaryTextColor,
+                          fontSize: 14.0,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      hasNextPickup 
+                        ? MarqueeText(
+                            text: nextStop,
+                            style: const TextStyle(
+                              color: kSecondaryTextColor,
+                              fontSize: 18.0,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          )
+                        : const Text(
+                            'Final Destination',
+                            style: TextStyle(
+                              color: Colors.white60,
+                              fontSize: 18.0,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                    ],
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16.0),
-          if (progressIndex != 999) ...[
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                const Text(
-                  'Next Stop',
-                  style: TextStyle(
-                    color: kPrimaryTextColor,
-                    fontSize: 18.0,
-                    fontWeight: FontWeight.w500,
+
+          const SizedBox(height: 24),
+          
+          // --- Quick Info Row ---
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              if (!isOnboarded)
+               Expanded(
+                 child: Row(
+                   children: [
+                     const Icon(Icons.location_on_rounded, color: Colors.white38, size: 16),
+                     const SizedBox(width: 8),
+                     Expanded(
+                       child: MarqueeText(
+                         text: 'Next: $nextStop',
+                         style: const TextStyle(color: Colors.white60, fontSize: 13),
+                       ),
+                     ),
+                   ],
+                 ),
+               ),
+              
+              Row(
+                children: [
+                  const Icon(Icons.people_alt_rounded, color: Colors.white38, size: 16),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Onboarded: $attendanceCount',
+                    style: const TextStyle(color: Colors.white60, fontSize: 13),
                   ),
-                ),
-                const SizedBox(width: 8.0),
-                Expanded(
-                  child: MarqueeText(
-                    text: nextStop,
-                    style: const TextStyle(
-                      color: kSecondaryTextColor,
-                      fontSize: 18.0,
+                ],
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 24),
+
+          // --- Action Button ---
+          GestureDetector(
+            onLongPress: onCallPressed,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white10),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.phone_callback_rounded, color: kPrimaryTextColor, size: 20),
+                  SizedBox(width: 12),
+                  Text(
+                    'Hold To Get a Call...',
+                    style: TextStyle(
+                      color: kPrimaryTextColor,
+                      fontSize: 16.0,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16.0),
-          ],
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              const Text(
-                'Attendance Count',
-                style: TextStyle(
-                  color: kPrimaryTextColor,
-                  fontSize: 18.0,
-                  fontWeight: FontWeight.w500,
-                ),
+                ],
               ),
-              const SizedBox(width: 8.0),
-              Text(
-                '$attendanceCount',
-                style: const TextStyle(
-                  color: kSecondaryTextColor,
-                  fontSize: 18.0,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24.0),
-          GestureDetector(
-            onLongPress: onCallPressed,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const <Widget>[
-                Icon(Icons.phone_callback_rounded, color: kPrimaryTextColor, size: 18),
-                SizedBox(width: 8.0),
-                Text(
-                  'Hold To Get a Call...',
-                  style: TextStyle(
-                    color: kPrimaryTextColor,
-                    fontSize: 16.0,
-                  ),
-                ),
-              ],
             ),
           ),
         ],
