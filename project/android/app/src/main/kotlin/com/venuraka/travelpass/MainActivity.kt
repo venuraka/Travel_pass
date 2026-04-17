@@ -50,9 +50,12 @@ class MainActivity : FlutterActivity() {
                                 PackageManager.GET_META_DATA
                             )
                             val key = appInfo.metaData?.getString("com.travelpass.PAYHERE_MERCHANT_ID") ?: ""
+                            android.util.Log.d("MainActivity", "DEBUG: Retrieved merchant_id = '$key' from manifest")
+                            android.util.Log.d("MainActivity", "DEBUG: metaData = ${appInfo.metaData}")
                             result.success(key)
                         } catch (e: Exception) {
-                            result.error("NOT_FOUND", "Payhere Merchant ID not found", null)
+                            android.util.Log.e("MainActivity", "ERROR: Failed to get merchant ID", e)
+                            result.error("NOT_FOUND", "Payhere Merchant ID not found: ${e.message}", null)
                         }
                     }
                     "getPayhereMerchantSecret" -> {

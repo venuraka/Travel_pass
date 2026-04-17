@@ -1,4 +1,5 @@
 import 'package:payhere_mobilesdk_flutter/payhere_mobilesdk_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:developer' as developer;
 import '../config/AppConfig.dart';
 
@@ -25,11 +26,23 @@ class PaymentService {
     Function(String)? onError,
     Function()? onDismissed,
   }) {
+    // Debug: Log the retrieved merchant ID and secret
+    developer.log("PaymentService DEBUG: merchant_id='${AppConfig.payhereMerchantId}'");
+    developer.log("PaymentService DEBUG: merchant_secret='${AppConfig.payhereMerchantSecret}'");
+    
+    // Validate merchant credentials
+    if (AppConfig.payhereMerchantId.isEmpty || AppConfig.payhereMerchantSecret.isEmpty) {
+      final errorMsg = "PayHere credentials not configured. Merchant ID: '${AppConfig.payhereMerchantId}', Secret: '${AppConfig.payhereMerchantSecret}'";
+      developer.log("PAYHERE CONFIG ERROR: $errorMsg");
+      if (onError != null) onError(errorMsg);
+      return;
+    }
+    
     Map paymentObject = {
       "sandbox": isSandbox,
       "merchant_id": AppConfig.payhereMerchantId,
       "merchant_secret": AppConfig.payhereMerchantSecret,
-      "notify_url": "https://payherenotify-gvvnibymxq-uc.a.run.app",
+      "notify_url": "https://us-central1-travelpass-40736.cloudfunctions.net/payhereNotify",
       "order_id": orderId,
       "items": itemsDescription,
       "amount": amount,

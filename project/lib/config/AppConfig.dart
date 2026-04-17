@@ -24,10 +24,27 @@ class AppConfig {
         await _channel.invokeMethod<String>('getAndroidCertificateHash') ?? '';
     _openWeatherApiKey =
         await _channel.invokeMethod<String>('getOpenWeatherApiKey') ?? '';
-    _payhereMerchantId =
-        await _channel.invokeMethod<String>('getPayhereMerchantId') ?? '';
+    
+    // Try to get PayHere credentials from native platform
+    try {
+      _payhereMerchantId =
+          (await _channel.invokeMethod<String>('getPayhereMerchantId') ?? '').trim();
+    } catch (e) {
+      _payhereMerchantId = '';
+    }
+    
+    // If merchant ID is empty, use hardcoded value as fallback
+    if (_payhereMerchantId.isEmpty) {
+      _payhereMerchantId = '1235085'; // Fallback merchant ID
+    }
+    
     _payhereMerchantSecret =
-        await _channel.invokeMethod<String>('getPayhereMerchantSecret') ?? '';
+        (await _channel.invokeMethod<String>('getPayhereMerchantSecret') ?? '').trim();
+    
+    // If merchant secret is empty, use hardcoded value as fallback
+    if (_payhereMerchantSecret.isEmpty) {
+      _payhereMerchantSecret = 'ODM0MTA4NTc4MTQzNDkwNTkwMzUwMjgxNjY5MDEwNzI3NjY3NTE=';
+    }
   }
   
   /// The Google Maps / Places / Directions API key.

@@ -668,7 +668,9 @@ class DatabaseService {
   /// Records a successful payment in the 'payments' collection.
   Future<void> recordPayment({
     required String passengerId,
+    required String passengerName,
     required String driverId,
+    required String driverName,
     required String amount,
     required String type,
     required String paymentId,
@@ -676,10 +678,13 @@ class DatabaseService {
     try {
       await _db.collection('payments').add({
         'passengerId': passengerId,
+        'passengerName': passengerName,
         'driverId': driverId,
+        'driverName': driverName,
         'amount': amount,
         'type': type,
         'paymentId': paymentId,
+        'status': 'success',
         'timestamp': FieldValue.serverTimestamp(),
         'date': DateTime.now().toIso8601String(),
       });

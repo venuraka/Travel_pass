@@ -53,10 +53,10 @@
         <!-- PayHere Credentials -->
         <meta-data
             android:name="com.travelpass.PAYHERE_MERCHANT_ID"
-            android:value="1235085" />
+            android:value="\ 1235085" />
         <meta-data
             android:name="com.travelpass.PAYHERE_MERCHANT_SECRET"
-            android:value="MzUzNTU2NjgwODM5MTYzODI5MTY1OTc0OTkyMzUyMzQ2ODE4MTUw" />
+            android:value="ODM0MTA4NTc4MTQzNDkwNTkwMzUwMjgxNjY5MDEwNzI3NjY3NTE=" />
 
 
     </application>

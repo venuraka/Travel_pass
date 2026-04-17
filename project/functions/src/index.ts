@@ -234,26 +234,52 @@ export const payhereNotify = onRequest({secrets: [payhereSecret]},
       if (parseInt(statusCode) === 2) {
         logger.info(`Payment Success for Order: ${orderId}`);
 
-        // Update Firestore
-        // Assumption: You have a 'payments' collection
+        // Extract passenger ID from order_id
+        // (format: PAY-{passengerId}-{timestamp})
+        const orderParts = orderId.split("-");
+        const passengerId = orderParts[1] || "unknown";
+
+        // Get passenger data
+        const passengerDoc = await db.collection("passenger")
+          .doc(passengerId).get();
+        const passengerData = passengerDoc.data();
+
+        // Get driver data
+        let driverData = null;
+        if (passengerData?.driverId) {
+          const driverDoc = await db.collection("driver")
+            .doc(passengerData.driverId).get();
+          driverData = driverDoc.data();
+        }
+
+        // Save to payments collection with all details
         await db.collection("payments").doc(orderId).set({
+          passengerId: passengerId,
+          passengerName: passengerData?.name || "Unknown",
+          driverId: passengerData?.driverId || "unknown",
+          driverName: driverData?.name || "Unknown",
+          orderId: orderId,
           status: "PAID",
+          paymentNo: data.payment_id,
           amount: payhereAmount,
           currency: payhereCurrency,
-          method: data.method, // e.g., 'VISA'
-          card_holder: data.card_holder_name,
+          method: data.method || "UNKNOWN",
+          cardHolder: data.card_holder_name || "Unknown",
           timestamp: admin.firestore.FieldValue.serverTimestamp(),
-          raw_response: data,
-        }, {merge: true});
+          date: new Date().toISOString(),
+        });
+
+        logger.info(`Payment recorded for passenger: ${passengerId}`);
       } else {
         logger.warn(
           `Payment Failed for Order: ${orderId}, Status: ${statusCode}`
         );
         await db.collection("payments").doc(orderId).set({
+          orderId: orderId,
           status: "FAILED",
           statusCode: statusCode,
           timestamp: admin.firestore.FieldValue.serverTimestamp(),
-        }, {merge: true});
+        });
       }
 
       // 5. Respond to PayHere
