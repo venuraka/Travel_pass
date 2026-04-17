@@ -746,4 +746,29 @@ class DatabaseService {
       return false;
     }
   }
+
+  /// Returns the total amount paid by a passenger for a specific payment type.
+  Future<double> getTotalPaidAmount(String passengerId, String type) async {
+    try {
+      final snapshot = await _db.collection('payments')
+          .where('passengerId', isEqualTo: passengerId)
+          .where('type', isEqualTo: type)
+          .get();
+      
+      double total = 0;
+      final successStatuses = ['collected', 'paid_to_driver', 'distribution_pending', 'distribution_failed', 'success', 'PAID'];
+      
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        final status = data['status'] ?? '';
+        if (successStatuses.contains(status)) {
+          final amountStr = data['amount']?.toString() ?? '0';
+          total += double.tryParse(amountStr) ?? 0;
+        }
+      }
+      return total;
+    } catch (e) {
+      return 0;
+    }
+  }
 }

@@ -24,6 +24,8 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
   String _attendanceStatus = 'Not Marked';
   bool _isPaid = false;
   bool _isLoading = true;
+  bool _isProcessing = false;
+  double _amountDue = 0.0;
 
   @override
   void initState() {
@@ -53,15 +55,28 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
               developer.log('Error loading attendance status: $attendanceError');
             }
             
-            bool paid = false;
+            double amountDue = 0.0;
             try {
+              final totalPaid = await _dbService.getTotalPaidAmount(user.uid, pData.paymentType);
+              
               if (pData.paymentType == 'Daily') {
-                paid = await _dbService.checkIfPaidToday(user.uid);
+                final attendanceDoc = await _dbService.getPassengerAttendance(user.uid);
+                int presentDays = 0;
+                if (attendanceDoc != null) {
+                  presentDays = attendanceDoc.records.values.where((v) => v == 'Present').length;
+                }
+                final rate = double.tryParse(pData.paymentAmount.isNotEmpty ? pData.paymentAmount : (dData?.dailyPaymentAmount ?? '0')) ?? 0.0;
+                amountDue = (presentDays * rate) - totalPaid;
               } else {
-                paid = await _dbService.checkIfPaidThisMonth(user.uid);
+                // Monthly
+                final startDate = pData.createdAt.toDate();
+                final now = DateTime.now();
+                final monthsCount = (now.year - startDate.year) * 12 + now.month - startDate.month + 1;
+                final rate = double.tryParse(pData.paymentAmount.isNotEmpty ? pData.paymentAmount : (dData?.monthlyPaymentAmount ?? '0')) ?? 0.0;
+                amountDue = (monthsCount * rate) - totalPaid;
               }
-            } catch (paymentError) {
-              developer.log('Error checking payment status: $paymentError');
+            } catch (balanceError) {
+              developer.log('Error calculating balance: $balanceError');
             }
 
             if (mounted) {
@@ -69,7 +84,8 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                 _passenger = pData;
                 _driver = dData;
                 _attendanceStatus = attendance;
-                _isPaid = paid;
+                _amountDue = amountDue < 0 ? 0 : amountDue;
+                _isPaid = _amountDue <= 0;
                 _isLoading = false;
               });
             }
@@ -106,15 +122,21 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
   }
 
   bool get _isButtonEnabled {
-    if (_passenger == null || _driver == null || _isPaid) return false;
+    if (_passenger == null || _driver == null || _amountDue <= 0 || _isProcessing) return false;
 
     if (_passenger!.paymentType == 'Daily') {
+      // If they owe money, they can pay if they are Present today
       return _attendanceStatus == 'Present';
     } else {
-      // Monthly logic
+      // Monthly logic: 
+      // 1. If they owe more than one month's worth, they can pay anytime (arrears)
+      // 2. If it's just the current month, they can pay on/after due date
       final now = DateTime.now();
       final dueDay = (_driver!.paymentDate?.day) ?? 1;
-      return now.day >= dueDay;
+      final monthlyRate = double.tryParse(_passenger!.paymentAmount.isNotEmpty ? _passenger!.paymentAmount : (_driver!.monthlyPaymentAmount ?? '0')) ?? 0.0;
+      
+      bool hasArrears = _amountDue > monthlyRate + 1; // +1 for rounding safety
+      return (now.day >= dueDay) || hasArrears;
     }
   }
 
@@ -130,11 +152,11 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
   void _handlePayment() {
     if (!_isButtonEnabled) return;
 
-    final amountStr = _passenger!.paymentAmount.isNotEmpty 
-        ? _passenger!.paymentAmount 
-        : (_passenger!.paymentType == 'Monthly' 
-            ? (_driver!.monthlyPaymentAmount ?? '0') 
-            : (_driver!.dailyPaymentAmount ?? '0'));
+    final amountStr = _amountDue.toStringAsFixed(2);
+
+    setState(() {
+      _isProcessing = true;
+    });
 
     PaymentService.startOneTimePayment(
       amount: amountStr,
@@ -147,12 +169,20 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
       address: _passenger!.address,
       city: 'Colombo',
       onCompleted: (paymentId) {
-        // Minimal callback - return immediately without any operations
-        // This lets PayHere activity finish and free resources
         developer.log('Payment completed with ID: $paymentId');
+        // Refresh data to show "Paid" state immediately
+        Future.delayed(Duration(seconds: 2), () => _loadData());
+        if (mounted) {
+          setState(() {
+            _isProcessing = false;
+          });
+        }
       },
       onError: (error) {
         if (mounted) {
+          setState(() {
+            _isProcessing = false;
+          });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Payment Failed: $error'),
@@ -164,6 +194,12 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
       },
       onDismissed: () {
         developer.log('Payment screen dismissed');
+        _loadData(); // Refresh just in case status changed
+        if (mounted) {
+          setState(() {
+            _isProcessing = false;
+          });
+        }
       },
     );
   }
@@ -208,15 +244,11 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
   Widget _buildOutstandingCard(Color color) {
     const Color textColor = Colors.white;
     final isMonthly = _passenger?.paymentType == 'Monthly';
-    
-    final amountDue = _passenger?.paymentAmount.isNotEmpty == true 
-        ? _passenger!.paymentAmount 
-        : (isMonthly ? (_driver?.monthlyPaymentAmount ?? '0') : (_driver?.dailyPaymentAmount ?? '0'));
 
     return Card(
       elevation: 6,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-      color: _isPaid ? Colors.grey : color,
+      color: _isButtonEnabled ? color : Colors.grey.shade400,
       child: Container(
         padding: const EdgeInsets.all(18.0),
         child: Column(
@@ -229,7 +261,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                   children: [
                     Text("Amount Due", style: TextStyle(fontSize: 14, color: textColor.withOpacity(0.8))),
                     const SizedBox(height: 4),
-                    Text("Rs $amountDue", style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 28, color: textColor)),
+                    Text("Rs ${_amountDue.toStringAsFixed(2)}", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 28, color: textColor)),
                   ],
                 ),
                 Column(
@@ -239,7 +271,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                     const SizedBox(height: 4),
                     Text(
                       isMonthly ? _getMonthName() : DateTime.now().toString().split(' ').first.replaceAll('-', '/'),
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: textColor)
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: textColor)
                     ),
                   ],
                 ),
@@ -259,12 +291,12 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                   elevation: 0,
                 ),
                 child: Text(
-                  _isPaid ? "Paid" : "Pay Now", 
+                  _isPaid ? "Paid" : (_isProcessing ? "Processing..." : "Pay Now"), 
                   style: const TextStyle(fontWeight: FontWeight.bold)
                 ),
               ),
             ),
-            if (!_isButtonEnabled && !_isPaid)
+            if (!_isButtonEnabled && !_isPaid && !_isProcessing)
               Padding(
                 padding: const EdgeInsets.only(top: 8.0),
                 child: Text(
