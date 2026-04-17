@@ -684,7 +684,7 @@ class DatabaseService {
         'amount': amount,
         'type': type,
         'paymentId': paymentId,
-        'status': 'success',
+        'status': 'collected',
         'timestamp': FieldValue.serverTimestamp(),
         'date': DateTime.now().toIso8601String(),
       });
@@ -713,7 +713,13 @@ class DatabaseService {
           .where('type', isEqualTo: 'Daily')
           .get();
       
-      return snapshot.docs.any((doc) => doc.data()['date']?.toString().startsWith(todayStr) ?? false);
+      return snapshot.docs.any((doc) {
+        final data = doc.data();
+        final status = data['status'] ?? '';
+        // Only count successful payments
+        if (status == 'payment_failed' || status == 'FAILED') return false;
+        return data['date']?.toString().startsWith(todayStr) ?? false;
+      });
     } catch (e) {
       return false;
     }
@@ -729,7 +735,13 @@ class DatabaseService {
           .where('type', isEqualTo: 'Monthly')
           .get();
       
-      return snapshot.docs.any((doc) => doc.data()['date']?.toString().startsWith(monthStr) ?? false);
+      return snapshot.docs.any((doc) {
+        final data = doc.data();
+        final status = data['status'] ?? '';
+        // Only count successful payments
+        if (status == 'payment_failed' || status == 'FAILED') return false;
+        return data['date']?.toString().startsWith(monthStr) ?? false;
+      });
     } catch (e) {
       return false;
     }

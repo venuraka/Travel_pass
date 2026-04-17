@@ -355,13 +355,19 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: status == 'success' ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                  color: (status == 'collected' || status == 'paid_to_driver' || status == 'distribution_pending' || status == 'distribution_failed' || status == 'success' || status == 'PAID') 
+                      ? Colors.green.withOpacity(0.1) 
+                      : Colors.red.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  status == 'success' ? '✓ Success' : '✗ Failed',
+                  (status == 'collected' || status == 'paid_to_driver' || status == 'distribution_pending' || status == 'distribution_failed' || status == 'success' || status == 'PAID') 
+                      ? '✓ Success' 
+                      : (status == 'payment_failed' || status == 'FAILED') ? '✗ Failed' : '... Pending',
                   style: TextStyle(
-                    color: status == 'success' ? Colors.green : Colors.red,
+                    color: (status == 'collected' || status == 'paid_to_driver' || status == 'distribution_pending' || status == 'distribution_failed' || status == 'success' || status == 'PAID') 
+                        ? Colors.green 
+                        : Colors.red,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                   ),

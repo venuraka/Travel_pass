@@ -259,7 +259,7 @@ export const payhereNotify = onRequest({secrets: [payhereSecret]},
           driverId: passengerData?.driverId || "unknown",
           driverName: driverData?.name || "Unknown",
           orderId: orderId,
-          status: "PAID",
+          status: "collected",
           paymentNo: data.payment_id,
           amount: payhereAmount,
           currency: payhereCurrency,
@@ -276,7 +276,7 @@ export const payhereNotify = onRequest({secrets: [payhereSecret]},
         );
         await db.collection("payments").doc(orderId).set({
           orderId: orderId,
-          status: "FAILED",
+          status: "payment_failed",
           statusCode: statusCode,
           timestamp: admin.firestore.FieldValue.serverTimestamp(),
         });
