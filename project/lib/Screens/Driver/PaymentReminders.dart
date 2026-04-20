@@ -1,194 +1,132 @@
 import 'package:flutter/material.dart';
 import '../Components/AppBar.dart';
 
-class PaymentRemindersScreen extends StatelessWidget {
+class PaymentRemindersScreen extends StatefulWidget {
   const PaymentRemindersScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final Color appGreen = const Color(0xFF05A664);
-    final Color bgGreenTint = const Color(0xFFF1F8F5);
+  State<PaymentRemindersScreen> createState() => _PaymentRemindersScreenState();
+}
 
+class _PaymentRemindersScreenState extends State<PaymentRemindersScreen> {
+  final Color appGreen = const Color(0xFF05A664);
+  final Color bgGreenTint = const Color(0xFFF1F8F5);
+
+  // Sample data for reminders - Convert to state-managed list
+  final List<Map<String, String>> _reminders = List.generate(
+    10,
+    (index) => {
+      "id": "rem_$index",
+      "name": "Vethum Ranasinghe",
+      "location": "Miriswatta",
+      "amount": "Rs 1000",
+      "status": "2 weeks late",
+    },
+  );
+
+  /// Handles the removal of a reminder and provides feedback
+  void _removeReminder(int index, String action) {
+    final removedItem = _reminders[index];
+    setState(() {
+      _reminders.removeAt(index);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("${removedItem['name']} marked as $action"),
+        backgroundColor: action == "Rejected" ? Colors.redAccent : appGreen,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: const CustomAppBar(
         title: 'Payment Reminders',
       ),
       backgroundColor: bgGreenTint,
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              // 1. CHANGED: Removed horizontal padding, kept vertical padding
+      body: _reminders.isEmpty
+          ? _buildEmptyState()
+          : ListView.builder(
               padding: const EdgeInsets.symmetric(vertical: 20),
-              child: Column(
-                children: [
-                  // Late Payment Items
-                  // I applied the padding fix to all items below
-
-                  Dismissible(
-                    key: UniqueKey(),
-                    direction: DismissDirection.startToEnd,
-                    onDismissed: (_) {},
-                    background: Container(
-                      color: appGreen,
-                      alignment: Alignment.centerLeft,
-                      padding: const EdgeInsets.only(left: 20),
-                      child: const Icon(Icons.check, color: Colors.white),
-                    ),
-                    // 2. ADDED: Padding wrapper around the child
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: _buildLatePaymentRow(appGreen, "Vethum Ranasinghe", "Miriswatta"),
-                    ),
-                  ),
-
-                  Dismissible(
-                    key: UniqueKey(),
-                    direction: DismissDirection.startToEnd,
-                    onDismissed: (_) {},
-                    background: Container(
-                      color: appGreen,
-                      alignment: Alignment.centerLeft,
-                      padding: const EdgeInsets.only(left: 20),
-                      child: const Icon(Icons.check, color: Colors.white),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: _buildLatePaymentRow(appGreen, "Vethum Ranasinghe", "Miriswatta"),
+              itemCount: _reminders.length,
+              itemBuilder: (context, index) {
+                final reminder = _reminders[index];
+                return Dismissible(
+                  key: Key(reminder['id']!),
+                  direction: DismissDirection.horizontal,
+                  onDismissed: (direction) {
+                    if (direction == DismissDirection.startToEnd) {
+                      _removeReminder(index, "Paid by Cash");
+                    } else {
+                      _removeReminder(index, "Rejected");
+                    }
+                  },
+                  // Swipe Right (Accept/Paid by Cash)
+                  background: Container(
+                    color: appGreen,
+                    alignment: Alignment.centerLeft,
+                    padding: const EdgeInsets.only(left: 30),
+                    child: const Text(
+                      "Paid by Cash",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        letterSpacing: 0.5,
+                      ),
                     ),
                   ),
-
-                  Dismissible(
-                    key: UniqueKey(),
-                    direction: DismissDirection.startToEnd,
-                    onDismissed: (_) {},
-                    background: Container(
-                      color: appGreen,
-                      alignment: Alignment.centerLeft,
-                      padding: const EdgeInsets.only(left: 20),
-                      child: const Icon(Icons.check, color: Colors.white),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: _buildLatePaymentRow(appGreen, "Vethum Ranasinghe", "Miriswatta"),
-                    ),
-                  ),
-
-                  Dismissible(
-                    key: UniqueKey(),
-                    direction: DismissDirection.startToEnd,
-                    onDismissed: (_) {},
-                    background: Container(
-                      color: appGreen,
-                      alignment: Alignment.centerLeft,
-                      padding: const EdgeInsets.only(left: 20),
-                      child: const Icon(Icons.check, color: Colors.white),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: _buildLatePaymentRow(appGreen, "Vethum Ranasinghe", "Miriswatta"),
+                  // Swipe Left (Reject)
+                  secondaryBackground: Container(
+                    color: Colors.redAccent,
+                    alignment: Alignment.centerRight,
+                    padding: const EdgeInsets.only(right: 30),
+                    child: const Text(
+                      "Reject",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        letterSpacing: 0.5,
+                      ),
                     ),
                   ),
-
-                  Dismissible(
-                    key: UniqueKey(),
-                    direction: DismissDirection.startToEnd,
-                    onDismissed: (_) {},
-                    background: Container(
-                      color: appGreen,
-                      alignment: Alignment.centerLeft,
-                      padding: const EdgeInsets.only(left: 20),
-                      child: const Icon(Icons.check, color: Colors.white),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: _buildLatePaymentRow(appGreen, "Vethum Ranasinghe", "Miriswatta"),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: _buildLatePaymentRow(
+                      appGreen,
+                      reminder['name']!,
+                      reminder['location']!,
+                      reminder['amount']!,
+                      reminder['status']!,
                     ),
                   ),
+                );
+              },
+            ),
+    );
+  }
 
-                  Dismissible(
-                    key: UniqueKey(),
-                    direction: DismissDirection.startToEnd,
-                    onDismissed: (_) {},
-                    background: Container(
-                      color: appGreen,
-                      alignment: Alignment.centerLeft,
-                      padding: const EdgeInsets.only(left: 20),
-                      child: const Icon(Icons.check, color: Colors.white),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: _buildLatePaymentRow(appGreen, "Vethum Ranasinghe", "Miriswatta"),
-                    ),
-                  ),
-
-                  Dismissible(
-                    key: UniqueKey(),
-                    direction: DismissDirection.startToEnd,
-                    onDismissed: (_) {},
-                    background: Container(
-                      color: appGreen,
-                      alignment: Alignment.centerLeft,
-                      padding: const EdgeInsets.only(left: 20),
-                      child: const Icon(Icons.check, color: Colors.white),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: _buildLatePaymentRow(appGreen, "Vethum Ranasinghe", "Miriswatta"),
-                    ),
-                  ),
-
-                  Dismissible(
-                    key: UniqueKey(),
-                    direction: DismissDirection.startToEnd,
-                    onDismissed: (_) {},
-                    background: Container(
-                      color: appGreen,
-                      alignment: Alignment.centerLeft,
-                      padding: const EdgeInsets.only(left: 20),
-                      child: const Icon(Icons.check, color: Colors.white),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: _buildLatePaymentRow(appGreen, "Vethum Ranasinghe", "Miriswatta"),
-                    ),
-                  ),
-
-                  Dismissible(
-                    key: UniqueKey(),
-                    direction: DismissDirection.startToEnd,
-                    onDismissed: (_) {},
-                    background: Container(
-                      color: appGreen,
-                      alignment: Alignment.centerLeft,
-                      padding: const EdgeInsets.only(left: 20),
-                      child: const Icon(Icons.check, color: Colors.white),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: _buildLatePaymentRow(appGreen, "Vethum Ranasinghe", "Miriswatta"),
-                    ),
-                  ),
-
-                  Dismissible(
-                    key: UniqueKey(),
-                    direction: DismissDirection.startToEnd,
-                    onDismissed: (_) {},
-                    background: Container(
-                      color: appGreen,
-                      alignment: Alignment.centerLeft,
-                      padding: const EdgeInsets.only(left: 20),
-                      child: const Icon(Icons.check, color: Colors.white),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: _buildLatePaymentRow(appGreen, "Vethum Ranasinghe", "Miriswatta"),
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-                ],
-              ),
+  /// UI for when all reminders are cleared
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.check_circle_outline, size: 80, color: appGreen.withOpacity(0.5)),
+          const SizedBox(height: 16),
+          const Text(
+            "No pending reminders",
+            style: TextStyle(
+              fontSize: 18, 
+              color: Colors.grey, 
+              fontWeight: FontWeight.w500,
+              letterSpacing: 0.5,
             ),
           ),
         ],
@@ -196,10 +134,8 @@ class PaymentRemindersScreen extends StatelessWidget {
     );
   }
 
-  // ---------------- Helper Methods ----------------
-
-  // Unchanged as requested
-  Widget _buildLatePaymentRow(Color color, String name, String location) {
+  /// Helper to build each reminder row
+  Widget _buildLatePaymentRow(Color color, String name, String location, String amount, String status) {
     return Row(
       children: [
         // Circular Bell Button
@@ -251,11 +187,11 @@ class PaymentRemindersScreen extends StatelessWidget {
                         style: const TextStyle(fontSize: 12, color: Colors.black54),
                       ),
                       Text(
-                        "Rs 1000",
+                        amount,
                         style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w500),
                       ),
                       Text(
-                        "2 weeks late",
+                        status,
                         style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w500),
                       ),
                     ],
