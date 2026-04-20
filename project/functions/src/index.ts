@@ -4,7 +4,6 @@ import {defineSecret} from "firebase-functions/params";
 import * as logger from "firebase-functions/logger";
 import * as admin from "firebase-admin";
 import * as crypto from "crypto";
-
 admin.initializeApp();
 const db = admin.firestore();
 
@@ -152,11 +151,17 @@ export const sendNotification = onCall(async (request) => {
     if (response.failureCount > 0) {
       response.responses.forEach((resp, idx) => {
         if (!resp.success) {
-          logger.error(`Token ${tokens[idx]} failed:`, resp.error);
+          const error = resp.error as admin.FirebaseError;
+          logger.error(`Notification failed for token at index ${idx}:`, {
+            token: tokens[idx],
+            code: error?.code,
+            message: error?.message,
+          });
+
           errors.push({
             token: tokens[idx],
-            errorCode: resp.error?.code,
-            message: resp.error?.message,
+            errorCode: error?.code,
+            message: error?.message,
           });
         }
       });
