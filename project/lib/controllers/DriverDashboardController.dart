@@ -83,33 +83,86 @@ class DriverDashboardController {
       // 1. Mark journey as started in DB
       await _dbService.updateJourneyStatus(uid, true);
 
-      // 2. TRIGGER WEATHER-BASED NOTIFICATIONS
+      // 2. TRIGGER WEATHER-BASED NOTIFICATIONS (Scanning Whole Route)
       try {
-        // Get current driver location
-        Position position = await Geolocator.getCurrentPosition();
+        // 1. Get Driver's saved route to scan multiple points
+        final driver = await _dbService.getDriverData(uid);
+        final route = driver?.route;
         
-        // Fetch weather recommendation
-        final rec = await _weatherService.getWeatherRecommendation(
-          position.latitude, 
-          position.longitude
-        );
+        List<Map<String, double>> pointsToCheck = [];
 
-        // Get UIDs of all "Present" passengers
+        if (route != null && route.isNotEmpty) {
+          // Add the Start Point
+          pointsToCheck.add({
+            "lat": (route.first["lat"] as num).toDouble(),
+            "lng": (route.first["lng"] as num).toDouble(),
+          });
+
+          // Add the Middle Point (if route is long enough)
+          if (route.length >= 3) {
+            final midIndex = (route.length / 2).floor();
+            pointsToCheck.add({
+              "lat": (route[midIndex]["lat"] as num).toDouble(),
+              "lng": (route[midIndex]["lng"] as num).toDouble(),
+            });
+          }
+
+          // Add the Final Destination
+          if (route.length >= 2) {
+            pointsToCheck.add({
+              "lat": (route.last["lat"] as num).toDouble(),
+              "lng": (route.last["lng"] as num).toDouble(),
+            });
+          }
+        } else {
+          // Fallback to current position if no route is defined
+          Position position = await Geolocator.getCurrentPosition();
+          pointsToCheck.add({
+            "lat": position.latitude,
+            "lng": position.longitude,
+          });
+        }
+        
+        // 2. Aggregate the weather recommendation (Priority: Rain > Hot > Sunny)
+        Map<String, String> finalRec = {
+          "title": "Journey Started!",
+          "body": "The weather looks clear across the entire route today.",
+          "type": "sunny",
+        };
+
+        for (final point in pointsToCheck) {
+          final rec = await _weatherService.getDestinationForecast(
+            point["lat"]!, 
+            point["lng"]!
+          );
+          
+          if (rec["type"] == "rain") {
+            // Rain is highest priority - if it's raining anywhere, notify!
+            finalRec = rec;
+            finalRec["body"] = "Rain is expected along your route today. " +
+                               "Don't forget your umbrella!";
+            break; 
+          } else if (rec["type"] == "hot" && finalRec["type"] != "rain") {
+            finalRec = rec;
+          }
+        }
+
+        // 3. Get UIDs of all "Present" passengers
         final presentIds = await _dbService.getPresentPassengerIds(uid);
 
         if (presentIds.isNotEmpty) {
           await _notificationService.sendNotificationToPassengers(
             passengerIds: presentIds,
-            title: rec['title'] ?? 'Journey Started!',
-            body: rec['body'] ?? 'Your bus is on the way.',
+            title: finalRec["title"] ?? "Journey Started!",
+            body: finalRec["body"] ?? "Your bus is on the way.",
             data: {
-              'type': 'weather_alert',
-              'weather_type': rec['type']
+              "type": "weather_alert",
+              "weather_type": finalRec["type"]
             },
           );
           
           if (kDebugMode) {
-            print('✅ Weather notification sent: ${rec['title']}');
+            print("✅ Route-wide weather alert sent: ${finalRec["title"]}");
           }
         }
       } catch (e) {
