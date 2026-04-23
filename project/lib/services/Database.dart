@@ -360,6 +360,26 @@ class DatabaseService {
         // However, safely we can just merge the map.
         'records': {dateKey: status},
       }, SetOptions(merge: true));
+
+      // NEW: Running Balance Logic for Daily Passengers
+      if (status == 'Present') {
+        final passDoc = await _db.collection('passenger').doc(passengerId).get();
+        if (passDoc.exists && passDoc.data()?['paymentType'] == 'Daily') {
+          final rateStr = passDoc.data()?['paymentAmount'] ?? '';
+          double rate = double.tryParse(rateStr.toString()) ?? 0.0;
+          
+          if (rate == 0) {
+            final driverDoc = await _db.collection('driver').doc(driverId).get();
+            if (driverDoc.exists) {
+              rate = double.tryParse(driverDoc.data()?['dailyPaymentAmount']?.toString() ?? '0') ?? 0.0;
+            }
+          }
+          
+          if (rate > 0) {
+            await updatePassengerBalance(passengerId, rate);
+          }
+        }
+      }
     } catch (e) {
       rethrow;
     }
@@ -411,6 +431,57 @@ class DatabaseService {
   }
 
   /// Updates the FCM token for a user (driver or passenger).
+  /// Updates the passenger's running balance (positive for debt, negative for payments).
+  Future<void> updatePassengerBalance(String passengerId, double amount) async {
+    try {
+      await _db.collection('passenger').doc(passengerId).update({
+        'balance': FieldValue.increment(amount),
+      });
+    } catch (e) {
+      print("Error updating balance: $e");
+    }
+  }
+
+  /// Checks if a monthly passenger needs to be charged for the upcoming month.
+  Future<void> checkAndChargeMonthlyFees(String passengerId) async {
+    try {
+      final passDoc = await _db.collection('passenger').doc(passengerId).get();
+      if (!passDoc.exists) return;
+      final passData = passDoc.data()!;
+      
+      if (passData['paymentType'] != 'Monthly') return;
+
+      final driverId = passData['driverId'];
+      final driverDoc = await _db.collection('driver').doc(driverId).get();
+      if (!driverDoc.exists) return;
+      final driverData = driverDoc.data()!;
+
+      final now = DateTime.now();
+      final paymentDay = (driverData['paymentDate'] as Timestamp?)?.toDate().day ?? 25;
+      
+      // If we are on or after the payment day, we are charging for the NEXT month
+      if (now.day >= paymentDay) {
+        // Upcoming month key (e.g. "2026-05")
+        final nextMonth = now.month == 12 ? 1 : now.month + 1;
+        final nextYear = now.month == 12 ? now.year + 1 : now.year;
+        final chargeKey = "$nextYear-${nextMonth.toString().padLeft(2, '0')}";
+
+        if (passData['lastChargedMonth'] != chargeKey) {
+          final rate = double.tryParse(passData['paymentAmount']?.toString() ?? '') ?? 
+                       double.tryParse(driverData['monthlyPaymentAmount']?.toString() ?? '0') ?? 0.0;
+          
+          await _db.collection('passenger').doc(passengerId).update({
+            'balance': FieldValue.increment(rate),
+            'lastChargedMonth': chargeKey,
+          });
+          print("✅ Charged monthly fee for $chargeKey to $passengerId");
+        }
+      }
+    } catch (e) {
+      print("Error checking monthly fees: $e");
+    }
+  }
+
   Future<void> updateFcmToken(String collection, String uid, String token) async {
     try {
       await _db.collection(collection).doc(uid).set({
@@ -689,6 +760,9 @@ class DatabaseService {
         'timestamp': FieldValue.serverTimestamp(),
         'date': DateTime.now().toIso8601String(),
       });
+
+      // NEW: Update Running Balance
+      await updatePassengerBalance(passengerId, -double.parse(amount));
     } catch (e) {
       rethrow;
     }
@@ -794,6 +868,9 @@ class DatabaseService {
         'date': DateTime.now().toIso8601String(),
         'paymentId': 'CASH_${DateTime.now().millisecondsSinceEpoch}',
       });
+
+      // NEW: Update Running Balance
+      await updatePassengerBalance(passengerId, -double.parse(amount));
     } catch (e) {
       rethrow;
     }
@@ -812,107 +889,25 @@ class DatabaseService {
 
   /// Returns a stream of passengers who have missed payments.
   Stream<List<Map<String, dynamic>>> getMissedPaymentPassengersStream(String driverId) {
-    // We listen to changes in driver (for payment settings), passengers, attendance, and payments
-    final driverStream = _db.collection('driver').doc(driverId).snapshots();
-    final passengersStream = _db.collection('passenger').where('driverId', isEqualTo: driverId).snapshots();
-    final attendanceStream = _db.collection('attendance').where('driverId', isEqualTo: driverId).snapshots();
-    final paymentsStream = _db.collection('payments').where('driverId', isEqualTo: driverId).snapshots();
-
-    return Rx.combineLatest4<DocumentSnapshot, QuerySnapshot, QuerySnapshot, QuerySnapshot, List<Map<String, dynamic>>>(
-      driverStream,
-      passengersStream,
-      attendanceStream,
-      paymentsStream,
-      (driverSnap, passSnap, attSnap, paySnap) {
-        final List<Map<String, dynamic>> missed = [];
-        final now = DateTime.now();
-        final todayStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
-
-        final driverData = driverSnap.data() as Map<String, dynamic>? ?? {};
-        final paymentDateObj = driverData['paymentDate'] as Timestamp?;
-        final int? paymentDay = paymentDateObj?.toDate().day;
-
-        // Map attendance and payments for easy lookup
-        final attMap = {for (var doc in attSnap.docs) doc.id: doc.data() as Map<String, dynamic>};
-        final payDocs = paySnap.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
-
-        for (var passDoc in passSnap.docs) {
-          final passData = passDoc.data() as Map<String, dynamic>;
-          final passId = passDoc.id;
-          final paymentType = passData['paymentType'] ?? 'Daily';
-          bool isMissed = false;
-          String statusText = "";
-          String missedAmountStr = passData['paymentAmount'] ?? "0";
-          int totalMissedAmount = 0;
-
-          if (paymentType == 'Daily') {
-            // Logic: Present on a past date but no payment for that date
-            final records = attMap[passId]?['records'] as Map<String, dynamic>? ?? {};
-            int missedDays = 0;
-            
-            records.forEach((date, status) {
-              if (status == 'Present' && date != todayStr) {
-                // Check if paid for this date
-                final alreadyPaid = payDocs.any((p) => 
-                  p['passengerId'] == passId && 
-                  p['type'] == 'Daily' && 
-                  p['date'].toString().startsWith(date) &&
-                  (p['status'] == 'collected' || p['status'] == 'cash' || p['status'] == 'success')
-                );
-                if (!alreadyPaid) {
-                  missedDays++;
-                }
-              }
-            });
-
-            if (missedDays > 0) {
-              isMissed = true;
-              statusText = missedDays == 1 ? "1 day late" : "$missedDays days late";
-              int dailyAmount = int.tryParse(missedAmountStr.isEmpty ? "0" : missedAmountStr) ?? 0;
-              totalMissedAmount = dailyAmount * missedDays;
-            }
-          } else {
-            // Monthly Logic: "Pay in Advance" scenario (e.g., Feb payment due on Jan 25th)
-            final registrationDate = (passData['createdAt'] as Timestamp?)?.toDate() ?? now;
-            final payDay = paymentDay ?? 1;
-
-            // 1. Calculate base months from registration month to current month
-            // Example: Reg in Jan, Today in Feb -> 1 month difference + 1 (current) = 2 months expected
-            int monthsDifference = ((now.year - registrationDate.year) * 12) + (now.month - registrationDate.month);
-            int expectedPayments = monthsDifference + 1;
-
-            // Note: In this logic, we don't add +1 for the advance month. 
-            // The passenger can pay for the next month starting on the payment day, 
-            // but they aren't "in arrears" for it until that month actually starts.
-
-            final totalMonthlyPayments = payDocs.where((p) => 
-              p['passengerId'] == passId && 
-              p['type'] == 'Monthly' && 
-              (p['status'] == 'collected' || p['status'] == 'cash' || p['status'] == 'success')
-            ).length;
-
-            int missedMonths = expectedPayments - totalMonthlyPayments;
-
-            if (missedMonths > 0) {
-              isMissed = true;
-              statusText = missedMonths == 1 ? "1 month arrears" : "$missedMonths months arrears";
-              int monthlyAmount = int.tryParse(missedAmountStr.isEmpty ? "0" : missedAmountStr) ?? 0;
-              totalMissedAmount = monthlyAmount * missedMonths;
-            }
-          }
-
-          if (isMissed) {
-            missed.add({
-              ...passData,
-              'id': passId,
-              'missedStatus': statusText,
-              'totalAmount': "Rs $totalMissedAmount",
-            });
-          }
+    return _db.collection('passenger')
+        .where('driverId', isEqualTo: driverId)
+        .snapshots()
+        .map((snapshot) {
+      final missed = <Map<String, dynamic>>[];
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        final balance = (data['balance'] ?? 0.0).toDouble();
+        if (balance > 0) {
+          missed.add({
+            ...data,
+            'id': doc.id,
+            'missedStatus': data['paymentType'] == 'Monthly' ? "Monthly Arrears" : "Arrears",
+            'totalAmount': "Rs ${balance.toInt()}",
+          });
         }
-        return missed;
-      },
-    );
+      }
+      return missed;
+    });
   }
 
   /// Returns a stream of payment status for a single passenger.

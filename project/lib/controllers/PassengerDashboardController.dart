@@ -40,6 +40,9 @@ class PassengerDashboardController {
         return {'error': 'Passenger profile not found'};
       }
 
+      // 1. Check and charge monthly fee if due (Running Balance Logic)
+      await _dbService.checkAndChargeMonthlyFees(user.uid);
+
       PassengerModel passenger = PassengerModel.fromMap(
         passengerDoc.data() as Map<String, dynamic>,
       );

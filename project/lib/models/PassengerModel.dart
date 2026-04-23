@@ -16,6 +16,8 @@ class PassengerModel {
   final Timestamp createdAt;
   final String paymentAmount; // Added field
   final String? fcmToken; // Added for push notifications
+  final double balance; // Added for running balance
+  final String lastChargedMonth; // Added (e.g., "2026-04")
 
   PassengerModel({
     required this.uid,
@@ -33,6 +35,8 @@ class PassengerModel {
     required this.createdAt,
     this.paymentAmount = '', // Default empty
     this.fcmToken,
+    this.balance = 0.0,
+    this.lastChargedMonth = '',
   });
 
   Map<String, dynamic> toMap() {
@@ -52,6 +56,8 @@ class PassengerModel {
       'createdAt': createdAt,
       'paymentAmount': paymentAmount, // Added
       'fcmToken': fcmToken,
+      'balance': balance,
+      'lastChargedMonth': lastChargedMonth,
     };
   }
 
@@ -72,6 +78,8 @@ class PassengerModel {
       createdAt: map['createdAt'] ?? Timestamp.now(),
       paymentAmount: map['paymentAmount'] ?? '', // Added
       fcmToken: map['fcmToken'],
+      balance: (map['balance'] ?? 0.0).toDouble(),
+      lastChargedMonth: map['lastChargedMonth'] ?? '',
     );
   }
 }

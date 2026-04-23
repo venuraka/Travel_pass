@@ -38,13 +38,7 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
     }
   }
 
-  List<Map<String, String>> latePayments = [
-    {"name": "Vethum Ranasinghe", "place": "Miriswatta", "paymentType": "Daily"},
-    {"name": "Vethum Ranasinghe", "place": "Miriswatta", "paymentType": "Monthly"},
-    {"name": "Vethum Ranasinghe", "place": "Miriswatta", "paymentType": "Daily"},
-  ];
-
-  List<Map<String, String>> paidPassengers = [];
+  // Removed hardcoded lists as we now use StreamBuilders
 
   DateTime _selectedDate = DateTime.now();
 
@@ -123,57 +117,7 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
                       ),
                     ),
                     const SizedBox(height: 30),
-                    // --- Late Payment Section Title (Added Padding) ---
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          "Late Payment",
-                          style: TextStyle(
-                            color: appGreen,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-
-                    // --- Late Payment Swipers ---
-                    for (int i = 0; i < latePayments.length; i++)
-                      Dismissible(
-                        key: UniqueKey(),
-                        direction: DismissDirection.startToEnd,
-                        onDismissed: (direction) {
-                          setState(() {
-                            final person = latePayments.removeAt(i);
-                            paidPassengers.add(person);
-                          });
-                        },
-                        // Background stretches full width
-                        background: Container(
-                          color: appGreen,
-                          alignment: Alignment.centerLeft,
-                          padding: const EdgeInsets.only(left: 20),
-                          child: const Icon(Icons.check, color: Colors.white),
-                        ),
-                        // 2. CHANGED: Wrapped the content in Padding so it stays aligned
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: _buildLatePaymentRow(
-                              appGreen, 
-                              latePayments[i]["name"]!, 
-                              latePayments[i]["place"]!, 
-                              latePayments[i]["paymentType"]!, 
-                              _badgePreference
-                          ),
-                        ),
-                      ),
-
-                    const SizedBox(height: 20),
-
-                    // --- Paid Passengers Section Title (Added Padding) ---
+                    // --- Paid Passengers Section Title ---
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Align(
@@ -190,42 +134,130 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
                     ),
                     const SizedBox(height: 10),
 
-                    // --- Paid Passengers Cards (Added Padding) ---
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: InfoCard(
-                        title: "Vethum Ranasinghe",
-                        subtitle: "Miriswatta",
-                        showTag: true,
-                        tagText: "Daily",
-                        overallPreference: _badgePreference,
-                        trailing: _buildPaidTrailing(appGreen, "Rs 1000", "2 Days Ago"),
-                      ),
+                    // --- Paid Passengers Cards (Real-time Stream) ---
+                    StreamBuilder<List<Map<String, dynamic>>>(
+                      stream: _dbService.getRecentPaymentsStream(_driverId),
+                      builder: (context, snapshot) {
+                        final payments = snapshot.data ?? [];
+                        if (payments.isEmpty) {
+                          return const Padding(
+                            padding: EdgeInsets.all(20.0),
+                            child: Center(child: Text("No recent payments found.", style: TextStyle(color: Colors.grey))),
+                          );
+                        }
+
+                        return Column(
+                          children: payments.map((p) {
+                            final date = p['date']?.toString().split('T').first.replaceAll('-', '/') ?? 'Today';
+                            final amount = p['amount'] ?? '0';
+                            final name = p['passengerName'] ?? 'Passenger';
+                            final place = p['pickupLocation'] ?? 'No location';
+                            final type = p['type'] ?? 'Daily';
+
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+                              child: InfoCard(
+                                title: name,
+                                subtitle: place,
+                                showTag: true,
+                                tagText: type,
+                                overallPreference: _badgePreference,
+                                trailing: _buildPaidTrailing(appGreen, "Rs $amount", date),
+                              ),
+                            );
+                          }).toList(),
+                        );
+                      }
                     ),
 
+                    const SizedBox(height: 30),
+
+                    // --- Arrears (Late Payment) Section Title ---
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: InfoCard(
-                        title: "Vethum Ranasinghe",
-                        subtitle: "Miriswatta",
-                        showTag: false,
-                        overallPreference: _badgePreference,
-                        trailing: _buildPaidTrailing(appGreen, "Rs 1000", "2 Days Ago"),
-                      ),
-                    ),
-
-                    for (int i = 0; i < paidPassengers.length; i++)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: InfoCard(
-                          title: paidPassengers[i]["name"]!,
-                          subtitle: paidPassengers[i]["place"]!,
-                          showTag: true,
-                          tagText: paidPassengers[i]["paymentType"] ?? "Daily",
-                          overallPreference: _badgePreference,
-                          trailing: _buildPaidTrailing(appGreen, "Rs 1000", "Paid Today"),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          "Arrears",
+                          style: TextStyle(
+                            color: appGreen,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
+                    ),
+                    const SizedBox(height: 10),
+
+                    // --- Late Payment Swipers (Real-time Stream) ---
+                    StreamBuilder<List<Map<String, dynamic>>>(
+                      stream: _dbService.getMissedPaymentPassengersStream(_driverId),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(child: Padding(
+                            padding: EdgeInsets.all(20.0),
+                            child: CircularProgressIndicator(),
+                          ));
+                        }
+                        
+                        final payments = snapshot.data ?? [];
+                        if (payments.isEmpty) {
+                          return const Padding(
+                            padding: EdgeInsets.all(20.0),
+                            child: Center(child: Text("No late payments! 🎉", style: TextStyle(color: Colors.grey))),
+                          );
+                        }
+
+                        return Column(
+                          children: payments.map((reminder) {
+                            final name = reminder['name'] ?? 'Passenger';
+                            final place = reminder['pickupLocation'] ?? 'No location';
+                            final type = reminder['paymentType'] ?? 'Daily';
+                            final amount = reminder['totalAmount'] ?? 'Rs 0';
+                            final status = reminder['missedStatus'] ?? 'Late';
+
+                            return Dismissible(
+                              key: ValueKey(reminder['id']),
+                              direction: DismissDirection.startToEnd,
+                              onDismissed: (direction) async {
+                                // Record manual payment when swiped
+                                await _dbService.recordManualPayment(
+                                  passengerId: reminder['id'],
+                                  passengerName: name,
+                                  driverId: _driverId,
+                                  driverName: "Driver", 
+                                  amount: amount.replaceAll('Rs ', ''),
+                                  type: type,
+                                );
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text("Recorded cash payment for $name")),
+                                  );
+                                }
+                              },
+                              background: Container(
+                                color: appGreen,
+                                alignment: Alignment.centerLeft,
+                                padding: const EdgeInsets.only(left: 20),
+                                child: const Icon(Icons.check, color: Colors.white),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 20),
+                                child: _buildLatePaymentRow(
+                                    appGreen, 
+                                    name, 
+                                    place, 
+                                    type, 
+                                    _badgePreference,
+                                    amount,
+                                    status
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        );
+                      }
+                    ),
 
                     const SizedBox(height: 20),
                   ],
@@ -240,7 +272,7 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
 
   // ---------------- Helper Methods ----------------
 
-  Widget _buildLatePaymentRow(Color color, String name, String location, String tag, String overallPreference) {
+  Widget _buildLatePaymentRow(Color color, String name, String location, String tag, String overallPreference, String amount, String status) {
     // Visibility logic
     bool shouldShowBadge = (overallPreference == "Both") || (tag.toLowerCase() == overallPreference.toLowerCase());
 
@@ -313,11 +345,11 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
                                 style: const TextStyle(fontSize: 12, color: Colors.black54),
                               ),
                               Text(
-                                "Rs 1000",
+                                amount,
                                 style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w500),
                               ),
                               Text(
-                                "2 weeks late",
+                                status,
                                 style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w500),
                               ),
                             ],
