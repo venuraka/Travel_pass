@@ -136,23 +136,24 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
 
                     // --- Paid Passengers Cards (Real-time Stream) ---
                     StreamBuilder<List<Map<String, dynamic>>>(
-                      stream: _dbService.getRecentPaymentsStream(_driverId),
+                      stream: _dbService.getClearedPassengersStream(_driverId),
                       builder: (context, snapshot) {
-                        final payments = snapshot.data ?? [];
-                        if (payments.isEmpty) {
+                        final cleared = snapshot.data ?? [];
+                        if (cleared.isEmpty) {
                           return const Padding(
                             padding: EdgeInsets.all(20.0),
-                            child: Center(child: Text("No recent payments found.", style: TextStyle(color: Colors.grey))),
+                            child: Center(child: Text("No passengers have paid yet.", style: TextStyle(color: Colors.grey))),
                           );
                         }
 
                         return Column(
-                          children: payments.map((p) {
-                            final date = p['date']?.toString().split('T').first.replaceAll('-', '/') ?? 'Today';
-                            final amount = p['amount'] ?? '0';
-                            final name = p['passengerName'] ?? 'Passenger';
+                          children: cleared.map((p) {
+                            final name = p['name'] ?? 'Passenger';
                             final place = p['pickupLocation'] ?? 'No location';
-                            final type = p['type'] ?? 'Daily';
+                            final type = p['paymentType'] ?? 'Daily';
+
+                            final lastAmount = p['lastAmount'] ?? '0';
+                            final lastDate = p['lastDate'] ?? 'N/A';
 
                             return Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
@@ -162,7 +163,7 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
                                 showTag: true,
                                 tagText: type,
                                 overallPreference: _badgePreference,
-                                trailing: _buildPaidTrailing(appGreen, "Rs $amount", date),
+                                trailing: _buildPaidTrailing(appGreen, "Rs $lastAmount", lastDate),
                               ),
                             );
                           }).toList(),

@@ -134,22 +134,13 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
   }
 
   bool get _isButtonEnabled {
+    // 1. Basic safety checks
     if (_passenger == null || _driver == null || _amountDue <= 0 || _isProcessing) return false;
 
-    if (_passenger!.paymentType == 'Daily') {
-      // If they owe money, they can pay if they are Present today
-      return _attendanceStatus == 'Present';
-    } else {
-      // Monthly logic: 
-      // 1. If they owe more than one month's worth, they can pay anytime (arrears)
-      // 2. If it's just the current month, they can pay on/after due date
-      final now = DateTime.now();
-      final dueDay = (_driver!.paymentDate?.day) ?? 1;
-      final monthlyRate = double.tryParse(_passenger!.paymentAmount.isNotEmpty ? _passenger!.paymentAmount : (_driver!.monthlyPaymentAmount ?? '0')) ?? 0.0;
-      
-      bool hasArrears = _amountDue > monthlyRate + 1; // +1 for rounding safety
-      return (now.day >= dueDay) || hasArrears;
-    }
+    // 2. If there is a balance, they SHOULD be allowed to pay it.
+    // We don't need complex date math anymore because the 'balance' field 
+    // only increases when a valid charge is applied.
+    return true;
   }
 
   String _getMonthName() {
@@ -180,10 +171,27 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
       phone: _passenger!.phone,
       address: _passenger!.address,
       city: 'Colombo',
-      onCompleted: (paymentId) {
+      onCompleted: (paymentId) async {
         developer.log('Payment completed with ID: $paymentId');
+        
+        // NEW: Record the payment and update the balance IMMEDIATELY
+        try {
+          await _dbService.recordPayment(
+            passengerId: _passenger!.uid,
+            passengerName: _passenger!.name,
+            driverId: _passenger!.driverId,
+            driverName: _driver?.name ?? 'Driver',
+            amount: amountStr,
+            type: _passenger!.paymentType,
+            paymentId: paymentId,
+          );
+          developer.log('Payment recorded and balance updated locally.');
+        } catch (e) {
+          developer.log('Error recording payment: $e');
+        }
+
         // Refresh data to show "Paid" state immediately
-        Future.delayed(Duration(seconds: 2), () => _loadData());
+        _loadData();
         if (mounted) {
           setState(() {
             _isProcessing = false;

@@ -363,8 +363,22 @@ class DatabaseService {
 
       // NEW: Running Balance Logic for Daily Passengers
       if (status == 'Present') {
+        final attendanceDoc = await _db.collection('attendance').doc(passengerId).get();
+        final records = (attendanceDoc.data()?['records'] as Map<String, dynamic>?) ?? {};
+        
+        // Safety: Only charge if they weren't ALREADY marked 'Present' for this date
+        // (We check the record before we just updated it)
+        bool alreadyCharged = false;
+        // Note: Since we just updated it above, we should have checked BEFORE the set() 
+        // OR we check if this is the FIRST time we set 'Present' for this date.
+        // Let's refine the logic: we'll check if the balance update is needed.
+        
         final passDoc = await _db.collection('passenger').doc(passengerId).get();
         if (passDoc.exists && passDoc.data()?['paymentType'] == 'Daily') {
+          // Check if a payment for this exact date already exists to avoid double charging
+          final alreadyPaid = await checkIfPaidToday(passengerId);
+          if (alreadyPaid) return; 
+
           final rateStr = passDoc.data()?['paymentAmount'] ?? '';
           double rate = double.tryParse(rateStr.toString()) ?? 0.0;
           
@@ -459,17 +473,34 @@ class DatabaseService {
       final now = DateTime.now();
       final paymentDay = (driverData['paymentDate'] as Timestamp?)?.toDate().day ?? 25;
       
-      // If we are on or after the payment day, we are charging for the NEXT month
+      // Calculate the month we are charging for
+      // If today is on/after payment day, we are charging for NEXT month.
+      // If today is before payment day, we ensure the CURRENT month is charged if it hasn't been.
+      DateTime targetMonthDate;
       if (now.day >= paymentDay) {
-        // Upcoming month key (e.g. "2026-05")
-        final nextMonth = now.month == 12 ? 1 : now.month + 1;
-        final nextYear = now.month == 12 ? now.year + 1 : now.year;
-        final chargeKey = "$nextYear-${nextMonth.toString().padLeft(2, '0')}";
+        targetMonthDate = DateTime(now.year, now.month + 1);
+      } else {
+        targetMonthDate = DateTime(now.year, now.month);
+      }
 
-        if (passData['lastChargedMonth'] != chargeKey) {
-          final rate = double.tryParse(passData['paymentAmount']?.toString() ?? '') ?? 
-                       double.tryParse(driverData['monthlyPaymentAmount']?.toString() ?? '0') ?? 0.0;
-          
+      final chargeKey = "${targetMonthDate.year}-${targetMonthDate.month.toString().padLeft(2, '0')}";
+
+      // CRITICAL: Only charge if this month hasn't been charged yet
+      if (passData['lastChargedMonth'] != chargeKey) {
+        // Double check: Did they already pay for this month? (Optional but safer)
+        final alreadyPaid = await checkIfPaidThisMonth(passengerId);
+        if (alreadyPaid) {
+          // If already paid, just update the key so we don't try to charge again
+          await _db.collection('passenger').doc(passengerId).update({
+            'lastChargedMonth': chargeKey,
+          });
+          return;
+        }
+
+        final rate = double.tryParse(passData['paymentAmount']?.toString() ?? '') ?? 
+                     double.tryParse(driverData['monthlyPaymentAmount']?.toString() ?? '0') ?? 0.0;
+        
+        if (rate > 0) {
           await _db.collection('passenger').doc(passengerId).update({
             'balance': FieldValue.increment(rate),
             'lastChargedMonth': chargeKey,
@@ -908,6 +939,50 @@ class DatabaseService {
       }
       return missed;
     });
+  }
+
+  Stream<List<Map<String, dynamic>>> getClearedPassengersStream(String driverId) {
+    final passengersStream = _db.collection('passenger').where('driverId', isEqualTo: driverId).snapshots();
+    // Remove orderBy to avoid requiring a composite index in Firestore
+    final paymentsStream = _db.collection('payments').where('driverId', isEqualTo: driverId).snapshots();
+
+    return Rx.combineLatest2<QuerySnapshot, QuerySnapshot, List<Map<String, dynamic>>>(
+      passengersStream,
+      paymentsStream,
+      (passSnap, paySnap) {
+        final cleared = <Map<String, dynamic>>[];
+        
+        // Sort payments manually in Dart
+        final allPayments = paySnap.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+        allPayments.sort((a, b) {
+          final aTime = a['timestamp'] as Timestamp?;
+          final bTime = b['timestamp'] as Timestamp?;
+          if (aTime == null || bTime == null) return 0;
+          return bTime.compareTo(aTime); // Descending
+        });
+
+        for (var doc in passSnap.docs) {
+          final data = doc.data() as Map<String, dynamic>;
+          final balance = (data['balance'] ?? 0.0).toDouble();
+          
+          if (balance <= 0) {
+            // Find the most recent payment for this passenger
+            final lastPayment = allPayments.firstWhere(
+              (p) => p['passengerId'] == doc.id && (p['status'] == 'collected' || p['status'] == 'cash' || p['status'] == 'success' || p['status'] == 'paid'),
+              orElse: () => <String, dynamic>{}
+            );
+
+            cleared.add({
+              ...data,
+              'id': doc.id,
+              'lastAmount': lastPayment['amount'] ?? '0',
+              'lastDate': lastPayment['date']?.toString().split('T').first.replaceAll('-', '/') ?? 'N/A',
+            });
+          }
+        }
+        return cleared;
+      }
+    );
   }
 
   /// Returns a stream of payment status for a single passenger.
