@@ -9,6 +9,7 @@ class InfoCard extends StatelessWidget {
   final String tagText;
   final Widget trailing;
   final String overallPreference; // 'Daily', 'Monthly', or 'Both'
+  final String? paymentMethod; // 'Cash' or 'Online'
   final VoidCallback? onTap;
 
   const InfoCard({
@@ -20,6 +21,7 @@ class InfoCard extends StatelessWidget {
     this.showTag = false,
     this.tagText = "Monthly",
     this.overallPreference = "Both",
+    this.paymentMethod,
     this.onTap,
   });
 
@@ -86,7 +88,7 @@ class InfoCard extends StatelessWidget {
                 ),
               ),
 
-              // The Dynamic Tag Layer
+              // The Dynamic Tag Layer (Top-Left)
               if (showTag && _shouldShowBadge())
                 Positioned(
                   top: 0,
@@ -107,6 +109,37 @@ class InfoCard extends StatelessWidget {
                       style: TextStyle(
                         color: _getBadgeTextColor(),
                         fontSize: 10.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+
+              // The Payment Method Tag (Top-Right)
+              if (paymentMethod != null)
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 10.w,
+                      vertical: 4.h,
+                    ),
+                    decoration: BoxDecoration(
+                      color: (paymentMethod == 'Cash' || paymentMethod == 'CASH') 
+                          ? Colors.orange.shade100 
+                          : Colors.blue.shade100,
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(16.r),
+                      ),
+                    ),
+                    child: Text(
+                      paymentMethod!.toUpperCase(),
+                      style: TextStyle(
+                        color: (paymentMethod == 'Cash' || paymentMethod == 'CASH') 
+                            ? Colors.orange.shade800 
+                            : Colors.blue.shade800,
+                        fontSize: 9.sp,
                         fontWeight: FontWeight.bold,
                       ),
                     ),

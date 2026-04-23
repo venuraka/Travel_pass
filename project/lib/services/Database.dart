@@ -944,10 +944,24 @@ class DatabaseService {
         final data = doc.data();
         final balance = (data['balance'] ?? 0.0).toDouble();
         if (balance > 0) {
+          String status = "Arrears";
+          if (data['paymentType'] == 'Monthly') {
+            status = "${data['lastChargedMonth'] ?? 'Monthly'} Arrears";
+          } else {
+            // Calculate estimated days for Daily
+            final rate = double.tryParse(data['paymentAmount']?.toString() ?? '0') ?? 0.0;
+            if (rate > 0) {
+              final days = (balance / rate).ceil();
+              status = "$days ${days == 1 ? 'day' : 'days'} unpaid";
+            } else {
+              status = "Pending Payment";
+            }
+          }
+
           missed.add({
             ...data,
             'id': doc.id,
-            'missedStatus': data['paymentType'] == 'Monthly' ? "Monthly Arrears" : "Arrears",
+            'missedStatus': status,
             'totalAmount': "Rs ${balance.toInt()}",
           });
         }

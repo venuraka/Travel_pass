@@ -158,17 +158,25 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
                             final lastAmount = p['lastAmount'] ?? '0';
                             final lastDate = p['lastDate'] ?? 'N/A';
                             final lastStatus = p['lastStatus'] ?? 'unknown';
-                            final methodLabel = (lastStatus == 'cash') ? "Paid via Cash" : "Paid via Online";
+                            final methodLabel = (lastStatus == 'cash') ? "Cash" : "Online";
 
                             return Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
                               child: InfoCard(
                                 title: name,
-                                subtitle: "$place • $methodLabel",
+                                subtitle: place,
+                                paymentMethod: methodLabel,
                                 showTag: true,
                                 tagText: type,
                                 overallPreference: _badgePreference,
-                                trailing: _buildPaidTrailing(appGreen, "Rs $lastAmount", lastDate),
+                                trailing: Text(
+                                  "Rs ${double.tryParse(lastAmount.toString())?.toInt() ?? 0}",
+                                  style: TextStyle(
+                                    color: appGreen,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
                               ),
                             );
                           }).toList(),
@@ -184,7 +192,7 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
                       child: Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          "Arrears",
+                          "Arrears Payments",
                           style: TextStyle(
                             color: appGreen,
                             fontSize: 16,
@@ -224,28 +232,66 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
 
                             return Dismissible(
                               key: ValueKey(reminder['id']),
-                              direction: DismissDirection.startToEnd,
+                              direction: DismissDirection.horizontal,
                               onDismissed: (direction) async {
-                                // Record manual payment when swiped
-                                await _dbService.recordManualPayment(
-                                  passengerId: reminder['id'],
-                                  passengerName: name,
-                                  driverId: _driverId,
-                                  driverName: "Driver", 
-                                  amount: amount.replaceAll('Rs ', ''),
-                                  type: type,
-                                );
-                                if (mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text("Recorded cash payment for $name")),
+                                if (direction == DismissDirection.startToEnd) {
+                                  // Record manual payment when swiped RIGHT
+                                  await _dbService.recordManualPayment(
+                                    passengerId: reminder['id'],
+                                    passengerName: name,
+                                    driverId: _driverId,
+                                    driverName: "Driver", 
+                                    amount: amount.replaceAll('Rs ', ''),
+                                    type: type,
                                   );
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text("✅ Recorded cash payment for $name"), backgroundColor: appGreen),
+                                    );
+                                  }
+                                } else {
+                                  // Forgive Debt when swiped LEFT
+                                  final balance = double.tryParse(amount.replaceAll('Rs ', '')) ?? 0.0;
+                                  await _dbService.updatePassengerBalance(reminder['id'], -balance);
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text("❌ Arrears rejected (Balance reset)"), backgroundColor: Colors.redAccent),
+                                    );
+                                  }
                                 }
                               },
+                              // Swipe Right (Paid by Cash)
                               background: Container(
                                 color: appGreen,
                                 alignment: Alignment.centerLeft,
-                                padding: const EdgeInsets.only(left: 20),
-                                child: const Icon(Icons.check, color: Colors.white),
+                                padding: const EdgeInsets.only(left: 30),
+                                child: const Row(
+                                  children: [
+                                    Icon(Icons.money, color: Colors.white),
+                                    SizedBox(width: 10),
+                                    Text(
+                                      "Paid by Cash",
+                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // Swipe Left (Reject)
+                              secondaryBackground: Container(
+                                color: Colors.redAccent,
+                                alignment: Alignment.centerRight,
+                                padding: const EdgeInsets.only(right: 30),
+                                child: const Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    Text(
+                                      "Reject",
+                                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                                    ),
+                                    SizedBox(width: 10),
+                                    Icon(Icons.close, color: Colors.white),
+                                  ],
+                                ),
                               ),
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(horizontal: 20),
