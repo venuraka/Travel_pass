@@ -16,6 +16,33 @@ class _CashHistoryScreenState extends State<CashHistoryScreen> {
   final DatabaseService _dbService = DatabaseService();
   final String _driverId = FirebaseAuth.instance.currentUser?.uid ?? '';
   final Color appGreen = const Color(0xFF05A664);
+  DateTime? _filterDate;
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _filterDate ?? DateTime.now(),
+      firstDate: DateTime(2023),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: appGreen,
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null && picked != _filterDate) {
+      setState(() {
+        _filterDate = picked;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +56,23 @@ class _CashHistoryScreenState extends State<CashHistoryScreen> {
           children: [
             Padding(
               padding: const EdgeInsets.all(20.0),
+              child: PageHeader(
+                title: "Daily Cash",
+                subtitle: _filterDate == null 
+                  ? const Text("Showing all history", style: TextStyle(fontSize: 12, color: Colors.grey))
+                  : Text("Filtered: ${_filterDate!.toLocal()}".split(' ')[0], style: TextStyle(fontSize: 12, color: appGreen, fontWeight: FontWeight.bold)),
+                actions: [
+                  if (_filterDate != null)
+                    IconButton(
+                      icon: const Icon(Icons.refresh, color: Colors.grey),
+                      onPressed: () => setState(() => _filterDate = null),
+                    ),
+                  IconButton(
+                    icon: Icon(Icons.calendar_month, color: appGreen),
+                    onPressed: () => _selectDate(context),
+                  ),
+                ],
+              ),
             ),
             Expanded(
               child: StreamBuilder<List<Map<String, dynamic>>>(
@@ -38,7 +82,13 @@ class _CashHistoryScreenState extends State<CashHistoryScreen> {
                     return const Center(child: CircularProgressIndicator());
                   }
 
-                  final history = snapshot.data ?? [];
+                  var history = snapshot.data ?? [];
+
+                  // Apply Filter
+                  if (_filterDate != null) {
+                    final filterStr = "${_filterDate!.year}/${_filterDate!.month.toString().padLeft(2, '0')}/${_filterDate!.day.toString().padLeft(2, '0')}";
+                    history = history.where((item) => item['date'] == filterStr).toList();
+                  }
 
                   if (history.isEmpty) {
                     return Center(
