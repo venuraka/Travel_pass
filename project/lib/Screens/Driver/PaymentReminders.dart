@@ -71,11 +71,34 @@ class _PaymentRemindersScreenState extends State<PaymentRemindersScreen> {
                 key: Key(reminder['id']),
                 direction: DismissDirection.horizontal,
                 confirmDismiss: (direction) async {
-                  if (direction == DismissDirection.startToEnd) {
-                    // Show a quick "Success" indicator before dismissing for cash
-                    return true; 
-                  }
-                  return true;
+                  final action = direction == DismissDirection.startToEnd ? "Paid by Cash" : "Reject";
+                  final color = direction == DismissDirection.startToEnd ? appGreen : Colors.redAccent;
+                  final name = reminder['name'] ?? 'Passenger';
+
+                  return await showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        title: Text("Confirm $action", style: TextStyle(color: color)),
+                        content: Text("Are you sure you want to mark $name's payment as $action?"),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(false),
+                            child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
+                          ),
+                          ElevatedButton(
+                            onPressed: () => Navigator.of(context).pop(true),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: color,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            child: const Text("Confirm", style: TextStyle(color: Colors.white)),
+                          ),
+                        ],
+                      );
+                    },
+                  );
                 },
                 onDismissed: (direction) {
                   if (direction == DismissDirection.startToEnd) {
