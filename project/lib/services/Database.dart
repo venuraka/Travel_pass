@@ -342,61 +342,67 @@ class DatabaseService {
     String driverId,
     DateTime date,
     String status,
-  ) async {
-    try {
-      final dateKey =
-          "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+  ) {
+    final String dateKey = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+    final DocumentReference attendanceRef = _db.collection('attendance').doc(passengerId);
 
-      final docRef = _db.collection('attendance').doc(passengerId);
+    return _db.runTransaction((transaction) async {
+      final snapshot = await transaction.get(attendanceRef);
+      final passDoc = await transaction.get(_db.collection('passenger').doc(passengerId));
+      
+      String currentStatus = 'Not Marked';
+      if (snapshot.exists) {
+        final records = snapshot.data() as Map<String, dynamic>?;
+        currentStatus = records?['records']?[dateKey] ?? 'Not Marked';
+      }
 
-      // Use set with merge to create if not exists, or update if exists
-      // We update the specific key in the 'records' map
-      await docRef.set({
-        'id': passengerId,
-        'driverId': driverId,
-        'lastUpdated': Timestamp.now(),
-        // Map syntax for updating a specific key in a nested map field (dot notation)
-        // Note: In standard set(merge: true), dot notation for keys works if the parent exists.
-        // However, safely we can just merge the map.
-        'records': {dateKey: status},
-      }, SetOptions(merge: true));
+      // 1. Toggle Logic: If clicking the same status, set to 'Not Marked'
+      String finalStatus = (status == currentStatus) ? 'Not Marked' : status;
 
-      // NEW: Running Balance Logic for Daily Passengers
-      if (status == 'Present') {
-        final attendanceDoc = await _db.collection('attendance').doc(passengerId).get();
-        final records = (attendanceDoc.data()?['records'] as Map<String, dynamic>?) ?? {};
+      // 2. Balance Logic: Only adjust if 'Present' state changes
+      if (passDoc.exists && passDoc.data()?['paymentType'] == 'Daily') {
+        final rateStr = passDoc.data()?['paymentAmount'] ?? '';
+        double rate = double.tryParse(rateStr.toString()) ?? 0.0;
         
-        // Safety: Only charge if they weren't ALREADY marked 'Present' for this date
-        // (We check the record before we just updated it)
-        bool alreadyCharged = false;
-        // Note: Since we just updated it above, we should have checked BEFORE the set() 
-        // OR we check if this is the FIRST time we set 'Present' for this date.
-        // Let's refine the logic: we'll check if the balance update is needed.
-        
-        final passDoc = await _db.collection('passenger').doc(passengerId).get();
-        if (passDoc.exists && passDoc.data()?['paymentType'] == 'Daily') {
-          // Check if a payment for this exact date already exists to avoid double charging
-          final alreadyPaid = await checkIfPaidToday(passengerId);
-          if (alreadyPaid) return; 
-
-          final rateStr = passDoc.data()?['paymentAmount'] ?? '';
-          double rate = double.tryParse(rateStr.toString()) ?? 0.0;
-          
-          if (rate == 0) {
-            final driverDoc = await _db.collection('driver').doc(driverId).get();
-            if (driverDoc.exists) {
-              rate = double.tryParse(driverDoc.data()?['dailyPaymentAmount']?.toString() ?? '0') ?? 0.0;
-            }
+        if (rate == 0) {
+          final dId = passDoc.data()?['driverId'];
+          if (dId != null) {
+            final driverDoc = await transaction.get(_db.collection('driver').doc(dId));
+            rate = double.tryParse(driverDoc.data()?['dailyPaymentAmount']?.toString() ?? '0') ?? 0.0;
           }
-          
-          if (rate > 0) {
-            await updatePassengerBalance(passengerId, rate);
+        }
+
+        if (rate > 0) {
+          // If they were NOT Present and now they ARE -> Charge
+          if (currentStatus != 'Present' && finalStatus == 'Present') {
+            transaction.update(_db.collection('passenger').doc(passengerId), {
+              'balance': FieldValue.increment(rate)
+            });
+          } 
+          // If they WERE Present and now they ARE NOT -> Refund
+          else if (currentStatus == 'Present' && finalStatus != 'Present') {
+            transaction.update(_db.collection('passenger').doc(passengerId), {
+              'balance': FieldValue.increment(-rate)
+            });
           }
         }
       }
-    } catch (e) {
-      rethrow;
-    }
+
+      // 3. Update Attendance Record
+      if (!snapshot.exists) {
+        transaction.set(attendanceRef, {
+          'id': passengerId,
+          'driverId': driverId,
+          'records': {dateKey: finalStatus},
+          'lastUpdated': FieldValue.serverTimestamp(),
+        });
+      } else {
+        transaction.update(attendanceRef, {
+          'records.$dateKey': finalStatus,
+          'lastUpdated': FieldValue.serverTimestamp(),
+        });
+      }
+    });
   }
 
   /// Removes the attendance record for a passenger for a specific date (Undo).
@@ -777,9 +783,14 @@ class DatabaseService {
     required String amount,
     required String type,
     required String paymentId,
+    String? orderId,
   }) async {
     try {
-      await _db.collection('payments').add({
+      // Use the orderId as the document ID if available, otherwise use paymentId
+      final docId = orderId ?? paymentId;
+      final docRef = _db.collection('payments').doc(docId);
+      
+      await docRef.set({
         'passengerId': passengerId,
         'passengerName': passengerName,
         'driverId': driverId,
@@ -787,15 +798,18 @@ class DatabaseService {
         'amount': amount,
         'type': type,
         'paymentId': paymentId,
+        'orderId': orderId,
         'status': 'collected',
         'timestamp': FieldValue.serverTimestamp(),
         'date': DateTime.now().toIso8601String(),
-      });
+      }, SetOptions(merge: true));
 
       // NEW: Update Running Balance
       await updatePassengerBalance(passengerId, -double.parse(amount));
+      
+      print("✅ Payment recorded with ID: $docId");
     } catch (e) {
-      rethrow;
+      print("Error recording payment: $e");
     }
   }
 
@@ -887,17 +901,18 @@ class DatabaseService {
     required String type,
   }) async {
     try {
-      await _db.collection('payments').add({
+      final cashId = 'CASH_${passengerId}_${DateTime.now().millisecondsSinceEpoch}';
+      await _db.collection('payments').doc(cashId).set({
         'passengerId': passengerId,
         'passengerName': passengerName,
         'driverId': driverId,
         'driverName': driverName,
         'amount': amount,
         'type': type,
-        'status': 'cash', // User requested 'cash' as successful status
+        'status': 'cash',
         'timestamp': FieldValue.serverTimestamp(),
         'date': DateTime.now().toIso8601String(),
-        'paymentId': 'CASH_${DateTime.now().millisecondsSinceEpoch}',
+        'paymentId': cashId,
       });
 
       // NEW: Update Running Balance
@@ -977,6 +992,7 @@ class DatabaseService {
               'id': doc.id,
               'lastAmount': lastPayment['amount'] ?? '0',
               'lastDate': lastPayment['date']?.toString().split('T').first.replaceAll('-', '/') ?? 'N/A',
+              'lastStatus': lastPayment['status'] ?? 'unknown',
             });
           }
         }

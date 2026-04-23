@@ -264,13 +264,13 @@ class PushNotificationService {
   }
 
   /// 🔹 Send notification to a specific group of Passengers
-  Future<void> sendNotificationToPassengers({
+  Future<bool> sendNotificationToPassengers({
     required List<String> passengerIds,
     required String title,
     required String body,
     Map<String, dynamic>? data,
   }) async {
-    if (passengerIds.isEmpty) return;
+    if (passengerIds.isEmpty) return false;
 
     try {
       // 1️⃣ Get tokens for these passengers
@@ -278,7 +278,7 @@ class PushNotificationService {
 
       if (tokens.isEmpty) {
         if (kDebugMode) print('⚠️ No FCM tokens found for requested passengers.');
-        return;
+        return false;
       }
 
       // 2️⃣ Call Firebase Cloud Function
@@ -295,10 +295,12 @@ class PushNotificationService {
         print('✅ Notifications sent to ${tokens.length} passengers.');
         print('✅ Cloud Function Result: ${response.data}');
       }
+      return true;
     } catch (e) {
       if (kDebugMode) {
         print('❌ Error sending group notification: $e');
       }
+      return false;
     }
   }
 }

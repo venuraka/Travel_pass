@@ -161,9 +161,11 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
       _isProcessing = true;
     });
 
+    final orderId = 'PAY-${_passenger!.uid}-${DateTime.now().millisecondsSinceEpoch}';
+
     PaymentService.startOneTimePayment(
       amount: amountStr,
-      orderId: 'PAY-${_passenger!.uid}-${DateTime.now().millisecondsSinceEpoch}',
+      orderId: orderId,
       itemsDescription: '${_passenger!.paymentType} Payment - ${_getMonthName()}',
       firstName: _passenger!.name.split(' ').first,
       lastName: _passenger!.name.contains(' ') ? _passenger!.name.split(' ').last : 'Passenger',
@@ -183,7 +185,8 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
             driverName: _driver?.name ?? 'Driver',
             amount: amountStr,
             type: _passenger!.paymentType,
-            paymentId: paymentId,
+            paymentId: paymentId, // PayHere Payment No
+            orderId: orderId,    // Use this as the Doc ID
           );
           developer.log('Payment recorded and balance updated locally.');
         } catch (e) {
@@ -426,15 +429,13 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  (status == 'collected' || status == 'paid_to_driver' || status == 'distribution_pending' || status == 'distribution_failed' || status == 'success' || status == 'PAID') 
-                      ? '✓ Success' 
-                      : (status == 'payment_failed' || status == 'FAILED') ? '✗ Failed' : '... Pending',
+                  (status == 'cash') ? "Cash Payment" : "Online Payment",
                   style: TextStyle(
-                    color: (status == 'collected' || status == 'paid_to_driver' || status == 'distribution_pending' || status == 'distribution_failed' || status == 'success' || status == 'PAID') 
+                    color: (status == 'cash' || status == 'collected' || status == 'success' || status == 'paid_to_driver') 
                         ? Colors.green 
                         : Colors.red,
                     fontSize: 11,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),

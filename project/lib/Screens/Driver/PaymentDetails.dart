@@ -6,6 +6,8 @@ import '../Components/Cards.dart';
 import '../Components/Topic.dart';
 import 'PaymentHistory.dart';
 import 'PaymentCollection.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../controllers/DriverDashboardController.dart';
 
 class PaymentDetailsScreen extends StatefulWidget {
   const PaymentDetailsScreen({super.key});
@@ -21,6 +23,7 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
   final String _driverId = FirebaseAuth.instance.currentUser?.uid ?? '';
   String _badgePreference = "Both";
   bool _isRequesting = false;
+  final DriverDashboardController _controller = DriverDashboardController();
 
 
   @override
@@ -154,12 +157,14 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
 
                             final lastAmount = p['lastAmount'] ?? '0';
                             final lastDate = p['lastDate'] ?? 'N/A';
+                            final lastStatus = p['lastStatus'] ?? 'unknown';
+                            final methodLabel = (lastStatus == 'cash') ? "Paid via Cash" : "Paid via Online";
 
                             return Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
                               child: InfoCard(
                                 title: name,
-                                subtitle: place,
+                                subtitle: "$place • $methodLabel",
                                 showTag: true,
                                 tagText: type,
                                 overallPreference: _badgePreference,
@@ -251,7 +256,9 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
                                     type, 
                                     _badgePreference,
                                     amount,
-                                    status
+                                    status,
+                                    reminder['id'], // Pass ID
+                                    reminder['phone'] ?? '' // Pass Phone
                                 ),
                               ),
                             );
@@ -273,7 +280,17 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
 
   // ---------------- Helper Methods ----------------
 
-  Widget _buildLatePaymentRow(Color color, String name, String location, String tag, String overallPreference, String amount, String status) {
+  Widget _buildLatePaymentRow(
+      Color color, 
+      String name, 
+      String location, 
+      String tag, 
+      String overallPreference, 
+      String amount, 
+      String status,
+      String passengerId,
+      String phone
+  ) {
     // Visibility logic
     bool shouldShowBadge = (overallPreference == "Both") || (tag.toLowerCase() == overallPreference.toLowerCase());
 
@@ -294,15 +311,30 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
 
     return Row(
       children: [
-        Container(
-          margin: const EdgeInsets.only(right: 12),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: color, width: 1),
-            color: Colors.white,
+        InkWell(
+          onTap: () async {
+            final result = await _controller.sendPaymentNotification(passengerId);
+            String message = "";
+            if (result == 'success') message = "✅ Notification sent to $name";
+            else if (result == 'cooldown') message = "⏳ Please wait 6 hours before notifying again";
+            else if (result == 'no_token') message = "⚠️ $name hasn't enabled notifications yet";
+            else message = "❌ Failed to send notification";
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(message), duration: const Duration(seconds: 2))
+            );
+          },
+          borderRadius: BorderRadius.circular(50),
+          child: Container(
+            margin: const EdgeInsets.only(right: 12),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: color, width: 1),
+              color: Colors.white,
+            ),
+            child: Icon(Icons.notifications_none, color: color, size: 22),
           ),
-          child: Icon(Icons.notifications_none, color: color, size: 22),
         ),
         Expanded(
           child: Container(
@@ -356,7 +388,19 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
                             ],
                           ),
                         ),
-                        Icon(Icons.phone, color: color),
+                        IconButton(
+                          icon: Icon(Icons.phone, color: color),
+                          onPressed: () async {
+                            if (phone.isNotEmpty) {
+                              final Uri launchUri = Uri(scheme: 'tel', path: phone);
+                              await launchUrl(launchUri);
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text("No phone number available"))
+                              );
+                            }
+                          },
+                        ),
                       ],
                     ),
                   ),

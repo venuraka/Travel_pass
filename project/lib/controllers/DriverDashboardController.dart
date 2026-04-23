@@ -254,6 +254,51 @@ class DriverDashboardController {
     }
   }
 
+  /// Sends a push notification reminder to the passenger with a cooldown check (ID only).
+  Future<String> sendPaymentNotification(String passengerId) async {
+    final driverId = getDriverId();
+    if (driverId == null) return "error";
+
+    // 1. Fetch current passenger data to check cooldown and tokens
+    final passengerData = await _dbService.getPassengerData(passengerId);
+    if (passengerData == null) return "error";
+
+    // 2. Check FCM Token
+    if (passengerData.fcmToken == null || passengerData.fcmToken!.isEmpty) {
+      return "no_token";
+    }
+
+    // 3. Check Cooldown (6 hours)
+    final doc = await FirebaseFirestore.instance.collection('passenger').doc(passengerId).get();
+    final lastNotified = doc.data()?['lastNotifiedAt'] as Timestamp?;
+    
+    if (lastNotified != null) {
+      final difference = DateTime.now().difference(lastNotified.toDate());
+      if (difference.inHours < 6) {
+        return "cooldown";
+      }
+    }
+
+    // 4. Send Notification
+    final success = await _notificationService.sendNotificationToPassengers(
+      passengerIds: [passengerId],
+      title: "Payment Reminder 💳",
+      body: "Hi ${passengerData.name}, you have a pending balance of Rs ${passengerData.balance.toInt()}. Please settle it at your earliest convenience.",
+      data: {
+        "type": "payment_reminder",
+        "screen": "payment"
+      },
+    );
+
+    if (success) {
+      // Update cooldown timestamp
+      await _dbService.updateLastNotifiedTime(passengerId);
+      return "success";
+    }
+
+    return "error";
+  }
+
   /// Sends a push notification reminder to the passenger with a cooldown check.
   Future<String> sendPaymentReminder(Map<String, dynamic> passenger, String amount) async {
     final driverId = getDriverId();
