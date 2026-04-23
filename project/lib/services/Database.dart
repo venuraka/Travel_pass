@@ -799,6 +799,17 @@ class DatabaseService {
     }
   }
 
+  /// Updates the last notification timestamp for a passenger to prevent spam.
+  Future<void> updateLastNotifiedTime(String passengerId) async {
+    try {
+      await _db.collection('passenger').doc(passengerId).update({
+        'lastNotifiedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   /// Returns a stream of passengers who have missed payments.
   Stream<List<Map<String, dynamic>>> getMissedPaymentPassengersStream(String driverId) {
     // We listen to changes in driver (for payment settings), passengers, attendance, and payments

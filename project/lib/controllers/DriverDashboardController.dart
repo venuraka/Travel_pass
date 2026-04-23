@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/Database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/PollModel.dart';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
@@ -253,20 +254,34 @@ class DriverDashboardController {
     }
   }
 
-  /// Sends a push notification reminder to the passenger.
-  Future<void> sendPaymentReminder(String passengerId, String name, String amount) async {
+  /// Sends a push notification reminder to the passenger with a cooldown check.
+  Future<String> sendPaymentReminder(Map<String, dynamic> passenger, String amount) async {
     final driverId = getDriverId();
-    if (driverId == null) return;
+    if (driverId == null) return "error";
+
+    // Check cooldown (6 hours)
+    final lastNotified = passenger['lastNotifiedAt'] as Timestamp?;
+    if (lastNotified != null) {
+      final difference = DateTime.now().difference(lastNotified.toDate());
+      if (difference.inHours < 6) {
+        final remainingHours = 6 - difference.inHours;
+        return "cooldown|$remainingHours";
+      }
+    }
 
     await _notificationService.sendNotificationToPassengers(
-      passengerIds: [passengerId],
+      passengerIds: [passenger['id']],
       title: "Payment Reminder 💳",
-      body: "Hi $name, you have a pending payment of $amount. Please settle it at your earliest convenience.",
+      body: "Hi ${passenger['name']}, you have a pending payment of $amount. Please settle it at your earliest convenience.",
       data: {
         "type": "payment_reminder",
         "screen": "payment"
       },
     );
+
+    // Update the timestamp in DB
+    await _dbService.updateLastNotifiedTime(passenger['id']);
+    return "success";
   }
 
   /// Marks a payment as paid by cash.

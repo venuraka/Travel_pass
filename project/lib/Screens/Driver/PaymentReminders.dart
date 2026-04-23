@@ -174,15 +174,39 @@ class _PaymentRemindersScreenState extends State<PaymentRemindersScreen> {
         // Circular Bell Button (Send Reminder)
         GestureDetector(
           onTap: () async {
-            await _controller.sendPaymentReminder(reminder['id'], name, amount);
+            final result = await _controller.sendPaymentReminder(reminder, amount);
+            
             if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text("Reminder sent to $name"),
-                  backgroundColor: Colors.blueAccent,
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
+              if (result == "success") {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Row(
+                      children: [
+                        const Icon(Icons.check_circle, color: Colors.white),
+                        const SizedBox(width: 10),
+                        Text("Reminder sent to $name"),
+                      ],
+                    ),
+                    backgroundColor: appGreen,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              } else if (result.startsWith("cooldown")) {
+                final hours = result.split("|")[1];
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Row(
+                      children: [
+                        const Icon(Icons.info_outline, color: Colors.white),
+                        const SizedBox(width: 10),
+                        Expanded(child: Text("You already notified $name. Please wait $hours more hours.")),
+                      ],
+                    ),
+                    backgroundColor: Colors.orangeAccent,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
             }
           },
           child: Container(
