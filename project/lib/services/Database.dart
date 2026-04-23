@@ -733,8 +733,56 @@ class DatabaseService {
       return 0.0;
     });
   }
+  /// Returns a stream of the total cash collected by a driver.
+  Stream<double> getCashEarningsStream(String driverId) {
+    return _db
+        .collection('payments')
+        .where('driverId', isEqualTo: driverId)
+        .where('status', isEqualTo: 'cash')
+        .snapshots()
+        .map((snapshot) {
+      double total = 0.0;
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        total += double.tryParse(data['amount']?.toString() ?? '0') ?? 0.0;
+      }
+      return total;
+    });
+  }
 
-  /// Returns a stream of redemption history for a driver.
+  /// Returns a stream of daily cash collection history for a driver.
+  Stream<List<Map<String, dynamic>>> getDailyCashHistoryStream(String driverId) {
+    return _db
+        .collection('payments')
+        .where('driverId', isEqualTo: driverId)
+        .where('status', isEqualTo: 'cash')
+        .snapshots()
+        .map((snapshot) {
+      final Map<String, Map<String, dynamic>> dailyMap = {};
+
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        final date = data['date']?.toString().split('T').first.replaceAll('-', '/') ?? 'Unknown';
+        final amount = double.tryParse(data['amount']?.toString() ?? '0') ?? 0.0;
+
+        if (dailyMap.containsKey(date)) {
+          dailyMap[date]!['total'] += amount;
+          dailyMap[date]!['count'] += 1;
+        } else {
+          dailyMap[date] = {
+            'date': date,
+            'total': amount,
+            'count': 1,
+          };
+        }
+      }
+
+      // Convert map to list and sort by date descending
+      final historyList = dailyMap.values.toList();
+      historyList.sort((a, b) => b['date'].compareTo(a['date']));
+      return historyList;
+    });
+  }
   Stream<List<RedemptionModel>> getRedemptionsStream(String driverId) {
     return _db
         .collection('redemptions')

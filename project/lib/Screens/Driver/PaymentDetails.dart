@@ -6,6 +6,7 @@ import '../Components/Cards.dart';
 import '../Components/Topic.dart';
 import 'PaymentHistory.dart';
 import 'PaymentCollection.dart';
+import 'CashHistory.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../controllers/DriverDashboardController.dart';
 
@@ -116,6 +117,19 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
                         builder: (context, snapshot) {
                           final balance = snapshot.data ?? 0.0;
                           return _buildBalanceCard(balance);
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 12), // Space between cards
+                    
+                    // --- Cash Collected Card ---
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: StreamBuilder<double>(
+                        stream: _dbService.getCashEarningsStream(_driverId),
+                        builder: (context, snapshot) {
+                          final cash = snapshot.data ?? 0.0;
+                          return _buildCashCard(cash);
                         },
                       ),
                     ),
@@ -514,6 +528,67 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
     );
   }
 
+  // --- NEW: Cash Card Widget ---
+  Widget _buildCashCard(double cash) {
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const CashHistoryScreen()),
+        );
+      },
+      borderRadius: BorderRadius.circular(16),
+      child: Card(
+        elevation: 4,
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16.0),
+        ),
+        color: const Color(0xFFE8F5E9), // Light Green
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: appGreen.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.payments_outlined, color: appGreen, size: 28),
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Cash Collected",
+                      style: TextStyle(
+                        color: appGreen.withOpacity(0.8),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      "Rs ${cash.toInt()}",
+                      style: TextStyle(
+                        color: appGreen,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   // --- NEW: Balance Card Widget ---
   Widget _buildBalanceCard(double balance) {
     const Color textColor = Colors.white;
@@ -534,7 +609,7 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16.0),
         ),
-        color: appGreen,
+        color: appGreen, // Dark Green
         child: Container(
           padding: const EdgeInsets.all(20.0),
           child: Column(
