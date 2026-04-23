@@ -236,7 +236,48 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
               _buildSectionHeader("Outstanding Payments", appGreen),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: _buildOutstandingCard(appGreen),
+                child: StreamBuilder<Map<String, dynamic>>(
+                  stream: _dbService.getPassengerPaymentStatusStream(_auth.currentUser!.uid),
+                  builder: (context, snapshot) {
+                    if (snapshot.hasData) {
+                      // Re-calculate local state based on stream data
+                      final data = snapshot.data!;
+                      final pData = PassengerModel.fromMap(data['passenger'], _auth.currentUser!.uid);
+                      final payments = data['payments'] as List<Map<String, dynamic>>;
+                      
+                      double totalPaid = 0;
+                      for (var p in payments) {
+                        final status = p['status']?.toString().toLowerCase();
+                        if (status == 'collected' || status == 'cash' || status == 'success' || status == 'paid') {
+                          totalPaid += double.tryParse(p['amount']?.toString() ?? '0') ?? 0;
+                        }
+                      }
+
+                      double amountDue = 0;
+                      if (pData.paymentType == 'Daily') {
+                        // For daily, we still need attendance. 
+                        // To keep it simple, we'll use the last known attendance status or fetch it.
+                        // Actually, let's just trigger a reload of attendance if needed, 
+                        // but the totalPaid update will already trigger the stream.
+                        amountDue = _amountDue; // Fallback to current state for now
+                      } else {
+                        // Monthly Calculation with Advance Logic
+                        final startDate = pData.createdAt.toDate();
+                        final now = DateTime.now();
+                        final dueDay = (_driver?.paymentDate?.day) ?? 1;
+                        int monthsCount = ((now.year - startDate.year) * 12) + (now.month - startDate.month) + 1;
+                        if (now.day >= dueDay) monthsCount += 1;
+                        final rate = double.tryParse(pData.paymentAmount.isNotEmpty ? pData.paymentAmount : (_driver?.monthlyPaymentAmount ?? '0')) ?? 0.0;
+                        amountDue = (monthsCount * rate) - totalPaid;
+                      }
+
+                      // Update local state variables for consistency with other methods
+                      _amountDue = amountDue < 0 ? 0 : amountDue;
+                      _isPaid = _amountDue <= 0;
+                    }
+                    return _buildOutstandingCard(appGreen);
+                  }
+                ),
               ),
               const SizedBox(height: 30),
               _buildSectionHeader("Recent Payments", appGreen),

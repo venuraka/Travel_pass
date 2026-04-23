@@ -914,4 +914,37 @@ class DatabaseService {
       },
     );
   }
+
+  /// Returns a stream of payment status for a single passenger.
+  Stream<Map<String, dynamic>> getPassengerPaymentStatusStream(String passengerId) {
+    final passengerDoc = _db.collection('passenger').doc(passengerId).snapshots();
+    final paymentsStream = _db.collection('payments').where('passengerId', isEqualTo: passengerId).snapshots();
+
+    return Rx.combineLatest2<DocumentSnapshot, QuerySnapshot, Map<String, dynamic>>(
+      passengerDoc,
+      paymentsStream,
+      (passSnap, paySnap) {
+        final passData = passSnap.data() as Map<String, dynamic>? ?? {};
+        final payDocs = paySnap.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+        
+        return {
+          'passenger': passData,
+          'payments': payDocs,
+        };
+      },
+    );
+  }
+
+  /// Returns a stream of recent successful payments for a driver.
+  Stream<List<Map<String, dynamic>>> getRecentPaymentsStream(String driverId) {
+    return _db.collection('payments')
+        .where('driverId', isEqualTo: driverId)
+        .orderBy('timestamp', descending: true)
+        .limit(20)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => {
+          ...doc.data(),
+          'id': doc.id,
+        }).toList());
+  }
 }
