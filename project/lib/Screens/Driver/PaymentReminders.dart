@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../controllers/DriverDashboardController.dart';
 import '../Components/AppBar.dart';
 
 class PaymentRemindersScreen extends StatefulWidget {
@@ -11,35 +12,34 @@ class PaymentRemindersScreen extends StatefulWidget {
 class _PaymentRemindersScreenState extends State<PaymentRemindersScreen> {
   final Color appGreen = const Color(0xFF05A664);
   final Color bgGreenTint = const Color(0xFFF1F8F5);
-
-  // Sample data for reminders - Convert to state-managed list
-  final List<Map<String, String>> _reminders = List.generate(
-    10,
-    (index) => {
-      "id": "rem_$index",
-      "name": "Vethum Ranasinghe",
-      "location": "Miriswatta",
-      "amount": "Rs 1000",
-      "status": "2 weeks late",
-    },
-  );
+  final DriverDashboardController _controller = DriverDashboardController();
 
   /// Handles the removal of a reminder and provides feedback
-  void _removeReminder(int index, String action) {
-    final removedItem = _reminders[index];
-    setState(() {
-      _reminders.removeAt(index);
-    });
+  Future<void> _handleAction(Map<String, dynamic> reminder, String action) async {
+    if (action == "Paid by Cash") {
+      await _controller.markAsPaidByCash(reminder);
+    }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("${removedItem['name']} marked as $action"),
-        backgroundColor: action == "Rejected" ? Colors.redAccent : appGreen,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(
+                action == "Rejected" ? Icons.close : Icons.check_circle,
+                color: Colors.white,
+              ),
+              const SizedBox(width: 10),
+              Text("${reminder['name']} marked as $action"),
+            ],
+          ),
+          backgroundColor: action == "Rejected" ? Colors.redAccent : appGreen,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   @override
@@ -49,66 +49,93 @@ class _PaymentRemindersScreenState extends State<PaymentRemindersScreen> {
         title: 'Payment Reminders',
       ),
       backgroundColor: bgGreenTint,
-      body: _reminders.isEmpty
-          ? _buildEmptyState()
-          : ListView.builder(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              itemCount: _reminders.length,
-              itemBuilder: (context, index) {
-                final reminder = _reminders[index];
-                return Dismissible(
-                  key: Key(reminder['id']!),
-                  direction: DismissDirection.horizontal,
-                  onDismissed: (direction) {
-                    if (direction == DismissDirection.startToEnd) {
-                      _removeReminder(index, "Paid by Cash");
-                    } else {
-                      _removeReminder(index, "Rejected");
-                    }
-                  },
-                  // Swipe Right (Accept/Paid by Cash)
-                  background: Container(
-                    color: appGreen,
-                    alignment: Alignment.centerLeft,
-                    padding: const EdgeInsets.only(left: 30),
-                    child: const Text(
-                      "Paid by Cash",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        letterSpacing: 0.5,
+      body: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: _controller.getMissedPaymentPassengersStream(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final reminders = snapshot.data ?? [];
+
+          if (reminders.isEmpty) {
+            return _buildEmptyState();
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            itemCount: reminders.length,
+            itemBuilder: (context, index) {
+              final reminder = reminders[index];
+              return Dismissible(
+                key: Key(reminder['id']),
+                direction: DismissDirection.horizontal,
+                confirmDismiss: (direction) async {
+                  if (direction == DismissDirection.startToEnd) {
+                    // Show a quick "Success" indicator before dismissing for cash
+                    return true; 
+                  }
+                  return true;
+                },
+                onDismissed: (direction) {
+                  if (direction == DismissDirection.startToEnd) {
+                    _handleAction(reminder, "Paid by Cash");
+                  } else {
+                    _handleAction(reminder, "Rejected");
+                  }
+                },
+                // Swipe Right (Accept/Paid by Cash)
+                background: Container(
+                  color: appGreen,
+                  alignment: Alignment.centerLeft,
+                  padding: const EdgeInsets.only(left: 30),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.money, color: Colors.white),
+                      SizedBox(width: 10),
+                      Text(
+                        "Paid by Cash",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          letterSpacing: 0.5,
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                  // Swipe Left (Reject)
-                  secondaryBackground: Container(
-                    color: Colors.redAccent,
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.only(right: 30),
-                    child: const Text(
-                      "Reject",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        letterSpacing: 0.5,
+                ),
+                // Swipe Left (Reject)
+                secondaryBackground: Container(
+                  color: Colors.redAccent,
+                  alignment: Alignment.centerRight,
+                  padding: const EdgeInsets.only(right: 30),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Text(
+                        "Reject",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          letterSpacing: 0.5,
+                        ),
                       ),
-                    ),
+                      SizedBox(width: 10),
+                      Icon(Icons.close, color: Colors.white),
+                    ],
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: _buildLatePaymentRow(
-                      appGreen,
-                      reminder['name']!,
-                      reminder['location']!,
-                      reminder['amount']!,
-                      reminder['status']!,
-                    ),
-                  ),
-                );
-              },
-            ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: _buildLatePaymentRow(reminder),
+                ),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 
@@ -121,7 +148,7 @@ class _PaymentRemindersScreenState extends State<PaymentRemindersScreen> {
           Icon(Icons.check_circle_outline, size: 80, color: appGreen.withOpacity(0.5)),
           const SizedBox(height: 16),
           const Text(
-            "No pending reminders",
+            "All payments are up to date",
             style: TextStyle(
               fontSize: 18, 
               color: Colors.grey, 
@@ -135,19 +162,39 @@ class _PaymentRemindersScreenState extends State<PaymentRemindersScreen> {
   }
 
   /// Helper to build each reminder row
-  Widget _buildLatePaymentRow(Color color, String name, String location, String amount, String status) {
+  Widget _buildLatePaymentRow(Map<String, dynamic> reminder) {
+    final name = reminder['name'] ?? 'Passenger';
+    final location = reminder['pickupLocation'] ?? 'No location';
+    final amount = reminder['totalAmount'] ?? 'Rs 0';
+    final status = reminder['missedStatus'] ?? 'Pending';
+    final phone = reminder['phone'] ?? '';
+
     return Row(
       children: [
-        // Circular Bell Button
-        Container(
-          margin: const EdgeInsets.only(right: 12),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: color, width: 1),
-            color: Colors.white,
+        // Circular Bell Button (Send Reminder)
+        GestureDetector(
+          onTap: () async {
+            await _controller.sendPaymentReminder(reminder['id'], name, amount);
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text("Reminder sent to $name"),
+                  backgroundColor: Colors.blueAccent,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            }
+          },
+          child: Container(
+            margin: const EdgeInsets.only(right: 12),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: appGreen, width: 1),
+              color: Colors.white,
+            ),
+            child: Icon(Icons.notifications_none, color: appGreen, size: 22),
           ),
-          child: Icon(Icons.notifications_none, color: color, size: 22),
         ),
 
         // Custom Card Layout for Late Payments
@@ -188,16 +235,20 @@ class _PaymentRemindersScreenState extends State<PaymentRemindersScreen> {
                       ),
                       Text(
                         amount,
-                        style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w500),
+                        style: TextStyle(fontSize: 12, color: appGreen, fontWeight: FontWeight.w500),
                       ),
                       Text(
                         status,
-                        style: TextStyle(fontSize: 12, color: color, fontWeight: FontWeight.w500),
+                        style: TextStyle(fontSize: 12, color: appGreen, fontWeight: FontWeight.w500),
                       ),
                     ],
                   ),
                 ),
-                Icon(Icons.phone, color: color),
+                // Call Icon
+                IconButton(
+                  icon: Icon(Icons.phone, color: appGreen),
+                  onPressed: () => _controller.callPassenger(phone),
+                ),
               ],
             ),
           ),

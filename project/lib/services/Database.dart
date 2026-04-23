@@ -2,6 +2,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:uuid/uuid.dart';
+import 'package:rxdart/rxdart.dart';
 
 import '../models/DriverModel.dart';
 import '../models/PassengerModel.dart';
@@ -770,5 +771,136 @@ class DatabaseService {
     } catch (e) {
       return 0;
     }
+  }
+  /// Records a manual cash payment.
+  Future<void> recordManualPayment({
+    required String passengerId,
+    required String passengerName,
+    required String driverId,
+    required String driverName,
+    required String amount,
+    required String type,
+  }) async {
+    try {
+      await _db.collection('payments').add({
+        'passengerId': passengerId,
+        'passengerName': passengerName,
+        'driverId': driverId,
+        'driverName': driverName,
+        'amount': amount,
+        'type': type,
+        'status': 'cash', // User requested 'cash' as successful status
+        'timestamp': FieldValue.serverTimestamp(),
+        'date': DateTime.now().toIso8601String(),
+        'paymentId': 'CASH_${DateTime.now().millisecondsSinceEpoch}',
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Returns a stream of passengers who have missed payments.
+  Stream<List<Map<String, dynamic>>> getMissedPaymentPassengersStream(String driverId) {
+    // We listen to changes in driver (for payment settings), passengers, attendance, and payments
+    final driverStream = _db.collection('driver').doc(driverId).snapshots();
+    final passengersStream = _db.collection('passenger').where('driverId', isEqualTo: driverId).snapshots();
+    final attendanceStream = _db.collection('attendance').where('driverId', isEqualTo: driverId).snapshots();
+    final paymentsStream = _db.collection('payments').where('driverId', isEqualTo: driverId).snapshots();
+
+    return Rx.combineLatest4<DocumentSnapshot, QuerySnapshot, QuerySnapshot, QuerySnapshot, List<Map<String, dynamic>>>(
+      driverStream,
+      passengersStream,
+      attendanceStream,
+      paymentsStream,
+      (driverSnap, passSnap, attSnap, paySnap) {
+        final List<Map<String, dynamic>> missed = [];
+        final now = DateTime.now();
+        final todayStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+
+        final driverData = driverSnap.data() as Map<String, dynamic>? ?? {};
+        final paymentDateObj = driverData['paymentDate'] as Timestamp?;
+        final int? paymentDay = paymentDateObj?.toDate().day;
+
+        // Map attendance and payments for easy lookup
+        final attMap = {for (var doc in attSnap.docs) doc.id: doc.data() as Map<String, dynamic>};
+        final payDocs = paySnap.docs.map((doc) => doc.data() as Map<String, dynamic>).toList();
+
+        for (var passDoc in passSnap.docs) {
+          final passData = passDoc.data() as Map<String, dynamic>;
+          final passId = passDoc.id;
+          final paymentType = passData['paymentType'] ?? 'Daily';
+          bool isMissed = false;
+          String statusText = "";
+          String missedAmountStr = passData['paymentAmount'] ?? "0";
+          int totalMissedAmount = 0;
+
+          if (paymentType == 'Daily') {
+            // Logic: Present on a past date but no payment for that date
+            final records = attMap[passId]?['records'] as Map<String, dynamic>? ?? {};
+            int missedDays = 0;
+            
+            records.forEach((date, status) {
+              if (status == 'Present' && date != todayStr) {
+                // Check if paid for this date
+                final alreadyPaid = payDocs.any((p) => 
+                  p['passengerId'] == passId && 
+                  p['type'] == 'Daily' && 
+                  p['date'].toString().startsWith(date) &&
+                  (p['status'] == 'collected' || p['status'] == 'cash' || p['status'] == 'success')
+                );
+                if (!alreadyPaid) {
+                  missedDays++;
+                }
+              }
+            });
+
+            if (missedDays > 0) {
+              isMissed = true;
+              statusText = missedDays == 1 ? "1 day late" : "$missedDays days late";
+              int dailyAmount = int.tryParse(missedAmountStr.isEmpty ? "0" : missedAmountStr) ?? 0;
+              totalMissedAmount = dailyAmount * missedDays;
+            }
+          } else {
+            // Monthly Logic: "Pay in Advance" scenario (e.g., Feb payment due on Jan 25th)
+            final registrationDate = (passData['createdAt'] as Timestamp?)?.toDate() ?? now;
+            final payDay = paymentDay ?? 1;
+
+            // 1. Calculate base months from registration month to current month
+            // Example: Reg in Jan, Today in Feb -> 1 month difference + 1 (current) = 2 months expected
+            int monthsDifference = ((now.year - registrationDate.year) * 12) + (now.month - registrationDate.month);
+            int expectedPayments = monthsDifference + 1;
+
+            // Note: In this logic, we don't add +1 for the advance month. 
+            // The passenger can pay for the next month starting on the payment day, 
+            // but they aren't "in arrears" for it until that month actually starts.
+
+            final totalMonthlyPayments = payDocs.where((p) => 
+              p['passengerId'] == passId && 
+              p['type'] == 'Monthly' && 
+              (p['status'] == 'collected' || p['status'] == 'cash' || p['status'] == 'success')
+            ).length;
+
+            int missedMonths = expectedPayments - totalMonthlyPayments;
+
+            if (missedMonths > 0) {
+              isMissed = true;
+              statusText = missedMonths == 1 ? "1 month arrears" : "$missedMonths months arrears";
+              int monthlyAmount = int.tryParse(missedAmountStr.isEmpty ? "0" : missedAmountStr) ?? 0;
+              totalMissedAmount = monthlyAmount * missedMonths;
+            }
+          }
+
+          if (isMissed) {
+            missed.add({
+              ...passData,
+              'id': passId,
+              'missedStatus': statusText,
+              'totalAmount': "Rs $totalMissedAmount",
+            });
+          }
+        }
+        return missed;
+      },
+    );
   }
 }

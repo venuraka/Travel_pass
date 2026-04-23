@@ -68,10 +68,19 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                 final rate = double.tryParse(pData.paymentAmount.isNotEmpty ? pData.paymentAmount : (dData?.dailyPaymentAmount ?? '0')) ?? 0.0;
                 amountDue = (presentDays * rate) - totalPaid;
               } else {
-                // Monthly
+                // Monthly Calculation with Advance Logic
                 final startDate = pData.createdAt.toDate();
                 final now = DateTime.now();
-                final monthsCount = (now.year - startDate.year) * 12 + now.month - startDate.month + 1;
+                final dueDay = (dData?.paymentDate?.day) ?? 1;
+
+                // Base months from registration to current month
+                int monthsCount = ((now.year - startDate.year) * 12) + (now.month - startDate.month) + 1;
+
+                // Add +1 for Advance Month if today >= payment day
+                if (now.day >= dueDay) {
+                  monthsCount += 1;
+                }
+
                 final rate = double.tryParse(pData.paymentAmount.isNotEmpty ? pData.paymentAmount : (dData?.monthlyPaymentAmount ?? '0')) ?? 0.0;
                 amountDue = (monthsCount * rate) - totalPaid;
               }

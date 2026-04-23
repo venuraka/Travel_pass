@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import '../services/WeatherService.dart';
 import '../services/NotificationService.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'dart:io';
 
 class DriverDashboardController {
   final DatabaseService _dbService = DatabaseService();
@@ -229,5 +231,58 @@ class DriverDashboardController {
     final uid = getDriverId();
     if (uid == null) return Stream.value('Driver');
     return _dbService.getDriverNameStream(uid);
+  }
+
+  /// 🔹 PAYMENT REMINDERS ACTIONS 🔹
+
+  /// Returns a stream of passengers who have missed payments.
+  Stream<List<Map<String, dynamic>>> getMissedPaymentPassengersStream() {
+    final uid = getDriverId();
+    if (uid == null) return Stream.value([]);
+    return _dbService.getMissedPaymentPassengersStream(uid);
+  }
+
+  /// Initiates a phone call to the passenger.
+  Future<void> callPassenger(String phone) async {
+    final Uri launchUri = Uri(
+      scheme: 'tel',
+      path: phone,
+    );
+    if (await canLaunchUrl(launchUri)) {
+      await launchUrl(launchUri);
+    }
+  }
+
+  /// Sends a push notification reminder to the passenger.
+  Future<void> sendPaymentReminder(String passengerId, String name, String amount) async {
+    final driverId = getDriverId();
+    if (driverId == null) return;
+
+    await _notificationService.sendNotificationToPassengers(
+      passengerIds: [passengerId],
+      title: "Payment Reminder 💳",
+      body: "Hi $name, you have a pending payment of $amount. Please settle it at your earliest convenience.",
+      data: {
+        "type": "payment_reminder",
+        "screen": "payment"
+      },
+    );
+  }
+
+  /// Marks a payment as paid by cash.
+  Future<void> markAsPaidByCash(Map<String, dynamic> passenger) async {
+    final driverId = getDriverId();
+    if (driverId == null) return;
+
+    final driverData = await _dbService.getDriverData(driverId);
+    
+    await _dbService.recordManualPayment(
+      passengerId: passenger['id'],
+      passengerName: passenger['name'],
+      driverId: driverId,
+      driverName: driverData?.name ?? 'Driver',
+      amount: passenger['paymentAmount'] ?? '0',
+      type: passenger['paymentType'] ?? 'Daily',
+    );
   }
 }
