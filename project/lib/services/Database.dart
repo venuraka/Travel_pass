@@ -1039,7 +1039,7 @@ class DatabaseService {
       return 0;
     }
   }
-  /// Records a manual cash payment.
+  /// Records a manual cash or rejected payment.
   Future<void> recordManualPayment({
     required String passengerId,
     required String passengerName,
@@ -1047,9 +1047,11 @@ class DatabaseService {
     required String driverName,
     required String amount,
     required String type,
+    String status = 'cash',
   }) async {
     try {
-      final cashId = 'CASH_${passengerId}_${DateTime.now().millisecondsSinceEpoch}';
+      final prefix = status.toUpperCase();
+      final cashId = '${prefix}_${passengerId}_${DateTime.now().millisecondsSinceEpoch}';
       await _db.collection('payments').doc(cashId).set({
         'passengerId': passengerId,
         'passengerName': passengerName,
@@ -1057,13 +1059,13 @@ class DatabaseService {
         'driverName': driverName,
         'amount': amount,
         'type': type,
-        'status': 'cash',
+        'status': status,
         'timestamp': FieldValue.serverTimestamp(),
         'date': DateTime.now().toIso8601String(),
         'paymentId': cashId,
       });
 
-      // NEW: Update Running Balance
+      // Update Running Balance (subtracting the rejected/paid amount from their debt)
       await updatePassengerBalance(passengerId, -double.parse(amount));
     } catch (e) {
       rethrow;

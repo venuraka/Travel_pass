@@ -341,8 +341,27 @@ class DriverDashboardController {
       passengerName: passenger['name'],
       driverId: driverId,
       driverName: driverData?.name ?? 'Driver',
-      amount: passenger['paymentAmount'] ?? '0',
+      amount: passenger['totalAmount']?.toString().replaceAll('Rs ', '') ?? '0',
       type: passenger['paymentType'] ?? 'Daily',
+      status: 'cash',
+    );
+  }
+
+  /// Marks a payment as rejected/forgiven.
+  Future<void> markAsRejected(Map<String, dynamic> passenger) async {
+    final driverId = getDriverId();
+    if (driverId == null) return;
+
+    final driverData = await _dbService.getDriverData(driverId);
+    
+    await _dbService.recordManualPayment(
+      passengerId: passenger['id'],
+      passengerName: passenger['name'],
+      driverId: driverId,
+      driverName: driverData?.name ?? 'Driver',
+      amount: passenger['totalAmount']?.toString().replaceAll('Rs ', '') ?? '0',
+      type: passenger['paymentType'] ?? 'Daily',
+      status: 'rejected',
     );
   }
 }

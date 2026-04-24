@@ -18,6 +18,8 @@ class _PaymentRemindersScreenState extends State<PaymentRemindersScreen> {
   Future<void> _handleAction(Map<String, dynamic> reminder, String action) async {
     if (action == "Paid by Cash") {
       await _controller.markAsPaidByCash(reminder);
+    } else if (action == "Rejected") {
+      await _controller.markAsRejected(reminder);
     }
 
     if (mounted) {
