@@ -29,4 +29,18 @@ class AccessController {
       return false;
     }
   }
+
+  /// Checks if a driver is approved by admin.
+  Future<bool> isDriverApproved(String uid) async {
+    try {
+      final doc = await _db.collection('driver').doc(uid).get();
+      if (doc.exists && doc.data() != null) {
+        return doc.data()!['isVerified'] == true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint("Error checking driver approval status: $e");
+      return false;
+    }
+  }
 }

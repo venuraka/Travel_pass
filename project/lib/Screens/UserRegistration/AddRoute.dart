@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:uuid/uuid.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Added
 import '../../config/AppConfig.dart';
+import '../../utils/AuthWrapper.dart';
 import '../Components/CustomSnackBar.dart';
 import '../Driver/Dashboard.dart';
 import '../../services/PlaceService.dart';
@@ -561,7 +562,7 @@ class _AddRouteScreenState extends State<AddRouteScreen> {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
-            builder: (context) => const DriverDashboardScreen(),
+            builder: (context) => const AuthWrapper(),
           ),
           (route) => false,
         );

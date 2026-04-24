@@ -16,7 +16,8 @@ class DriverModel {
   final bool isJourneyStarted;
   final double balance;
   final String badgePreference; // Added: 'Daily', 'Monthly', or 'Both'
-  final String? fcmToken; // Added for push notifications
+  final String? fcmToken;
+  final bool isVerified; // Added for admin approval
 
   DriverModel({
     required this.uid,
@@ -34,7 +35,8 @@ class DriverModel {
     this.isJourneyStarted = false,
     this.balance = 0.0,
     this.badgePreference = 'Both', // Default to 'Both'
-    this.fcmToken,
+     this.fcmToken,
+    this.isVerified = false, // Default to unverified
   });
 
   Map<String, dynamic> toMap() {
@@ -58,6 +60,7 @@ class DriverModel {
       'balance': balance,
       'badgePreference': badgePreference,
       'fcmToken': fcmToken,
+      'isVerified': isVerified,
     };
   }
 }

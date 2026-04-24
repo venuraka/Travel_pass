@@ -4,6 +4,8 @@ import '../Screens/UserRegistration/Login.dart';
 import '../Screens/UserRegistration/UserSelection.dart';
 import '../Screens/passenger/Dashboard.dart';
 import '../Screens/passenger/PendingApproval.dart';
+import '../Screens/Driver/DriverPendingApproval.dart';
+import '../Screens/Driver/Dashboard.dart';
 import '../controllers/AccessController.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -61,8 +63,11 @@ class _AuthWrapperState extends State<AuthWrapper> {
             final bool isApproved = data['isApproved'];
 
             if (role == 'driver') {
-              // Redirect to Driver Home/Selection
-              return const UserSelectionScreen();
+              if (isApproved) {
+                return const DriverDashboardScreen();
+              } else {
+                return const DriverPendingApprovalScreen();
+              }
             } else if (role == 'passenger') {
               if (isApproved) {
                 return const PassengerDashboardApp();
@@ -82,7 +87,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
   Future<Map<String, dynamic>> _checkUserRoleAndStatus(String uid) async {
     // Check Driver
     if (await _accessController.isDriver(uid)) {
-      return {'role': 'driver', 'isApproved': true};
+      final bool isApproved = await _accessController.isDriverApproved(uid);
+      return {'role': 'driver', 'isApproved': isApproved};
     }
 
     // Check Passenger

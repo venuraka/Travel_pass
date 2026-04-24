@@ -155,6 +155,7 @@ class DatabaseService {
           monthlyPaymentAmount: data['monthlyPaymentAmount'],
           dailyPaymentAmount: data['dailyPaymentAmount'],
           paymentDate: (data['paymentDate'] as Timestamp?)?.toDate(),
+          isVerified: data['isVerified'] ?? false,
         );
       }
       return null;
