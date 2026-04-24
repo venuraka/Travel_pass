@@ -794,30 +794,104 @@ class DatabaseService {
             .toList());
   }
 
-  /// Returns a stream of all payments (Online and Cash) for a driver.
+  /// Returns a stream of all payments (Online and Cash) for a driver with passenger details.
   Stream<List<Map<String, dynamic>>> getDriverPaymentHistoryStream(String driverId) {
-    return _db
-        .collection('payments')
-        .where('driverId', isEqualTo: driverId)
-        .snapshots()
-        .map((snapshot) {
-      final history = snapshot.docs.map((doc) {
-        final data = doc.data();
-        return {
-          ...data,
-          'id': doc.id,
-        };
-      }).toList();
-      
-      // Sort by date descending
-      history.sort((a, b) {
-        final aDate = a['date']?.toString() ?? '';
-        final bDate = b['date']?.toString() ?? '';
-        return bDate.compareTo(aDate);
-      });
-      
-      return history;
-    });
+    final paymentsStream = _db.collection('payments').where('driverId', isEqualTo: driverId).snapshots();
+    final passengersStream = _db.collection('passenger').where('driverId', isEqualTo: driverId).snapshots();
+
+    return Rx.combineLatest2<QuerySnapshot, QuerySnapshot, List<Map<String, dynamic>>>(
+      paymentsStream,
+      passengersStream,
+      (paySnap, passSnap) {
+        // Create a map of passenger data for quick lookup
+        final passengerMap = {for (var doc in passSnap.docs) doc.id: doc.data() as Map<String, dynamic>};
+
+        final history = paySnap.docs.map((doc) {
+          final payData = doc.data() as Map<String, dynamic>;
+          final pId = payData['passengerId'];
+          final passData = passengerMap[pId] ?? {};
+          
+          return {
+            ...payData,
+            'id': doc.id,
+            'pickupLocation': passData['pickupLocation'] ?? 'Unknown Location',
+          };
+        }).toList();
+
+        // Sort by date descending
+        history.sort((a, b) {
+          final aDate = a['date']?.toString() ?? '';
+          final bDate = b['date']?.toString() ?? '';
+          return bDate.compareTo(aDate);
+        });
+
+        return history;
+      }
+    );
+  }
+
+  /// Returns a stream of passengers who were in arrears on a specific historical date.
+  Stream<List<Map<String, dynamic>>> getHistoricalArrearsStream(String driverId, DateTime selectedDate) {
+    final dateStr = "${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}";
+    
+    final attendanceStream = _db.collection('attendance').where('driverId', isEqualTo: driverId).snapshots();
+    final paymentsStream = _db.collection('payments').where('driverId', isEqualTo: driverId).snapshots();
+    final passengersStream = _db.collection('passenger').where('driverId', isEqualTo: driverId).snapshots();
+
+    return Rx.combineLatest3<QuerySnapshot, QuerySnapshot, QuerySnapshot, List<Map<String, dynamic>>>(
+      attendanceStream,
+      paymentsStream,
+      passengersStream,
+      (attSnap, paySnap, passSnap) {
+        final List<Map<String, dynamic>> arrearsList = [];
+        
+        // Create lookup maps
+        final passengerMap = {for (var doc in passSnap.docs) doc.id: doc.data() as Map<String, dynamic>};
+        
+        for (var passDoc in passSnap.docs) {
+          final pId = passDoc.id;
+          final passData = passDoc.data() as Map<String, dynamic>;
+          final dailyRate = double.tryParse(passData['paymentAmount']?.toString() ?? '0') ?? 0.0;
+          
+          if (dailyRate <= 0) continue;
+
+          // 1. Calculate Total Expected Cost up to selectedDate
+          double expectedCost = 0.0;
+          final attDoc = attSnap.docs.firstWhere((d) => d.id == pId, orElse: () => null as dynamic);
+          if (attDoc != null) {
+            final records = (attDoc.data() as Map<String, dynamic>)['records'] as Map<String, dynamic>? ?? {};
+            records.forEach((date, status) {
+              if (status == 'Present' && date.compareTo(dateStr) <= 0) {
+                expectedCost += dailyRate;
+              }
+            });
+          }
+
+          // 2. Calculate Total Payments received up to selectedDate
+          double paidSoFar = 0.0;
+          for (var payDoc in paySnap.docs) {
+            final payData = payDoc.data() as Map<String, dynamic>;
+            final pDate = payData['date']?.toString().split('T').first ?? '';
+            if (payData['passengerId'] == pId && pDate.compareTo(dateStr) <= 0) {
+              paidSoFar += double.tryParse(payData['amount']?.toString() ?? '0') ?? 0.0;
+            }
+          }
+
+          final balanceAtDate = expectedCost - paidSoFar;
+
+          if (balanceAtDate > 0) {
+            arrearsList.add({
+              'id': pId,
+              'name': passData['name'] ?? 'Unknown',
+              'pickupLocation': passData['pickupLocation'] ?? 'No location',
+              'balance': balanceAtDate,
+              'type': passData['paymentType'] ?? 'Daily',
+            });
+          }
+        }
+        return arrearsList;
+      }
+    );
   }
 
 

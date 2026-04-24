@@ -423,17 +423,25 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: (status == 'collected' || status == 'paid_to_driver' || status == 'distribution_pending' || status == 'distribution_failed' || status == 'success' || status == 'PAID') 
-                      ? Colors.green.withOpacity(0.1) 
-                      : Colors.red.withOpacity(0.1),
+                  color: (status == 'rejected')
+                      ? Colors.grey.withOpacity(0.1)
+                      : (status == 'collected' || status == 'paid_to_driver' || status == 'distribution_pending' || status == 'distribution_failed' || status == 'success' || status == 'PAID' || status == 'cash') 
+                          ? Colors.green.withOpacity(0.1) 
+                          : Colors.red.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  (status == 'cash') ? "Cash Payment" : "Online Payment",
+                  (status == 'rejected') 
+                      ? "Rejected / Forgiven"
+                      : (status == 'cash') 
+                          ? "Cash Payment" 
+                          : "Online Payment",
                   style: TextStyle(
-                    color: (status == 'cash' || status == 'collected' || status == 'success' || status == 'paid_to_driver') 
-                        ? Colors.green 
-                        : Colors.red,
+                    color: (status == 'rejected')
+                        ? Colors.grey.shade700
+                        : (status == 'cash' || status == 'collected' || status == 'success' || status == 'paid_to_driver') 
+                            ? Colors.green 
+                            : Colors.red,
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
                   ),
@@ -509,9 +517,10 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
               Text(
                 'Rs $amount',
                 style: TextStyle(
-                  color: color,
+                  color: (status == 'rejected') ? Colors.grey.shade600 : color,
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
+                  decoration: (status == 'rejected') ? TextDecoration.lineThrough : null,
                 ),
               ),
               Text(
