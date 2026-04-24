@@ -7,7 +7,8 @@ import '../Components/Cards.dart';
 import '../Components/Topic.dart';
 
 class PaymentHistoryScreen extends StatefulWidget {
-  const PaymentHistoryScreen({super.key});
+  final DateTime? initialDate;
+  const PaymentHistoryScreen({super.key, this.initialDate});
 
   @override
   State<PaymentHistoryScreen> createState() => _PaymentHistoryScreenState();
@@ -18,6 +19,12 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
   final String _driverId = FirebaseAuth.instance.currentUser?.uid ?? '';
   final Color appGreen = const Color(0xFF05A664);
   DateTime? _filterDate;
+
+  @override
+  void initState() {
+    super.initState();
+    _filterDate = widget.initialDate;
+  }
 
   String get _dateString {
     final now = DateTime.now();

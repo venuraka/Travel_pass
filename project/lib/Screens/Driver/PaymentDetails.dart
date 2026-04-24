@@ -66,13 +66,15 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
       },
     );
 
-    if (picked != null && picked != _selectedDate) {
+    if (picked != null) {
       setState(() {
         _selectedDate = picked;
       });
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => const PaymentHistoryScreen()),
+        MaterialPageRoute(
+          builder: (_) => PaymentHistoryScreen(initialDate: picked),
+        ),
       );
     }
   }
