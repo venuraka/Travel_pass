@@ -794,6 +794,32 @@ class DatabaseService {
             .toList());
   }
 
+  /// Returns a stream of all payments (Online and Cash) for a driver.
+  Stream<List<Map<String, dynamic>>> getDriverPaymentHistoryStream(String driverId) {
+    return _db
+        .collection('payments')
+        .where('driverId', isEqualTo: driverId)
+        .snapshots()
+        .map((snapshot) {
+      final history = snapshot.docs.map((doc) {
+        final data = doc.data();
+        return {
+          ...data,
+          'id': doc.id,
+        };
+      }).toList();
+      
+      // Sort by date descending
+      history.sort((a, b) {
+        final aDate = a['date']?.toString() ?? '';
+        final bDate = b['date']?.toString() ?? '';
+        return bDate.compareTo(aDate);
+      });
+      
+      return history;
+    });
+  }
+
 
 
   /// Creates a payment request in a new collection.
