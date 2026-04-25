@@ -3,6 +3,8 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../Components/Googlemaps.dart';
 import '../Components/MapsBottomCard.dart';
 import '../../controllers/TrackVehicleController.dart';
+import '../../services/Database.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // --- Color Definitions (Approximated from image) ---
 const Color kCardBackgroundColor = Color(0xFF121415);
@@ -290,7 +292,15 @@ class _TrackVehicleState extends State<TrackVehicle> {
               isOnboarded: _isOnboarded,
               progressIndex: _progressIndex,
               hasNextPickup: _hasNextPickup,
-              onCallPressed: () {
+              onCallPressed: () async {
+                final db = DatabaseService();
+                final driverData = await db.getDriverData(widget.driverId);
+                if (driverData != null && driverData.phone.isNotEmpty) {
+                  final Uri url = Uri.parse('tel:${driverData.phone}');
+                  if (await canLaunchUrl(url)) {
+                    await launchUrl(url);
+                  }
+                }
               },
             ),
           ),

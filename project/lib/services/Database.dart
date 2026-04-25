@@ -734,24 +734,42 @@ class DatabaseService {
       return 0.0;
     });
   }
-  /// Returns a stream of the total cash collected by a driver.
+
+  /// Updates a driver's accumulated balance by the given delta.
+  /// Positive delta = money coming in, negative delta = money going out.
+  Future<void> updateDriverBalance(String driverId, double delta) async {
+    try {
+      await _db.collection('driver').doc(driverId).update({
+        'balance': FieldValue.increment(delta),
+      });
+    } catch (e) {
+      print('Error updating driver balance: $e');
+    }
+  }
+  /// Returns a stream of cash collected by a driver since midnight today (resets daily at 12 AM).
   Stream<double> getCashEarningsStream(String driverId) {
+    // Calculate today's midnight in local time, convert to UTC for Firestore
+    final now = DateTime.now();
+    final todayMidnight = DateTime(now.year, now.month, now.day); // 12:00 AM local
+    final midnightTimestamp = Timestamp.fromDate(todayMidnight);
+
     return _db
         .collection('payments')
         .where('driverId', isEqualTo: driverId)
         .where('status', isEqualTo: 'cash')
+        .where('timestamp', isGreaterThanOrEqualTo: midnightTimestamp)
         .snapshots()
         .map((snapshot) {
       double total = 0.0;
       for (var doc in snapshot.docs) {
-        final data = doc.data();
+        final data = doc.data() as Map<String, dynamic>;
         total += double.tryParse(data['amount']?.toString() ?? '0') ?? 0.0;
       }
       return total;
     });
   }
 
-  /// Returns a stream of daily cash collection history for a driver.
+  /// Returns a stream of daily cash collection history for a driver, including passenger names.
   Stream<List<Map<String, dynamic>>> getDailyCashHistoryStream(String driverId) {
     return _db
         .collection('payments')
@@ -765,15 +783,25 @@ class DatabaseService {
         final data = doc.data();
         final date = data['date']?.toString().split('T').first.replaceAll('-', '/') ?? 'Unknown';
         final amount = double.tryParse(data['amount']?.toString() ?? '0') ?? 0.0;
+        final name = data['passengerName'] as String? ?? 'Unknown';
+        final type = data['type'] as String? ?? 'Daily';
 
         if (dailyMap.containsKey(date)) {
           dailyMap[date]!['total'] += amount;
           dailyMap[date]!['count'] += 1;
+          (dailyMap[date]!['passengers'] as List).add({
+            'name': name,
+            'amount': amount,
+            'type': type,
+          });
         } else {
           dailyMap[date] = {
             'date': date,
             'total': amount,
             'count': 1,
+            'passengers': [
+              {'name': name, 'amount': amount, 'type': type}
+            ],
           };
         }
       }
@@ -786,9 +814,9 @@ class DatabaseService {
   }
   Stream<List<RedemptionModel>> getRedemptionsStream(String driverId) {
     return _db
-        .collection('redemptions')
+        .collection('paymentRequests')
         .where('driverId', isEqualTo: driverId)
-        .orderBy('date', descending: true)
+        .orderBy('requestedAt', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => RedemptionModel.fromMap(doc.data(), doc.id))
@@ -898,19 +926,78 @@ class DatabaseService {
 
 
   /// Creates a payment request in a new collection.
-  Future<void> requestPayment(String driverId, double amount) async {
-
+  /// Requests a payout for the driver.
+  /// Returns:
+  ///   - `null` on success (request submitted)
+  ///   - `int` (remaining days) if the driver is still in cooldown
+  Future<int?> requestPayment(String driverId, double amount) async {
     try {
+      // 1. Check for 7-day cooldown
+      final recentRequests = await _db.collection('paymentRequests')
+          .where('driverId', isEqualTo: driverId)
+          .orderBy('requestedAt', descending: true)
+          .limit(1)
+          .get();
+
+      if (recentRequests.docs.isNotEmpty) {
+        final lastRequestData = recentRequests.docs.first.data();
+        final lastRequestedAt = lastRequestData['requestedAt'] as Timestamp?;
+        if (lastRequestedAt != null) {
+          final daysSince = DateTime.now().difference(lastRequestedAt.toDate()).inDays;
+          if (daysSince < 7) {
+            return 7 - daysSince; // Return remaining days
+          }
+        }
+      }
+
+      // 2. Update all 'collected' payments for this driver to 'distribution_pending'
+      final collectedPayments = await _db.collection('payments')
+          .where('driverId', isEqualTo: driverId)
+          .where('status', isEqualTo: 'collected')
+          .get();
+
+      final batch = _db.batch();
+      for (var doc in collectedPayments.docs) {
+        batch.update(doc.reference, {'status': 'distribution_pending'});
+      }
+      await batch.commit();
+
+      // 3. Fetch driver name for the request record
+      String driverName = 'Driver';
+      final driverDoc = await _db.collection('driver').doc(driverId).get();
+      if (driverDoc.exists && driverDoc.data() != null) {
+        driverName = driverDoc.data()!['name'] ?? 'Driver';
+      }
+
+      // 4. Create the payout request document
       await _db.collection('paymentRequests').add({
         'driverId': driverId,
+        'driverName': driverName,
         'amount': amount,
-        'requestedAt': Timestamp.now(),
-        'status': 'Pending',
+        'requestedAt': FieldValue.serverTimestamp(),
+        'status': 'pending', // pending -> approved (paid_to_driver) or rejected
       });
+
+      return null; // Success
     } catch (e) {
       rethrow;
     }
   }
+
+  /// Returns a stream of the driver's latest payout request status.
+  /// Emits the status string ('pending', 'approved', 'rejected') or null if no request exists.
+  Stream<Map<String, dynamic>?> getPayoutRequestStatusStream(String driverId) {
+    return _db.collection('paymentRequests')
+        .where('driverId', isEqualTo: driverId)
+        .orderBy('requestedAt', descending: true)
+        .limit(1)
+        .snapshots()
+        .map((snapshot) {
+      if (snapshot.docs.isEmpty) return null;
+      return snapshot.docs.first.data();
+    });
+  }
+
   /// Returns a stream of the driver's name.
   Stream<String> getDriverNameStream(String driverId) {
     return _db.collection('driver').doc(driverId).snapshots().map((doc) {
@@ -955,6 +1042,9 @@ class DatabaseService {
 
       // NEW: Update Running Balance
       await updatePassengerBalance(passengerId, -double.parse(amount));
+
+      // NEW: Add to driver's accumulated balance (online payments go to the central pool)
+      await updateDriverBalance(driverId, double.parse(amount));
       
       print("✅ Payment recorded with ID: $docId");
     } catch (e) {
@@ -1025,7 +1115,7 @@ class DatabaseService {
           .get();
       
       double total = 0;
-      final successStatuses = ['collected', 'paid_to_driver', 'distribution_pending', 'distribution_failed', 'success', 'PAID'];
+      final successStatuses = ['collected', 'paid_to_driver', 'distribution_pending', 'distribution_failed', 'cash'];
       
       for (var doc in snapshot.docs) {
         final data = doc.data();
@@ -1148,7 +1238,7 @@ class DatabaseService {
           if (balance <= 0) {
             // Find the most recent payment for this passenger
             final lastPayment = allPayments.firstWhere(
-              (p) => p['passengerId'] == doc.id && (p['status'] == 'collected' || p['status'] == 'cash' || p['status'] == 'success' || p['status'] == 'paid'),
+              (p) => p['passengerId'] == doc.id && (p['status'] == 'collected' || p['status'] == 'cash'),
               orElse: () => <String, dynamic>{}
             );
 

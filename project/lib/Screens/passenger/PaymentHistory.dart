@@ -387,7 +387,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
     final amount = payment['amount'] ?? '0';
     final passengerName = payment['passengerName'] ?? 'Unknown';
     final driverName = payment['driverName'] ?? 'Unknown';
-    final status = payment['status'] ?? 'success';
+    final status = payment['status'] ?? 'collected';
     final paymentType = payment['type'] ?? '';
 
     return Container(
@@ -425,7 +425,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                 decoration: BoxDecoration(
                   color: (status == 'rejected')
                       ? Colors.grey.withOpacity(0.1)
-                      : (status == 'collected' || status == 'paid_to_driver' || status == 'distribution_pending' || status == 'distribution_failed' || status == 'success' || status == 'PAID' || status == 'cash') 
+                      : (status == 'collected' || status == 'paid_to_driver' || status == 'distribution_pending' || status == 'distribution_failed' || status == 'cash') 
                           ? Colors.green.withOpacity(0.1) 
                           : Colors.red.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(6),
@@ -439,7 +439,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                   style: TextStyle(
                     color: (status == 'rejected')
                         ? Colors.grey.shade700
-                        : (status == 'cash' || status == 'collected' || status == 'success' || status == 'paid_to_driver') 
+                        : (status == 'cash' || status == 'collected' || status == 'paid_to_driver') 
                             ? Colors.green 
                             : Colors.red,
                     fontSize: 11,
