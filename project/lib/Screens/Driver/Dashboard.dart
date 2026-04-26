@@ -3,17 +3,23 @@ import '../../services/NotificationService.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../Components/BottomBar.dart';
 import 'Attendance.dart';
+import 'AttendanceHistory.dart';
+import 'CashHistory.dart';
 import 'PaymentDetails.dart';
+import 'PaymentHistory.dart';
 import 'Passengers.dart';
 import 'PaymentReminders.dart';
 import 'Poll.dart';
+import 'RegisterPassenger.dart';
 import 'Settings.dart';
 import 'StartJourney.dart';
 import 'TodayPassengers.dart';
+import 'UpdateRoute.dart';
 import 'Updates.dart';
 import 'dart:async';
 import '../../controllers/DriverDashboardController.dart'; // Added
-import '../../controllers/VoiceAssistantController.dart'; // Added
+import '../../controllers/VoiceAssistantController.dart';
+
 const Color primaryGreen = Color(0xFF05A664);
 const Color textDark = Color(0xFF121415);
 const Color textGrey = Color(0xFF909090);
@@ -30,7 +36,6 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   int _selectedIndex = 2;
   final DriverDashboardController _controller =
       DriverDashboardController(); // Added
-  late final VoiceAssistantController _voiceController;
   int _todayPassengerCount = 0; // Added state variable
   bool _isLoadingCount = true;
   bool _hasPollToday = false;
@@ -40,13 +45,13 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   StreamSubscription? _reminderSubscription;
   String _driverName = 'Loading...';
   StreamSubscription? _nameSubscription;
+  late final VoiceAssistantController _voiceController;
   double? _fabTop;
   double? _fabLeft;
 
   @override // Added initState
   void initState() {
     super.initState();
-    _initVoiceController();
     _loadDashboardData();
     // Refresh push notification token for this driver
     PushNotificationService().updateTokenForDriver();
@@ -87,6 +92,17 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
         });
       }
     });
+    _initVoiceController();
+  }
+
+  @override
+  void dispose() {
+    _countSubscription?.cancel();
+    _pollSubscription?.cancel();
+    _reminderSubscription?.cancel();
+    _nameSubscription?.cancel();
+    _voiceController.dispose();
+    super.dispose();
   }
 
   void _initVoiceController() {
@@ -107,24 +123,40 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
         } else if (screen == 'poll') {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const PollScreen()));
+        } else if (screen == 'attendance_history') {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const AttendanceHistoryScreen()));
+        } else if (screen == 'payment_history') {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentHistoryScreen()));
+        } else if (screen == 'cash_history') {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const CashHistoryScreen()));
+        } else if (screen == 'register_passenger') {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const RegisterPassengerScreen()));
+        } else if (screen == 'today_passengers') {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const TodaypassengersScreen()));
+        } else if (screen == 'update_route') {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const UpdateRouteScreen()));
         }
       },
       onStartJourney: () async {
         if (!mounted) return;
+        
+        // Final restriction check before starting journey via voice
+        final int presentCount = await _controller.getTodayPassengerCount();
+        if (presentCount == 0) {
+           ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Cannot start journey: No passengers are present!"),
+              backgroundColor: Colors.redAccent,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+          return;
+        }
+
         await _controller.startJourney();
         Navigator.push(context, MaterialPageRoute(builder: (_) => const Startjourney()));
       },
     );
-  }
-
-  @override
-  void dispose() {
-    _countSubscription?.cancel();
-    _pollSubscription?.cancel();
-    _reminderSubscription?.cancel();
-    _nameSubscription?.cancel();
-    _voiceController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadDashboardData({bool isRefresh = false}) async {
@@ -219,9 +251,9 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
         }
         
         return Positioned(
-          bottom: 20.h,
+          bottom: 100.h, // Adjusted to be above bottom nav
           left: 20.w,
-          right: 80.w, // Leave room for FAB
+          right: 20.w,
           child: Container(
             padding: EdgeInsets.all(16.r),
             decoration: BoxDecoration(
@@ -486,6 +518,16 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                       );
                       return;
                     }
+                    if (_todayPassengerCount == 0) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("At least one passenger must be present to start the journey."),
+                          backgroundColor: Colors.redAccent,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                      return;
+                    }
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text("Hold the button to start the journey"),
@@ -494,7 +536,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                       ),
                     );
                   },
-                  onLongPress: _hasPollToday ? () async {
+                  onLongPress: (_hasPollToday && _todayPassengerCount > 0) ? () async {
                     await _controller.startJourney();
                     if (mounted) {
                       Navigator.push(
@@ -504,8 +546,8 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                     }
                   } : null,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _hasPollToday ? primaryGreen : const Color(0xFFB9E4D0),
-                    foregroundColor: _hasPollToday ? Colors.white : primaryGreen.withOpacity(0.8),
+                    backgroundColor: (_hasPollToday && _todayPassengerCount > 0) ? primaryGreen : const Color(0xFFB9E4D0),
+                    foregroundColor: (_hasPollToday && _todayPassengerCount > 0) ? Colors.white : primaryGreen.withOpacity(0.8),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(18.0.r),
                     ),
