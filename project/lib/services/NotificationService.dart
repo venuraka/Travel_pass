@@ -6,6 +6,9 @@ import 'package:project/services/Database.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:project/main.dart'; // Added
 import 'package:project/Screens/passenger/PaymentHistory.dart'; // Added
+import 'package:project/Screens/Driver/NewPassenger.dart'; // Added
+import 'package:project/Screens/passenger/Updates.dart'; // Added
+import 'package:project/Screens/passenger/TrackVehicle.dart'; // Added
 import 'package:flutter/material.dart'; // Added
 
 class PushNotificationService {
@@ -91,7 +94,7 @@ class PushNotificationService {
           );
 
           // ✅ Handle Foreground Redirection
-          if (message.data['screen'] == 'payment') {
+          if (message.data['screen'] == 'payment' || message.data['screen'] == 'new_passenger' || message.data['screen'] == 'updates' || message.data['screen'] == 'track') {
             handleNotificationRedirect(message.data);
           }
         }
@@ -123,11 +126,30 @@ class PushNotificationService {
 
   /// 🔹 Handle Redirection Logic
   void handleNotificationRedirect(Map<String, dynamic> data) {
-    if (data['screen'] == 'payment') {
-      final context = MyApp.navigatorKey.currentContext;
-      if (context != null) {
+    final context = MyApp.navigatorKey.currentContext;
+    if (context != null) {
+      if (data['screen'] == 'payment') {
         Navigator.of(context).push(
           MaterialPageRoute(builder: (context) => const PaymentHistoryScreen()),
+        );
+      } else if (data['screen'] == 'new_passenger') {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => const NewPassengerScreen()),
+        );
+      } else if (data['screen'] == 'updates') {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => UpdatesScreen(driverId: data['driverId']),
+          ),
+        );
+      } else if (data['screen'] == 'track') {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => TrackVehicle(
+              driverId: data['driverId'] ?? '',
+              passengerId: _auth.currentUser?.uid ?? '',
+            ),
+          ),
         );
       }
     }

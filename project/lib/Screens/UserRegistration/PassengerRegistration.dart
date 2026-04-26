@@ -209,6 +209,23 @@ class _PassengerRegistrationScreenState
 
       await _dbService.savePassengerData(newPassenger);
 
+      // Notify Driver that a new passenger has registered
+      try {
+        await PushNotificationService().sendNotificationToDriver(
+          driverId: _matchedDriverId!,
+          title: 'New Student Registration',
+          body: '${newPassenger.name} has registered for vehicle ${newPassenger.vehiclePlate}.',
+          data: {
+            'type': 'registration',
+            'screen': 'new_passenger',
+            'passengerId': newPassenger.uid,
+            'vehiclePlate': newPassenger.vehiclePlate,
+          },
+        );
+      } catch (e) {
+        debugPrint('⚠️ Could not notify driver of registration: $e');
+      }
+
       if (mounted) {
         CustomSnackBar.showSuccess(
           context,

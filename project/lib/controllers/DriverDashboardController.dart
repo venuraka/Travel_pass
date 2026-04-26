@@ -160,7 +160,9 @@ class DriverDashboardController {
             body: finalRec["body"] ?? "Your bus is on the way.",
             data: {
               "type": "weather_alert",
-              "weather_type": finalRec["type"]
+              "screen": "track",
+              "weather_type": finalRec["type"],
+              "driverId": uid,
             },
           );
           

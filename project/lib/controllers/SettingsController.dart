@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/DriverModel.dart';
 import '../services/Database.dart';
+import '../services/NotificationService.dart';
 
 class SettingsController {
   final DatabaseService _dbService = DatabaseService();
@@ -53,13 +54,35 @@ class SettingsController {
         badgePreference,
       );
 
-      // 3. Update Passengers based on type
+      final notificationService = PushNotificationService();
+
+      // 3. Update Passengers based on type and Notify
       if (monthlyDelta != 0) {
         await _dbService.adjustPassengerPaymentAmounts(
           user.uid,
           monthlyDelta,
           'Monthly',
         );
+
+        // Notify Monthly Passengers
+        try {
+          final passengers = await _dbService.getPassengersByDriver(user.uid);
+          final monthlyIds = passengers
+              .where((p) => p.paymentType == 'Monthly' || p.paymentType == 'Monthly Payment')
+              .map((p) => p.uid)
+              .toList();
+
+          if (monthlyIds.isNotEmpty) {
+            await notificationService.sendNotificationToPassengers(
+              passengerIds: monthlyIds,
+              title: 'Monthly Fare Updated 💳',
+              body: 'The driver has updated the monthly travel fee to Rs $monthlyAmount.',
+              data: {'type': 'fare_update', 'newAmount': monthlyAmount},
+            );
+          }
+        } catch (e) {
+          debugPrint('⚠️ Could not notify monthly passengers of fare change: $e');
+        }
       }
 
       if (dailyDelta != 0) {
@@ -68,6 +91,26 @@ class SettingsController {
           dailyDelta,
           'Daily',
         );
+
+        // Notify Daily Passengers
+        try {
+          final passengers = await _dbService.getPassengersByDriver(user.uid);
+          final dailyIds = passengers
+              .where((p) => p.paymentType == 'Daily' || p.paymentType == 'Daily Payment')
+              .map((p) => p.uid)
+              .toList();
+
+          if (dailyIds.isNotEmpty) {
+            await notificationService.sendNotificationToPassengers(
+              passengerIds: dailyIds,
+              title: 'Daily Fare Updated 💳',
+              body: 'The driver has updated the daily travel fee to Rs $dailyAmount.',
+              data: {'type': 'fare_update', 'newAmount': dailyAmount},
+            );
+          }
+        } catch (e) {
+          debugPrint('⚠️ Could not notify daily passengers of fare change: $e');
+        }
       }
     } catch (e) {
       rethrow;

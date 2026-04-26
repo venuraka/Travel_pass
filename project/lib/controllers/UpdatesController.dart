@@ -45,7 +45,7 @@ class UpdatesController {
         driverId: user.uid,
         title: "New Update from Driver",
         body: content,
-        data: {"type": "update", "driverId": user.uid},
+        data: {"type": "update", "screen": "updates", "driverId": user.uid},
       );
     } catch (e) {
       debugPrint("Error sending update: $e");

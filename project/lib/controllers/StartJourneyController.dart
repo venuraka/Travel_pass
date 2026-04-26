@@ -806,7 +806,12 @@ class StartJourneyController {
             passengerIds: passengerIds,
             title: 'Bus is approaching!',
             body: 'The bus is about 5 minutes away from your pickup point.',
-            data: {'type': 'bus_near', 'stop': targetPassenger.pickupLocation},
+            data: {
+              'type': 'bus_near', 
+              'screen': 'track',
+              'stop': targetPassenger.pickupLocation,
+              'driverId': _currentDriverId,
+            },
           );
         }
       }

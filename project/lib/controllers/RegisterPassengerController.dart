@@ -38,22 +38,18 @@ class RegisterPassengerController {
       // Save to database
       await _dbService.savePassengerData(updatedPassenger);
 
-      // Notify Driver
+      // Notify Passenger that they have been approved/registered
       try {
-        if (updatedPassenger.driverId.isNotEmpty) {
-          await _notificationService.sendNotificationToDriver(
-            driverId: updatedPassenger.driverId,
-            title: 'New Student Registration',
-            body: '${updatedPassenger.name} has registered for vehicle ${updatedPassenger.vehiclePlate}.',
-            data: {
-              'type': 'registration',
-              'passengerId': updatedPassenger.uid,
-              'vehiclePlate': updatedPassenger.vehiclePlate,
-            },
-          );
-        }
+        await _notificationService.sendNotificationToPassengers(
+          passengerIds: [updatedPassenger.uid],
+          title: 'Registration Approved 🎉',
+          body: 'You have been registered by your driver. You can use the app from now on.',
+          data: {
+            'type': 'registration_approved',
+          },
+        );
       } catch (e) {
-        debugPrint('⚠️ Could not notify driver of registration: $e');
+        debugPrint('⚠️ Could not notify passenger of registration approval: $e');
       }
 
       if (context.mounted) {
@@ -108,6 +104,29 @@ class RegisterPassengerController {
 
       // Save to database
       await _dbService.savePassengerData(updatedPassenger);
+
+      // Notify Passenger if critical details changed
+      List<String> changes = [];
+      if (passenger.paymentAmount != paymentAmount) changes.add('fare (Rs $paymentAmount)');
+      if (passenger.phone != phone) changes.add('phone number');
+      if (passenger.pickupLocation != pickupLocation) changes.add('pickup location ($pickupLocation)');
+
+      if (changes.isNotEmpty) {
+        try {
+          String body = 'Your driver has updated your ${changes.join(', ')}.';
+          await _notificationService.sendNotificationToPassengers(
+            passengerIds: [updatedPassenger.uid],
+            title: 'Profile Updated 📝',
+            body: body,
+            data: {
+              'type': 'profile_update',
+              'updatedFields': changes.join(','),
+            },
+          );
+        } catch (e) {
+          debugPrint('⚠️ Could not notify passenger of profile update: $e');
+        }
+      }
 
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
