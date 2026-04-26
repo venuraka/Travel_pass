@@ -13,7 +13,7 @@ import 'TodayPassengers.dart';
 import 'Updates.dart';
 import 'dart:async';
 import '../../controllers/DriverDashboardController.dart'; // Added
-
+import '../../controllers/VoiceAssistantController.dart'; // Added
 const Color primaryGreen = Color(0xFF05A664);
 const Color textDark = Color(0xFF121415);
 const Color textGrey = Color(0xFF909090);
@@ -30,6 +30,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   int _selectedIndex = 2;
   final DriverDashboardController _controller =
       DriverDashboardController(); // Added
+  late final VoiceAssistantController _voiceController;
   int _todayPassengerCount = 0; // Added state variable
   bool _isLoadingCount = true;
   bool _hasPollToday = false;
@@ -39,10 +40,13 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   StreamSubscription? _reminderSubscription;
   String _driverName = 'Loading...';
   StreamSubscription? _nameSubscription;
+  double? _fabTop;
+  double? _fabLeft;
 
   @override // Added initState
   void initState() {
     super.initState();
+    _initVoiceController();
     _loadDashboardData();
     // Refresh push notification token for this driver
     PushNotificationService().updateTokenForDriver();
@@ -85,12 +89,37 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
     });
   }
 
+  void _initVoiceController() {
+    _voiceController = VoiceAssistantController(
+      onNavigate: (screen) {
+        if (!mounted) return;
+        if (screen == 'passengers') {
+          setState(() { _selectedIndex = 0; });
+        } else if (screen == 'payments') {
+          setState(() { _selectedIndex = 1; });
+        } else if (screen == 'settings') {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
+        } else if (screen == 'dashboard') {
+          setState(() { _selectedIndex = 2; });
+        } else if (screen == 'poll') {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const PollScreen()));
+        }
+      },
+      onStartJourney: () async {
+        if (!mounted) return;
+        await _controller.startJourney();
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const Startjourney()));
+      },
+    );
+  }
+
   @override
   void dispose() {
     _countSubscription?.cancel();
     _pollSubscription?.cancel();
     _reminderSubscription?.cancel();
     _nameSubscription?.cancel();
+    _voiceController.dispose();
     super.dispose();
   }
 
@@ -107,7 +136,13 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: bgGreenTint,
-      body: _getSelectedScreen(),
+      body: Stack(
+        children: [
+          _getSelectedScreen(),
+          _buildVoiceOverlay(),
+          _buildDraggableVoiceButton(),
+        ],
+      ),
       bottomNavigationBar: CustomBottomNavBar(
         selectedIndex: _selectedIndex,
         onTabSelected: (index) {
@@ -116,6 +151,110 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
           });
         },
       ),
+    );
+  }
+
+  Widget _buildDraggableVoiceButton() {
+    // Initial position
+    _fabTop ??= MediaQuery.of(context).size.height * 0.7;
+    _fabLeft ??= MediaQuery.of(context).size.width - 80.w;
+
+    return Positioned(
+      top: _fabTop,
+      left: _fabLeft,
+      child: GestureDetector(
+        onPanUpdate: (details) {
+          setState(() {
+            _fabTop = _fabTop! + details.delta.dy;
+            _fabLeft = _fabLeft! + details.delta.dx;
+          });
+        },
+        onPanEnd: (details) {
+          // Snap to nearest side (optional, similar to AssistiveTouch)
+          setState(() {
+            if (_fabLeft! + 30.w < MediaQuery.of(context).size.width / 2) {
+              _fabLeft = 20.w;
+            } else {
+              _fabLeft = MediaQuery.of(context).size.width - 80.w;
+            }
+          });
+        },
+        child: FloatingActionButton(
+          onPressed: () {
+            if (_voiceController.isListening) {
+              _voiceController.stopListening();
+            } else {
+              _voiceController.startListening();
+            }
+          },
+          backgroundColor: primaryGreen,
+          heroTag: 'voice_fab',
+          child: ListenableBuilder(
+            listenable: _voiceController,
+            builder: (context, _) {
+              return Icon(
+                _voiceController.isListening ? Icons.mic : Icons.mic_none,
+                color: Colors.white,
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVoiceOverlay() {
+    return ListenableBuilder(
+      listenable: _voiceController,
+      builder: (context, _) {
+        if (!_voiceController.isListening && !_voiceController.isProcessing && _voiceController.aiResponse.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        
+        return Positioned(
+          bottom: 20.h,
+          left: 20.w,
+          right: 80.w, // Leave room for FAB
+          child: Container(
+            padding: EdgeInsets.all(16.r),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16.r),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 10.r,
+                  offset: Offset(0, 5.h),
+                )
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (_voiceController.isListening)
+                  Row(
+                    children: [
+                      Icon(Icons.mic, color: Colors.redAccent, size: 20.r),
+                      SizedBox(width: 8.w),
+                      Text("Listening...", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 14.sp)),
+                    ],
+                  ),
+                if (_voiceController.recognizedText.isNotEmpty)
+                  Padding(
+                    padding: EdgeInsets.only(top: 8.h),
+                    child: Text('"${_voiceController.recognizedText}"', style: TextStyle(fontStyle: FontStyle.italic, fontSize: 14.sp)),
+                  ),
+                if (_voiceController.aiResponse.isNotEmpty)
+                  Padding(
+                    padding: EdgeInsets.only(top: 8.h),
+                    child: Text(_voiceController.aiResponse, style: TextStyle(color: primaryGreen, fontWeight: FontWeight.w600, fontSize: 14.sp)),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
