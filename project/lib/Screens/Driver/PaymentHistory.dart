@@ -175,10 +175,10 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                         StreamBuilder<List<Map<String, dynamic>>>(
                           stream: _dbService.getDriverPaymentHistoryStream(_driverId),
                           builder: (context, snapshot) {
-                            final filterStr = "${_filterDate!.year}/${_filterDate!.month.toString().padLeft(2, '0')}/${_filterDate!.day.toString().padLeft(2, '0')}";
+                            final filterStrIso = "${_filterDate!.year}-${_filterDate!.month.toString().padLeft(2, '0')}-${_filterDate!.day.toString().padLeft(2, '0')}";
                             // Filter for successful payments only (not rejected)
                             final payments = (snapshot.data ?? []).where((p) => 
-                              (p['date'] ?? '').toString().startsWith(filterStr) && 
+                              (p['date'] ?? '').toString().startsWith(filterStrIso) && 
                               p['status'] != 'rejected'
                             ).toList();
 
@@ -261,10 +261,10 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                         StreamBuilder<List<Map<String, dynamic>>>(
                           stream: _dbService.getDriverPaymentHistoryStream(_driverId),
                           builder: (context, snapshot) {
-                            final filterStr = "${_filterDate!.year}/${_filterDate!.month.toString().padLeft(2, '0')}/${_filterDate!.day.toString().padLeft(2, '0')}";
+                            final filterStrIso = "${_filterDate!.year}-${_filterDate!.month.toString().padLeft(2, '0')}-${_filterDate!.day.toString().padLeft(2, '0')}";
                             // Filter for rejected payments only
                             final rejected = (snapshot.data ?? []).where((p) => 
-                              (p['date'] ?? '').toString().startsWith(filterStr) && 
+                              (p['date'] ?? '').toString().startsWith(filterStrIso) && 
                               p['status'] == 'rejected'
                             ).toList();
 
