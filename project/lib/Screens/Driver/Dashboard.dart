@@ -97,10 +97,14 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
           setState(() { _selectedIndex = 0; });
         } else if (screen == 'payments') {
           setState(() { _selectedIndex = 1; });
-        } else if (screen == 'settings') {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
         } else if (screen == 'dashboard') {
           setState(() { _selectedIndex = 2; });
+        } else if (screen == 'updates') {
+          setState(() { _selectedIndex = 3; });
+        } else if (screen == 'attendance') {
+          setState(() { _selectedIndex = 4; });
+        } else if (screen == 'settings') {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
         } else if (screen == 'poll') {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const PollScreen()));
         }
@@ -164,9 +168,12 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
       left: _fabLeft,
       child: GestureDetector(
         onPanUpdate: (details) {
+          final size = MediaQuery.of(context).size;
           setState(() {
-            _fabTop = _fabTop! + details.delta.dy;
-            _fabLeft = _fabLeft! + details.delta.dx;
+            // Clamp top between status bar and bottom nav bar
+            _fabTop = (_fabTop! + details.delta.dy).clamp(50.0, size.height - 180.h);
+            // Clamp left between screen edges
+            _fabLeft = (_fabLeft! + details.delta.dx).clamp(0.0, size.width - 60.w);
           });
         },
         onPanEnd: (details) {
@@ -228,28 +235,40 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                 )
               ],
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
+            child: Stack(
               children: [
-                if (_voiceController.isListening)
-                  Row(
-                    children: [
-                      Icon(Icons.mic, color: Colors.redAccent, size: 20.r),
-                      SizedBox(width: 8.w),
-                      Text("Listening...", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 14.sp)),
-                    ],
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (_voiceController.isListening)
+                      Row(
+                        children: [
+                          Icon(Icons.mic, color: Colors.redAccent, size: 20.r),
+                          SizedBox(width: 8.w),
+                          Text("Listening...", style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 14.sp)),
+                        ],
+                      ),
+                    if (_voiceController.recognizedText.isNotEmpty)
+                      Padding(
+                        padding: EdgeInsets.only(top: 8.h),
+                        child: Text('"${_voiceController.recognizedText}"', style: TextStyle(fontStyle: FontStyle.italic, fontSize: 14.sp)),
+                      ),
+                    if (_voiceController.aiResponse.isNotEmpty)
+                      Padding(
+                        padding: EdgeInsets.only(top: 8.h),
+                        child: Text(_voiceController.aiResponse, style: TextStyle(color: primaryGreen, fontWeight: FontWeight.w600, fontSize: 14.sp)),
+                      ),
+                  ],
+                ),
+                Positioned(
+                  right: -10,
+                  top: -10,
+                  child: IconButton(
+                    icon: Icon(Icons.close, size: 18.r, color: Colors.grey),
+                    onPressed: () => _voiceController.clearResponse(),
                   ),
-                if (_voiceController.recognizedText.isNotEmpty)
-                  Padding(
-                    padding: EdgeInsets.only(top: 8.h),
-                    child: Text('"${_voiceController.recognizedText}"', style: TextStyle(fontStyle: FontStyle.italic, fontSize: 14.sp)),
-                  ),
-                if (_voiceController.aiResponse.isNotEmpty)
-                  Padding(
-                    padding: EdgeInsets.only(top: 8.h),
-                    child: Text(_voiceController.aiResponse, style: TextStyle(color: primaryGreen, fontWeight: FontWeight.w600, fontSize: 14.sp)),
-                  ),
+                ),
               ],
             ),
           ),

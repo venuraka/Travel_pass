@@ -4,6 +4,7 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../services/GeminiService.dart';
+import '../services/LocalIntentService.dart';
 import 'DriverDashboardController.dart';
 
 class VoiceAssistantController extends ChangeNotifier {
@@ -32,7 +33,7 @@ class VoiceAssistantController extends ChangeNotifier {
 
   Future<void> _initTts() async {
     await _tts.setLanguage("en-US");
-    await _tts.setSpeechRate(0.5);
+    await _tts.setSpeechRate(0.6); // Slightly faster for driver use
     await _tts.setVolume(1.0);
     await _tts.setPitch(1.0);
   }
@@ -96,11 +97,31 @@ class VoiceAssistantController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Clears the current voice assistant display
+  void clearResponse() {
+    _recognizedText = '';
+    _aiResponse = '';
+    _isProcessing = false;
+    notifyListeners();
+  }
+
   Future<void> _processVoiceCommand(String command) async {
     _isProcessing = true;
-    _aiResponse = 'Thinking...';
+    _aiResponse = 'Processing...';
     notifyListeners();
 
+    // Step 1: Try to handle locally first — instant, no API needed
+    final localIntent = LocalIntentService.detect(command);
+    if (localIntent != null) {
+      await _executeLocalIntent(localIntent);
+      _isProcessing = false;
+      notifyListeners();
+      return;
+    }
+
+    // Step 2: Escalate to Gemini for complex/ambiguous commands
+    _aiResponse = 'Thinking...';
+    notifyListeners();
     final response = await _geminiService.processCommand(command);
 
     if (response == null) {
@@ -112,9 +133,53 @@ class VoiceAssistantController extends ChangeNotifier {
     }
 
     await _handleGeminiResponse(response);
-    
     _isProcessing = false;
     notifyListeners();
+  }
+
+  Future<void> _executeLocalIntent(LocalIntent intent) async {
+    switch (intent.action) {
+      case IntentAction.startJourney:
+        bool hasPoll = await _dashboardController.hasActivePollToday();
+        if (!hasPoll) {
+          _aiResponse = 'Please create today\'s poll first, then I can start the journey.';
+          await speak(_aiResponse);
+          return;
+        }
+        if (onStartJourney != null) onStartJourney!();
+        _aiResponse = 'Starting your journey now!';
+        await speak(_aiResponse);
+        break;
+
+      case IntentAction.endJourney:
+        await _dashboardController.endJourney();
+        _aiResponse = 'Journey ended. Great work today!';
+        await speak(_aiResponse);
+        break;
+
+      case IntentAction.navigate:
+        if (intent.screen != null && onNavigate != null) {
+          onNavigate!(intent.screen!);
+          final screenNames = {
+            'passengers': 'passengers',
+            'payments': 'payments',
+            'dashboard': 'home',
+            'updates': 'updates',
+            'attendance': 'attendance',
+            'settings': 'settings',
+            'poll': 'poll',
+          };
+          _aiResponse = 'Opening ${screenNames[intent.screen] ?? intent.screen}.';
+          await speak(_aiResponse);
+        }
+        break;
+
+      case IntentAction.startPoll:
+        if (onNavigate != null) onNavigate!('poll');
+        _aiResponse = 'Opening the poll screen.';
+        await speak(_aiResponse);
+        break;
+    }
   }
 
   Future<void> _handleGeminiResponse(GenerateContentResponse response) async {
