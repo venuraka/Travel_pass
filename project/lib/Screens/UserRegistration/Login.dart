@@ -3,7 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../controllers/AuthService.dart';
 import '../../utils/AuthExceptionHandler.dart';
-import 'SignUp.dart';
+import 'Register.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../controllers/AccessController.dart';
 import '../passenger/Dashboard.dart';
@@ -161,41 +161,18 @@ class _LoginPageState extends State<LoginPage> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: <Widget>[
                 const SizedBox(height: 30),
-                // Logo or Icon
-                Container(
-                  width: 100.w,
-                  height: 100.w,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF05A664),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF05A664).withOpacity(0.3),
-                        blurRadius: 20.r,
-                        offset: Offset(0, 10.h),
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    Icons.directions_bus_rounded,
-                    color: Colors.white,
-                    size: 50.r,
-                  ),
-                ),
-                SizedBox(height: 30.h),
-                // Header
-                Text(
-                  'Login',
+                const Text(
+                  'LogIn',
                   style: TextStyle(
-                    fontSize: 40.sp,
+                    fontSize: 40,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF121415),
                   ),
                 ),
-                SizedBox(height: 10.h),
-                Text(
-                  'Welcome back!',
-                  style: TextStyle(fontSize: 16.sp, color: Color(0xFF05A664)),
+                const SizedBox(height: 10),
+                const Text(
+                  'Welcome Back',
+                  style: TextStyle(fontSize: 16, color: Color(0xFF05A664)),
                 ),
                 SizedBox(height: 40.h),
 
@@ -278,8 +255,8 @@ class _LoginPageState extends State<LoginPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Image.network(
-                    'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png',
+                  Image.asset(
+                    'Assets/Images/google_logo.png',
                     height: 24,
                     width: 24,
                     errorBuilder: (context, error, stackTrace) => const Icon(
@@ -290,7 +267,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(width: 12),
                   const Text(
-                    'Login with Google',
+                    'SignUp with Google',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -366,12 +343,12 @@ class _LoginPageState extends State<LoginPage> {
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const GoogleSignUpPage(),
+                    builder: (context) => const RegisterPage(),
                   ),
                 );
               },
               child: const Text(
-                "Sign Up",
+                "Register",
                 style: TextStyle(
                   color: Color(0xFF05A664),
                   fontWeight: FontWeight.bold,

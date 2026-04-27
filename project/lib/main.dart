@@ -4,7 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter/services.dart';
 import 'Screens/Driver/Dashboard.dart';
 import 'Screens/UserRegistration/Login.dart';
-import 'Screens/UserRegistration/SignUp.dart';
+import 'Screens/UserRegistration/Register.dart';
 import 'Screens/passenger/Dashboard.dart';
 import 'firebase_options.dart';
 import 'utils/AuthWrapper.dart';
@@ -58,7 +58,7 @@ class MyApp extends StatelessWidget {
           // home: const DriverDashboardScreen(),
           // this should be default button,dont change this 
           // home: const AuthWrapper(),
-          home: GoogleSignUpPage(),
+          home: LoginPage(),
         );
       },
     );

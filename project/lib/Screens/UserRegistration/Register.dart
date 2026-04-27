@@ -5,14 +5,14 @@ import 'Login.dart';
 import 'UserSelection.dart';
 import '../Components/CustomSnackBar.dart';
 
-class GoogleSignUpPage extends StatefulWidget {
-  const GoogleSignUpPage({super.key});
+class RegisterPage extends StatefulWidget {
+  const RegisterPage({super.key});
 
   @override
-  State<GoogleSignUpPage> createState() => _GoogleSignUpPageState();
+  State<RegisterPage> createState() => _RegisterPageState();
 }
 
-class _GoogleSignUpPageState extends State<GoogleSignUpPage> {
+class _RegisterPageState extends State<RegisterPage> {
   // MVC: Initialize the Service (Model)
   final AuthService _authService = AuthService();
 
@@ -110,7 +110,7 @@ class _GoogleSignUpPageState extends State<GoogleSignUpPage> {
               children: <Widget>[
                 const SizedBox(height: 30),
                 const Text(
-                  'Sign Up',
+                  'Register',
                   style: TextStyle(
                     fontSize: 40,
                     fontWeight: FontWeight.bold,
@@ -132,7 +132,7 @@ class _GoogleSignUpPageState extends State<GoogleSignUpPage> {
                     Expanded(child: Divider(color: Color(0xFF121415))),
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: 10),
-                      child: Text("Or sign up with Email"),
+                      child: Text("Register with Email"),
                     ),
                     Expanded(child: Divider(color: Color(0xFF121415))),
                   ],
@@ -176,9 +176,15 @@ class _GoogleSignUpPageState extends State<GoogleSignUpPage> {
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Image.network(
-                    'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png',
+                  Image.asset(
+                     'Assets/Images/google_logo.png',
                     height: 24,
+                    width: 24,
+                    errorBuilder: (context, error, stackTrace) => const Icon(
+                      Icons.g_mobiledata,
+                      size: 40,
+                      color: Color(0xFF121415),
+                    ),
                   ),
                   const SizedBox(width: 12),
                   const Text(
@@ -225,7 +231,7 @@ class _GoogleSignUpPageState extends State<GoogleSignUpPage> {
               ),
             ),
             child: const Text(
-              'Sign Up',
+              'Register',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
