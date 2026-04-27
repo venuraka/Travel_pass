@@ -24,12 +24,6 @@
 	<string>????</string>
 	<key>GoogleMapsAPIKey</key>
     <string>AIzaSyAo5wRg4mAa6QaDYC9DCpiPySplDHiKZb0</string>
-	<key>OpenWeatherApiKey</key>
-	<string>648b81e24eaba35c85388932820a1391</string>
-	<key>PayhereMerchantID</key>
-	<string>1235085</string>
-	<key>PayhereMerchantSecret</key>
-	<string>ODM0MTA4NTc4MTQzNDkwNTkwMzUwMjgxNjY5MDEwNzI3NjY3NTE=</string>
 
 
 	<key>CFBundleURLTypes</key>

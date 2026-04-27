@@ -8,6 +8,9 @@ admin.initializeApp();
 const db = admin.firestore();
 
 const payhereSecret = defineSecret("PAYHERE_MERCHANT_SECRET");
+const payhereMerchantId = defineSecret("PAYHERE_MERCHANT_ID");
+const geminiApiKey = defineSecret("GEMINI_API_KEY");
+const weatherApiKey = defineSecret("OPENWEATHER_API_KEY");
 
 /*
   SCHEDULED MONTHLY PAYMENT REMINDERS
@@ -179,9 +182,6 @@ export const sendNotification = onCall(async (request) => {
   }
 });
 
-// Only export the functions you actually want to deploy.
-// If helloWorld is not needed, you can remove it.
-
 /*
   PAYHERE NOTIFICATION HANDLER
   ----------------------------
@@ -293,4 +293,100 @@ export const payhereNotify = onRequest({secrets: [payhereSecret]},
       logger.error("Error updating database", error);
       res.status(500).send("Internal Server Error");
     }
+  });
+
+/*
+  SECURE PROXY FUNCTIONS
+  ----------------------
+  These functions keep API keys on the server and use defineSecret.
+*/
+
+// 1. Gemini AI Proxy
+export const getGeminiResponse = onCall(
+  {secrets: [geminiApiKey]},
+  async (request) => {
+    if (!request.auth) throw new Error("Unauthorized");
+
+    const {prompt, history, systemInstruction} = request.data;
+    const apiKey = geminiApiKey.value();
+
+    try {
+      const url = "https://generativelanguage.googleapis.com/v1beta/models/" +
+                "gemini-2.0-flash:generateContent?key=" + apiKey;
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          contents: [
+            ...(history || []),
+            {role: "user", parts: [{text: prompt}]},
+          ],
+          system_instruction: systemInstruction ?
+            {parts: [{text: systemInstruction}]} : undefined,
+        }),
+      });
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      logger.error("Gemini Proxy Error:", error);
+      throw new Error("Failed to get AI response");
+    }
+  });
+
+// 2. OpenWeather Proxy
+export const getWeatherData = onCall(
+  {secrets: [weatherApiKey]},
+  async (request) => {
+    if (!request.auth) throw new Error("Unauthorized");
+
+    const {lat, lon, mode} = request.data; // mode: 'weather' or 'forecast'
+    const apiKey = weatherApiKey.value();
+    const endpoint = mode === "forecast" ? "forecast" : "weather";
+
+    try {
+      const url = `https://api.openweathermap.org/data/2.5/${endpoint}?` +
+                `lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
+      const response = await fetch(url);
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      logger.error("Weather Proxy Error:", error);
+      throw new Error("Failed to get weather data");
+    }
+  });
+
+// 3. PayHere Hash Generator
+export const getPayhereHash = onCall(
+  {secrets: [payhereSecret, payhereMerchantId]},
+  async (request) => {
+    if (!request.auth) throw new Error("Unauthorized");
+
+    const {orderId, amount, currency} = request.data;
+    const merchantId = payhereMerchantId.value();
+    const merchantSecret = payhereSecret.value();
+
+    // Format amount to 2 decimal places as required by PayHere
+    const formattedAmount = parseFloat(amount).toFixed(2);
+
+    // Formula: md5(merchant_id + order_id + amount + currency + md5(secret))
+    const hashedSecret = crypto.createHash("md5")
+      .update(merchantSecret)
+      .digest("hex")
+      .toUpperCase();
+
+    const hashString = `${merchantId}${orderId}${formattedAmount}` +
+                     `${currency}${hashedSecret}`;
+
+    const hash = crypto.createHash("md5")
+      .update(hashString)
+      .digest("hex")
+      .toUpperCase();
+
+    return {
+      merchantId,
+      hash,
+      amount: formattedAmount,
+    };
   });

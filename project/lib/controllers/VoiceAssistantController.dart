@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter_tts/flutter_tts.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../services/GeminiService.dart';
 import '../services/LocalIntentService.dart';
@@ -139,9 +138,9 @@ class VoiceAssistantController extends ChangeNotifier {
     _aiResponse = 'Thinking...';
     notifyListeners();
 
-    GenerateContentResponse? response;
+    Map<String, dynamic>? rawResponse;
     try {
-      response = await _geminiService.processCommand(command);
+      rawResponse = await _geminiService.processCommand(command);
     } catch (e) {
       // Bilingual fallback
       bool isSinhalaInput = RegExp(r'[\u0D80-\u0DFF]').hasMatch(command);
@@ -154,7 +153,7 @@ class VoiceAssistantController extends ChangeNotifier {
       return;
     }
 
-    if (response == null) {
+    if (rawResponse == null) {
       bool isSinhalaInput = RegExp(r'[\u0D80-\u0DFF]').hasMatch(command);
       _aiResponse = isSinhalaInput
           ? "මට එය තේරුණේ නැත. කරුණාකර නැවත උත්සාහ කරන්න."
@@ -165,6 +164,7 @@ class VoiceAssistantController extends ChangeNotifier {
       return;
     }
 
+    final response = GeminiResponse.fromMap(rawResponse);
     await _handleGeminiResponse(response);
     _isProcessing = false;
     notifyListeners();
@@ -224,90 +224,56 @@ class VoiceAssistantController extends ChangeNotifier {
     }
   }
 
-  Future<void> _handleGeminiResponse(GenerateContentResponse response) async {
+  Future<void> _handleGeminiResponse(GeminiResponse response) async {
     // Check if Gemini wants to call any functions
-    if (response.functionCalls.isNotEmpty) {
-      for (final functionCall in response.functionCalls) {
-        final result = await _executeFunctionCall(functionCall);
-
-        // Send the result back to Gemini so it knows the action was taken
-        // and can provide a final conversational response
-        final nextResponse = await _geminiService.sendFunctionResponse(
-          functionCall.name,
-          result,
+    if (response.functionCalls != null && response.functionCalls!.isNotEmpty) {
+      for (final functionCall in response.functionCalls!) {
+        await _executeFunctionCall(
+          functionCall['name'],
+          functionCall['args'] as Map<String, dynamic>? ?? {},
         );
-
-        if (nextResponse != null) {
-          await _handleGeminiResponse(
-            nextResponse,
-          ); // Recursively handle if it has more to say/do
-        }
       }
-    } else if (response.text != null && response.text!.isNotEmpty) {
+    } else if (response.text.isNotEmpty) {
       // If it's just a text response, speak it and display it
-      _aiResponse = response.text!;
+      _aiResponse = response.text;
       await speak(_aiResponse);
     }
   }
 
-  Future<Map<String, Object?>> _executeFunctionCall(
-    FunctionCall functionCall,
-  ) async {
+  Future<void> _executeFunctionCall(String name, Map<String, dynamic> args) async {
     try {
-      switch (functionCall.name) {
+      switch (name) {
         case 'start_journey':
           bool hasPoll = await _dashboardController.hasActivePollToday();
           if (!hasPoll) {
-            return {
-              'status': 'failed',
-              'reason': 'No active poll today. Driver must start a poll first.',
-            };
+            _aiResponse = 'Please create today\'s poll first, then I can start the journey.';
+            await speak(_aiResponse);
+            return;
           }
-          if (onStartJourney != null) {
-            onStartJourney!();
-          }
-          return {'status': 'success', 'message': 'Journey started.'};
+          if (onStartJourney != null) onStartJourney!();
+          _aiResponse = 'Journey started. Safe driving!';
+          await speak(_aiResponse);
+          break;
 
         case 'end_journey':
           await _dashboardController.endJourney();
-          return {'status': 'success', 'message': 'Journey ended.'};
+          _aiResponse = 'Journey ended.';
+          await speak(_aiResponse);
+          break;
 
         case 'navigate_to':
-          final screen = functionCall.args['screen'] as String?;
+          final screen = args['screen'] as String?;
           if (screen != null && onNavigate != null) {
             onNavigate!(screen);
-            return {'status': 'success', 'message': "Navigated to $screen."};
           }
-          return {
-            'status': 'failed',
-            'reason': 'Missing screen argument or navigator not provided.',
-          };
-
-        case 'search_passenger':
-          final name = functionCall.args['name'] as String?;
-          if (name != null) {
-            // For now, we'll just navigate to the passenger list and let Gemini say it's filtering
-            if (onNavigate != null) {
-              onNavigate!('passengers');
-            }
-            return {
-              'status': 'success',
-              'message': 'Navigated to passenger screen to search for $name.',
-            };
-          }
-          return {'status': 'failed', 'reason': 'Missing name argument.'};
+          break;
 
         case 'start_poll':
-          if (onNavigate != null) {
-            onNavigate!('poll');
-          }
-          return {'status': 'success', 'message': 'Opened poll screen.'};
-
-        default:
-          return {'status': 'failed', 'reason': 'Unknown function name.'};
+          if (onNavigate != null) onNavigate!('poll');
+          break;
       }
     } catch (e) {
-      return {'status': 'failed', 'reason': 'Error executing function: $e'};
+      debugPrint('Error executing function call: $e');
     }
   }
 }
