@@ -89,96 +89,132 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
 
   Widget _buildDashboardContent() {
     return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 10.h),
-        child: Column(
-          children: [
-            // --- 1. Header ---
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 16.h),
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('${_getGreeting()},', style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: primaryGreen)),
-                    SizedBox(height: 4.h),
-                    Text(_passenger?.name ?? 'Passenger', style: TextStyle(fontSize: 26.sp, fontWeight: FontWeight.w800, color: textDark, letterSpacing: -0.5)),
+                    // --- 1. Header ---
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('${_getGreeting()},',
+                                style: TextStyle(
+                                    fontSize: 14.sp,
+                                    fontWeight: FontWeight.w600,
+                                    color: primaryGreen)),
+                            SizedBox(height: 4.h),
+                            Text(_passenger?.name ?? 'Passenger',
+                                style: TextStyle(
+                                    fontSize: 26.sp,
+                                    fontWeight: FontWeight.w800,
+                                    color: textDark,
+                                    letterSpacing: -0.5)),
+                          ],
+                        ),
+                        _buildCircularIconButton(
+                            Icons.refresh_rounded, () => _loadData(isRefresh: true)),
+                      ],
+                    ),
+
+                    SizedBox(height: 24.h),
+
+                    // --- 2. Today's Status ---
+                    if (_passenger?.driverId != null)
+                      StreamBuilder<Map<String, dynamic>>(
+                        stream: _controller.getTodayStatusCombinedStream(
+                            _passenger!.driverId, _passenger!.uid),
+                        builder: (context, snapshot) {
+                          final data = snapshot.data;
+                          if (data == null || !data['hasPollToday'])
+                            return const SizedBox.shrink();
+                          final bool isStarted = data['isStarted'];
+                          final String status = data['status'];
+                          final DateTime todayDate = data['date'];
+                          return Column(
+                            children: [
+                              _buildTodayStatusCard(isStarted, status, todayDate),
+                              if (isStarted) ...[
+                                SizedBox(height: 12.h),
+                                _buildFindVehicleButton(context, status == 'Present'),
+                              ],
+                              SizedBox(height: 24.h),
+                            ],
+                          );
+                        },
+                      ),
+
+                    // --- 3. Overview Grid ---
+                    Text("Overview",
+                        style: TextStyle(
+                            fontSize: 18.sp,
+                            fontWeight: FontWeight.bold,
+                            color: textDark)),
+                    SizedBox(height: 12.h),
+                    GridView.count(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 15.w,
+                      mainAxisSpacing: 15.h,
+                      childAspectRatio: 1.1,
+                      children: [
+                        _buildActionCard(
+                            title: "Call Driver",
+                            icon: Icons.call_rounded,
+                            color: Colors.green,
+                            description: "Voice call",
+                            onTap: _handleCallDriver),
+                        _buildActionCard(
+                            title: "Alerts",
+                            icon: Icons.notifications_active_rounded,
+                            color: Colors.orangeAccent,
+                            description: "Notifications",
+                            badgeCount: _unreadAlertsCount,
+                            onTap: _handleOpenAlerts),
+                        _buildActionCard(
+                            title: "Attendance",
+                            icon: Icons.history_edu_rounded,
+                            color: Colors.blueAccent,
+                            description: "View history",
+                            onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) =>
+                                        const PassengerAttendaceScreen()))),
+                        _buildActionCard(
+                            title: "Payments",
+                            icon: Icons.account_balance_wallet_rounded,
+                            color: Colors.purpleAccent,
+                            description: "Transactions",
+                            onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (_) => const PaymentHistoryScreen()))),
+                      ],
+                    ),
+
+                    SizedBox(height: 24.h),
+
+                    // --- 4. Attendance Selection Card ---
+                    _buildAttendanceCard(),
+
+                    SizedBox(height: 16.h),
                   ],
                 ),
-                _buildCircularIconButton(Icons.refresh_rounded, () => _loadData(isRefresh: true)),
-              ],
-            ),
-            
-            const Spacer(flex: 1),
-
-            // --- 2. Today's Status ---
-            if (_passenger?.driverId != null)
-              Expanded(
-                flex: 12,
-                child: StreamBuilder<Map<String, dynamic>>(
-                  stream: _controller.getTodayStatusCombinedStream(_passenger!.driverId, _passenger!.uid),
-                  builder: (context, snapshot) {
-                    final data = snapshot.data;
-                    if (data == null || !data['hasPollToday']) return const SizedBox.shrink();
-                    final bool isStarted = data['isStarted'];
-                    final String status = data['status'];
-                    final DateTime todayDate = data['date'];
-                    return Column(
-                      children: [
-                        Expanded(child: _buildTodayStatusCard(isStarted, status, todayDate)),
-                        if (isStarted) ...[
-                          SizedBox(height: 12.h),
-                          _buildFindVehicleButton(context, status == 'Present'),
-                        ],
-                      ],
-                    );
-                  },
-                ),
-              ),
-
-            const Spacer(flex: 1),
-
-            // --- 3. Overview Grid ---
-            Align(alignment: Alignment.centerLeft, child: Text("Overview", style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold, color: textDark))),
-            SizedBox(height: 12.h),
-            Expanded(
-              flex: 12,
-              child: Column(
-                children: [
-                  Expanded(
-                    child: Row(
-                      children: [
-                        Expanded(child: _buildActionCard(title: "Call Driver", icon: Icons.call_rounded, color: Colors.green, description: "Voice call", onTap: _handleCallDriver)),
-                        const SizedBox(width: 15),
-                        Expanded(child: _buildActionCard(title: "Alerts", icon: Icons.notifications_active_rounded, color: Colors.orangeAccent, description: "Notifications", badgeCount: _unreadAlertsCount, onTap: _handleOpenAlerts)),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-                  Expanded(
-                    child: Row(
-                      children: [
-                        Expanded(child: _buildActionCard(title: "Attendance", icon: Icons.history_edu_rounded, color: Colors.blueAccent, description: "View history", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PassengerAttendaceScreen())))),
-                        const SizedBox(width: 15),
-                        Expanded(child: _buildActionCard(title: "Payments", icon: Icons.account_balance_wallet_rounded, color: Colors.purpleAccent, description: "Transactions", onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentHistoryScreen())))),
-                      ],
-                    ),
-                  ),
-                ],
               ),
             ),
-
-            const Spacer(flex: 1),
-
-            // --- 4. Attendance Selection Card ---
-            Expanded(
-              flex: 10,
-              child: _buildAttendanceCard(),
-            ),
-            
-            SizedBox(height: 10.h),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
@@ -221,26 +257,64 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
     bool isAbsent = status == 'Absent';
     return Container(
       padding: EdgeInsets.all(20.r),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24.r), border: Border.all(color: primaryGreen.withOpacity(0.1), width: 1.w), boxShadow: [BoxShadow(color: primaryGreen.withOpacity(0.05), blurRadius: 15.r, offset: Offset(0, 5.h))]),
+      decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24.r),
+          border: Border.all(color: primaryGreen.withOpacity(0.1), width: 1.w),
+          boxShadow: [
+            BoxShadow(
+                color: primaryGreen.withOpacity(0.05),
+                blurRadius: 15.r,
+                offset: Offset(0, 5.h))
+          ]),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text("Today's Attendance", style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold, color: textDark)),
-                Text("${date.day} ${_getMonthName(date.month)} ${date.year}", style: TextStyle(fontSize: 12.sp, color: textGrey)),
+                Text("Today's Attendance",
+                    style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold, color: textDark)),
+                Text("${date.day} ${_getMonthName(date.month)} ${date.year}",
+                    style: TextStyle(fontSize: 12.sp, color: textGrey)),
               ]),
-              if (isStarted) Container(padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h), decoration: BoxDecoration(color: Colors.grey.shade100, borderRadius: BorderRadius.circular(10.r), border: Border.all(color: Colors.grey.shade300)), child: Row(children: [Icon(Icons.lock_outline_rounded, size: 14.r, color: Colors.grey), SizedBox(width: 4.w), Text("Locked", style: TextStyle(fontSize: 11.sp, color: Colors.grey, fontWeight: FontWeight.w600))])),
+              if (isStarted)
+                Container(
+                    padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
+                    decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(10.r),
+                        border: Border.all(color: Colors.grey.shade300)),
+                    child: Row(children: [
+                      Icon(Icons.lock_outline_rounded, size: 14.r, color: Colors.grey),
+                      SizedBox(width: 4.w),
+                      Text("Locked",
+                          style: TextStyle(
+                              fontSize: 11.sp,
+                              color: Colors.grey,
+                              fontWeight: FontWeight.w600))
+                    ])),
             ],
           ),
-          const Spacer(),
+          SizedBox(height: 20.h),
           Row(
             children: [
-              Expanded(child: _buildStatusToggleButton(label: "Present", isActive: isPresent, activeColor: primaryGreen, isDisabled: isStarted, onTap: () => _updateTodayStatus("Present", date))),
+              Expanded(
+                  child: _buildStatusToggleButton(
+                      label: "Present",
+                      isActive: isPresent,
+                      activeColor: primaryGreen,
+                      isDisabled: isStarted,
+                      onTap: () => _updateTodayStatus("Present", date))),
               SizedBox(width: 15.w),
-              Expanded(child: _buildStatusToggleButton(label: "Absent", isActive: isAbsent, activeColor: Colors.redAccent, isDisabled: isStarted, onTap: () => _updateTodayStatus("Absent", date))),
+              Expanded(
+                  child: _buildStatusToggleButton(
+                      label: "Absent",
+                      isActive: isAbsent,
+                      activeColor: Colors.redAccent,
+                      isDisabled: isStarted,
+                      onTap: () => _updateTodayStatus("Absent", date))),
             ],
           ),
         ],
@@ -276,22 +350,41 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
   Widget _buildAttendanceCard() {
     return Container(
       padding: EdgeInsets.all(20.r),
-      decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(24.r), boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.08), blurRadius: 20.r, offset: Offset(0, 8.h))]),
+      decoration: BoxDecoration(
+          color: cardColor,
+          borderRadius: BorderRadius.circular(24.r),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.grey.withOpacity(0.08),
+                blurRadius: 20.r,
+                offset: Offset(0, 8.h))
+          ]),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text('Mark Attendance', style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w700, color: textDark)),
+          Text('Mark Attendance',
+              style:
+                  TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w700, color: textDark)),
           SizedBox(height: 12.h),
-          Expanded(
-            child: _datesToMark.isEmpty 
-              ? Center(child: Text('All caught up! 🎉', style: TextStyle(color: textGrey, fontSize: 14.sp, fontStyle: FontStyle.italic)))
+          _datesToMark.isEmpty
+              ? Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20.h),
+                  child: Center(
+                      child: Text('All caught up! 🎉',
+                          style: TextStyle(
+                              color: textGrey,
+                              fontSize: 14.sp,
+                              fontStyle: FontStyle.italic))),
+                )
               : ListView.separated(
-                  physics: const BouncingScrollPhysics(),
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
                   itemCount: _datesToMark.length,
                   separatorBuilder: (_, __) => SizedBox(height: 8.h),
-                  itemBuilder: (context, index) => _buildAttendanceDismissibleRow(_datesToMark[index]),
+                  itemBuilder: (context, index) =>
+                      _buildAttendanceDismissibleRow(_datesToMark[index]),
                 ),
-          ),
         ],
       ),
     );
