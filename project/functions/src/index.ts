@@ -54,7 +54,7 @@ export const scheduleMonthlyPaymentReminders = onSchedule("0 8 * * *",
             notification: {
               title: "Monthly Payment Due",
               body: `Your travel payment for ${_getMonthName()} ` +
-                   "is due today. Tap to pay.",
+                "is due today. Tap to pay.",
             },
             data: {
               screen: "payment",
@@ -219,15 +219,17 @@ export const payhereNotify = onRequest({secrets: [payhereSecret]},
     const amountFormatted = payhereAmount; // Example: '1000.00'
 
     const validationString = `${merchantId}${orderId}${amountFormatted}` +
-    `${payhereCurrency}${statusCode}${hashedSecret}`;
+      `${payhereCurrency}${statusCode}${hashedSecret}`;
 
     const localMd5sig = crypto.createHash("md5")
       .update(validationString)
       .digest("hex")
       .toUpperCase();
-
     if (localMd5sig !== md5sig) {
-      logger.error("Signature mismatch", {local: localMd5sig, remote: md5sig});
+      logger.error("Signature mismatch", {
+        local: localMd5sig,
+        remote: md5sig,
+      });
       // Respond with 200 to stop PayHere from retrying
       res.status(400).send("Signature verification failed");
       return;
@@ -313,34 +315,48 @@ export const getGeminiResponse = onCall(
     logger.info("Gemini Request:", {prompt, historyCount: history?.length});
 
     try {
-      const url = "https://generativelanguage.googleapis.com/v1beta/models/" +
-                "gemini-2.0-flash:generateContent?key=" + apiKey;
+      const candidateModels = [
+        "gemini-2.5-flash",
+        "gemini-2.0-flash-001",
+        "gemini-flash-latest",
+      ];
+      let lastErrorText = "No model attempts were made.";
+      let lastStatus = -1;
 
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({
-          contents: [
-            ...(history || []),
-            {role: "user", parts: [{text: prompt}]},
-          ],
-          system_instruction: systemInstruction ?
-            {parts: [{text: systemInstruction}]} : undefined,
-        }),
-      });
+      for (const model of candidateModels) {
+        const url = "https://generativelanguage.googleapis.com/v1beta/models/" +
+          `${model}:generateContent?key=${apiKey}`;
 
-      if (!response.ok) {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({
+            contents: [
+              ...(history || []),
+              {role: "user", parts: [{text: prompt}]},
+            ],
+            system_instruction: systemInstruction ?
+              {parts: [{text: systemInstruction}]} : undefined,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          logger.info("Gemini Response received successfully", {model});
+          return data;
+        }
+
         const errorText = await response.text();
+        lastErrorText = errorText;
+        lastStatus = response.status;
         logger.error("Gemini API Error Response:", {
+          model,
           status: response.status,
           error: errorText,
         });
-        throw new Error(`Gemini API returned ${response.status}: ${errorText}`);
       }
 
-      const data = await response.json();
-      logger.info("Gemini Response received successfully");
-      return data;
+      throw new Error(`Gemini API returned ${lastStatus}: ${lastErrorText}`);
     } catch (error) {
       logger.error("Gemini Proxy Error:", error);
       throw new Error("Failed to get AI response");
@@ -359,7 +375,7 @@ export const getWeatherData = onCall(
 
     try {
       const url = `https://api.openweathermap.org/data/2.5/${endpoint}?` +
-                `lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
+        `lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
       const response = await fetch(url);
       const data = await response.json();
       return data;
@@ -389,7 +405,7 @@ export const getPayhereHash = onCall(
       .toUpperCase();
 
     const hashString = `${merchantId}${orderId}${formattedAmount}` +
-                     `${currency}${hashedSecret}`;
+      `${currency}${hashedSecret}`;
 
     const hash = crypto.createHash("md5")
       .update(hashString)
@@ -401,4 +417,16 @@ export const getPayhereHash = onCall(
       hash,
       amount: formattedAmount,
     };
+  });
+
+// TEMPORARY DEBUG: Lists which Gemini models are available for your API key
+export const listGeminiModels = onRequest(
+  {secrets: [geminiApiKey]},
+  async (req, res) => {
+    const apiKey = geminiApiKey.value();
+    const url = "https://generativelanguage.googleapis.com/v1beta/models" +
+      "?key=" + apiKey;
+    const response = await fetch(url);
+    const data = await response.json();
+    res.json(data);
   });

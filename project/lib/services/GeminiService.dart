@@ -37,7 +37,12 @@ When the user says any of these, call navigate_to with the correct screen name:
   /// This keeps the API Key securely on the server.
   Future<Map<String, dynamic>?> processCommand(String command, {List<Map<String, dynamic>>? history}) async {
     try {
-      final HttpsCallable callable = FirebaseFunctions.instance.httpsCallable('getGeminiResponse');
+      // If your functions are NOT in us-central1, change the region here:
+      // Example: FirebaseFunctions.instanceFor(region: 'asia-southeast1').httpsCallable(...)
+      final HttpsCallable callable = FirebaseFunctions.instance.httpsCallable(
+        'getGeminiResponse',
+        options: HttpsCallableOptions(timeout: const Duration(seconds: 20)),
+      );
       
       final result = await callable.call({
         'prompt': command,
@@ -46,6 +51,9 @@ When the user says any of these, call navigate_to with the correct screen name:
       });
 
       return result.data as Map<String, dynamic>;
+    } on FirebaseFunctionsException catch (e) {
+      debugPrint('Firebase Function error: ${e.code} - ${e.message}');
+      return null;
     } catch (e) {
       debugPrint('Error calling Gemini Cloud Function: $e');
       return null;
