@@ -23,6 +23,7 @@ class VoiceAssistantController extends ChangeNotifier {
   String get recognizedText => _recognizedText;
   String get aiResponse => _aiResponse;
   bool get isProcessing => _isProcessing;
+  bool get isSinhalaInput => RegExp(r'[\u0D80-\u0DFF]').hasMatch(_recognizedText);
 
   // Callbacks for UI actions
   final Function(String screenName)? onNavigate;

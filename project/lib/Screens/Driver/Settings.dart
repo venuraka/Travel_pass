@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../controllers/SettingsController.dart'; // Import Controller
 import '../Components/CustomSnackBar.dart'; // Import CustomSnackBar
+import '../UserRegistration/Login.dart';
 import 'UpdateRoute.dart';
 
 import '../Components/Header.dart';
@@ -27,6 +30,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   DateTime? _selectedDate;
   String _badgePreference = "Both"; // Current preference
   bool _isLoading = false; // Loading state
+  bool _showVoiceAssistant = true;
 
   @override
   void initState() {
@@ -37,6 +41,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _loadSettings() async {
     setState(() => _isLoading = true);
     try {
+      final prefs = await SharedPreferences.getInstance();
+      _showVoiceAssistant = prefs.getBool('show_ai_assistant') ?? true;
+
       final driver = await _controller.getSettings();
       if (driver != null) {
         if (mounted) {
@@ -102,6 +109,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _saveSettings() async {
     setState(() => _isLoading = true);
     try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('show_ai_assistant', _showVoiceAssistant);
+
       await _controller.saveSettings(
         paymentDate: _selectedDate,
         monthlyAmount: _monthlyAmount.toString(),
@@ -121,6 +131,48 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _logout() async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Logout', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await FirebaseAuth.instance.signOut();
+        if (mounted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const LoginPage()),
+            (route) => false,
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          CustomSnackBar.showError(context, "Logout failed: $e");
+        }
+      }
     }
   }
 
@@ -202,6 +254,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           const SizedBox(height: 30),
                           // --- Badge Preference Section ---
                           _buildBadgePreferenceSection(),
+                          const SizedBox(height: 30),
+
+                          // --- AI Assistant Toggle ---
+                          _buildToggleSection(
+                            "AI Voice Assistant",
+                            _showVoiceAssistant,
+                            (val) => setState(() => _showVoiceAssistant = val),
+                          ),
+
                           const SizedBox(height: 40),
 
                           // --- Update Route Button ---
@@ -256,6 +317,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
                                 ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 15),
+
+                          // --- Logout Button ---
+                          TextButton.icon(
+                            onPressed: _logout,
+                            icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
+                            label: const Text(
+                              'Logout from Account',
+                              style: TextStyle(
+                                color: Colors.redAccent,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
                               ),
                             ),
                           ),
@@ -375,6 +451,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  // Helper widget for toggle sections
+  Widget _buildToggleSection(
+      String title, bool value, ValueChanged<bool> onChanged) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 5.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: Color(0xFF05A664),
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeColor: appGreen,
+            activeTrackColor: appGreen.withOpacity(0.3),
+          ),
+        ],
+      ),
     );
   }
 }
