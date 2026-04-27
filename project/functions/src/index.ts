@@ -419,14 +419,3 @@ export const getPayhereHash = onCall(
     };
   });
 
-// TEMPORARY DEBUG: Lists which Gemini models are available for your API key
-export const listGeminiModels = onRequest(
-  {secrets: [geminiApiKey]},
-  async (req, res) => {
-    const apiKey = geminiApiKey.value();
-    const url = "https://generativelanguage.googleapis.com/v1beta/models" +
-      "?key=" + apiKey;
-    const response = await fetch(url);
-    const data = await response.json();
-    res.json(data);
-  });
