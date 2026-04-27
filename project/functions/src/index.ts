@@ -310,6 +310,8 @@ export const getGeminiResponse = onCall(
     const {prompt, history, systemInstruction} = request.data;
     const apiKey = geminiApiKey.value();
 
+    logger.info("Gemini Request:", {prompt, historyCount: history?.length});
+
     try {
       const url = "https://generativelanguage.googleapis.com/v1beta/models/" +
                 "gemini-2.0-flash:generateContent?key=" + apiKey;
@@ -327,7 +329,17 @@ export const getGeminiResponse = onCall(
         }),
       });
 
+      if (!response.ok) {
+        const errorText = await response.text();
+        logger.error("Gemini API Error Response:", {
+          status: response.status,
+          error: errorText,
+        });
+        throw new Error(`Gemini API returned ${response.status}: ${errorText}`);
+      }
+
       const data = await response.json();
+      logger.info("Gemini Response received successfully");
       return data;
     } catch (error) {
       logger.error("Gemini Proxy Error:", error);
