@@ -626,30 +626,38 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            "Accumulated Balance",
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: textColor.withOpacity(0.9),
-                              fontWeight: FontWeight.w500,
+                      Flexible(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Accumulated Balance",
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: textColor.withOpacity(0.9),
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            "Rs ${balance.toInt()}",
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 32,
-                              color: textColor,
-                              letterSpacing: 0.5,
+                            const SizedBox(height: 6),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                "Rs ${balance.toInt()}",
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 32,
+                                  color: textColor,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
+                      const SizedBox(width: 12),
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(

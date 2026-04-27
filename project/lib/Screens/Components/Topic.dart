@@ -16,31 +16,37 @@ class PageHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
 
         // ---------- LEFT: Title + Subtitle ----------
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.w900,
-                color: Colors.black,
+        Flexible(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.black,
+                ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-            ),
 
-            if (subtitle != null) ...[
-              const SizedBox(height: 3),
-              subtitle!,
+              if (subtitle != null) ...[
+                const SizedBox(height: 3),
+                subtitle!,
+              ],
             ],
-          ],
+          ),
         ),
 
         // ---------- RIGHT: Icons / Buttons ----------
         if (actions != null && actions!.isNotEmpty)
           Row(
+            mainAxisSize: MainAxisSize.min,
             children: actions!.map((icon) {
               return Container(
                 margin: const EdgeInsets.only(left: 10),

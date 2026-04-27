@@ -23,7 +23,7 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
       context: context,
       initialDate: _filterDate ?? DateTime.now(),
       firstDate: DateTime(2023),
-      lastDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 1)),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -108,9 +108,11 @@ class _PaymentCollectionScreenState extends State<PaymentCollectionScreen> {
                   // Apply date filter (filter by requested date)
                   if (_filterDate != null) {
                     redemptions = redemptions.where((item) {
-                      return item.requestedAt.year == _filterDate!.year &&
-                          item.requestedAt.month == _filterDate!.month &&
-                          item.requestedAt.day == _filterDate!.day;
+                      // Use local components for comparison to match the local date picker
+                      final req = item.requestedAt.toLocal();
+                      return req.year == _filterDate!.year &&
+                          req.month == _filterDate!.month &&
+                          req.day == _filterDate!.day;
                     }).toList();
                   }
 

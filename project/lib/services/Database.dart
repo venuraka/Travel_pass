@@ -99,6 +99,19 @@ class DatabaseService {
     }
   }
 
+  /// Unsubscribes a passenger from their driver by clearing the driverId and driverPlate fields.
+  Future<void> unsubscribePassengerFromDriver(String passengerId) async {
+    try {
+      await _db.collection('passenger').doc(passengerId).update({
+        'driverId': FieldValue.delete(),
+        'driverPlate': FieldValue.delete(),
+        'status': 'unsubscribed',
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   // --- Poll Methods ---
 
   /// Creates a new poll in the 'polls' collection.
@@ -816,11 +829,16 @@ class DatabaseService {
     return _db
         .collection('paymentRequests')
         .where('driverId', isEqualTo: driverId)
-        .orderBy('requestedAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => RedemptionModel.fromMap(doc.data(), doc.id))
-            .toList());
+        .map((snapshot) {
+      final list = snapshot.docs
+          .map((doc) => RedemptionModel.fromMap(doc.data(), doc.id))
+          .toList();
+      
+      // Sort manually to handle pending server timestamps (which are null in local cache)
+      list.sort((a, b) => b.requestedAt.compareTo(a.requestedAt));
+      return list;
+    });
   }
 
   /// Returns a stream of all payments (Online and Cash) for a driver with passenger details.
@@ -1231,14 +1249,18 @@ class DatabaseService {
           return bTime.compareTo(aTime); // Descending
         });
 
+        // All statuses that represent a successful payment (including post-payout states)
+        const successStatuses = {'collected', 'cash', 'distribution_pending', 'paid_to_driver', 'distribution_failed'};
+
         for (var doc in passSnap.docs) {
           final data = doc.data() as Map<String, dynamic>;
           final balance = (data['balance'] ?? 0.0).toDouble();
           
           if (balance <= 0) {
-            // Find the most recent payment for this passenger
+            // Find the most recent successful payment for this passenger
+            // Include ALL valid statuses so post-payout amounts still display correctly
             final lastPayment = allPayments.firstWhere(
-              (p) => p['passengerId'] == doc.id && (p['status'] == 'collected' || p['status'] == 'cash'),
+              (p) => p['passengerId'] == doc.id && successStatuses.contains(p['status']),
               orElse: () => <String, dynamic>{}
             );
 

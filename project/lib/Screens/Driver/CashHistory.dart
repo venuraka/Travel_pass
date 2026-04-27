@@ -25,7 +25,7 @@ class _CashHistoryScreenState extends State<CashHistoryScreen> {
       context: context,
       initialDate: _filterDate ?? DateTime.now(),
       firstDate: DateTime(2023),
-      lastDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 1)),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -95,10 +95,12 @@ class _CashHistoryScreenState extends State<CashHistoryScreen> {
 
                   // Apply date filter
                   if (_filterDate != null) {
-                    final filterStr =
-                        "${_filterDate!.year}/${_filterDate!.month.toString().padLeft(2, '0')}/${_filterDate!.day.toString().padLeft(2, '0')}";
-                    history =
-                        history.where((item) => item['date'] == filterStr).toList();
+                    final filterDash = "${_filterDate!.year}-${_filterDate!.month.toString().padLeft(2, '0')}-${_filterDate!.day.toString().padLeft(2, '0')}";
+                    final filterSlash = filterDash.replaceAll('-', '/');
+                    history = history.where((item) {
+                      final itemDate = item['date']?.toString() ?? '';
+                      return itemDate == filterDash || itemDate == filterSlash;
+                    }).toList();
                   }
 
                   if (history.isEmpty) {

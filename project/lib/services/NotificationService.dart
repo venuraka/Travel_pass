@@ -66,7 +66,7 @@ class PushNotificationService {
         print('✅ Notification permission granted');
       }
 
-      // 4️⃣ Foreground messages listener
+      // 4️⃣ Foreground messages listener — only shows a popup, does NOT auto-navigate
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
         RemoteNotification? notification = message.notification;
         AndroidNotification? android = message.notification?.android;
@@ -75,7 +75,7 @@ class PushNotificationService {
           print('📩 Foreground notification: ${notification?.title}');
         }
 
-        // Show local notification if message contains a notification
+        // Show local notification popup only — user must TAP to navigate
         if (notification != null && android != null) {
           _localNotifications.show(
             notification.hashCode,
@@ -92,11 +92,8 @@ class PushNotificationService {
               ),
             ),
           );
-
-          // ✅ Handle Foreground Redirection
-          if (message.data['screen'] == 'payment' || message.data['screen'] == 'new_passenger' || message.data['screen'] == 'updates' || message.data['screen'] == 'track') {
-            handleNotificationRedirect(message.data);
-          }
+          // NOTE: No auto-redirect here. Navigation only happens when the user taps
+          // the notification (handled by onMessageOpenedApp and local notification tap).
         }
       });
 

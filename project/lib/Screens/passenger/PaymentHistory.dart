@@ -291,15 +291,26 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("Amount Due", style: TextStyle(fontSize: 14, color: textColor.withOpacity(0.8))),
-                    const SizedBox(height: 4),
-                    Text("Rs ${_amountDue.toStringAsFixed(2)}", style: TextStyle(fontWeight: FontWeight.w800, fontSize: 28, color: textColor)),
-                  ],
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Amount Due", style: TextStyle(fontSize: 14, color: textColor.withOpacity(0.8))),
+                      const SizedBox(height: 4),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          "Rs ${_amountDue.toStringAsFixed(2)}",
+                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 28, color: textColor),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
@@ -307,7 +318,9 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                     const SizedBox(height: 4),
                     Text(
                       isMonthly ? _getMonthName() : DateTime.now().toString().split(' ').first.replaceAll('-', '/'),
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: textColor)
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: textColor),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),

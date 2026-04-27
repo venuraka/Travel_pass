@@ -49,6 +49,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   late final VoiceAssistantController _voiceController;
   double? _fabTop;
   double? _fabLeft;
+  bool _isStartingJourney = false; // Guard to prevent duplicate StartJourney pushes
   bool _showVoiceAssistant = true;
 
   @override
@@ -116,14 +117,19 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
         else if (screen == 'update_route') Navigator.push(context, MaterialPageRoute(builder: (_) => const UpdateRouteScreen()));
       },
       onStartJourney: () async {
-        if (!mounted) return;
-        final int presentCount = await _controller.getTodayPassengerCount();
-        if (presentCount == 0) {
-           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Cannot start journey: No passengers are present!"), backgroundColor: Colors.redAccent, behavior: SnackBarBehavior.floating));
-           return;
+        if (!mounted || _isStartingJourney) return;
+        setState(() => _isStartingJourney = true);
+        try {
+          final int presentCount = await _controller.getTodayPassengerCount();
+          if (presentCount == 0) {
+             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Cannot start journey: No passengers are present!"), backgroundColor: Colors.redAccent, behavior: SnackBarBehavior.floating));
+             return;
+          }
+          await _controller.startJourney();
+          if (mounted) Navigator.push(context, MaterialPageRoute(builder: (_) => const Startjourney()));
+        } finally {
+          if (mounted) setState(() => _isStartingJourney = false);
         }
-        await _controller.startJourney();
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const Startjourney()));
       },
     );
   }
@@ -237,15 +243,19 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
             // --- 1. Header ---
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("Welcome Back,", style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: primaryGreen)),
-                    SizedBox(height: 4.h),
-                    Text(_driverName, style: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.w800, color: textDark, letterSpacing: -0.5)),
-                  ],
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Welcome Back,", style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: primaryGreen)),
+                      SizedBox(height: 4.h),
+                      Text(_driverName, style: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.w800, color: textDark, letterSpacing: -0.5), maxLines: 1, overflow: TextOverflow.ellipsis),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 8),
                 _buildCircularIconButton(Icons.settings_outlined, () async {
                   await Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
                   _loadAssistantSetting();
@@ -405,9 +415,15 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Hold the button to start the journey"), behavior: SnackBarBehavior.floating));
           }
         },
-        onLongPress: (_hasPollToday && _todayPassengerCount > 0) ? () async {
-          await _controller.startJourney();
-          if (mounted) Navigator.push(context, MaterialPageRoute(builder: (_) => const Startjourney()));
+        onLongPress: (_hasPollToday && _todayPassengerCount > 0 && !_isStartingJourney) ? () async {
+          if (_isStartingJourney) return;
+          setState(() => _isStartingJourney = true);
+          try {
+            await _controller.startJourney();
+            if (mounted) await Navigator.push(context, MaterialPageRoute(builder: (_) => const Startjourney()));
+          } finally {
+            if (mounted) setState(() => _isStartingJourney = false);
+          }
         } : null,
         style: ElevatedButton.styleFrom(
           backgroundColor: (_hasPollToday && _todayPassengerCount > 0) ? primaryGreen : const Color(0xFFB9E4D0),

@@ -69,6 +69,8 @@ class InfoCard extends StatelessWidget {
                               fontSize: 14.sp,
                               color: Colors.black87,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                           SizedBox(height: 2.h),
                           subtitleWidget ??
@@ -78,12 +80,21 @@ class InfoCard extends StatelessWidget {
                                   fontSize: 12.sp,
                                   color: Colors.black54,
                                 ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                         ],
                       ),
                     ),
-                    // The Dynamic Trailing Widget (Price or Phone Icon)
-                    trailing,
+                    // The Dynamic Trailing Widget (Price or Phone Icon) — constrained
+                    const SizedBox(width: 8),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: 100.w),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: trailing,
+                      ),
+                    ),
                   ],
                 ),
               ),

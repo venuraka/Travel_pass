@@ -36,7 +36,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
       context: context,
       initialDate: _filterDate ?? DateTime.now(),
       firstDate: DateTime(2023),
-      lastDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 1)),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -177,10 +177,12 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                           builder: (context, snapshot) {
                             final filterStrIso = "${_filterDate!.year}-${_filterDate!.month.toString().padLeft(2, '0')}-${_filterDate!.day.toString().padLeft(2, '0')}";
                             // Filter for successful payments only (not rejected)
-                            final payments = (snapshot.data ?? []).where((p) => 
-                              (p['date'] ?? '').toString().startsWith(filterStrIso) && 
-                              p['status'] != 'rejected'
-                            ).toList();
+                            final payments = (snapshot.data ?? []).where((p) {
+                              final pDate = (p['date'] ?? '').toString();
+                              // Match either "YYYY-MM-DD" or "YYYY/MM/DD"
+                              return (pDate.startsWith(filterStrIso) || pDate.startsWith(filterStrIso.replaceAll('-', '/'))) && 
+                                     p['status'] != 'rejected';
+                            }).toList();
 
                             if (payments.isEmpty) {
                               return const Padding(
@@ -263,10 +265,11 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                           builder: (context, snapshot) {
                             final filterStrIso = "${_filterDate!.year}-${_filterDate!.month.toString().padLeft(2, '0')}-${_filterDate!.day.toString().padLeft(2, '0')}";
                             // Filter for rejected payments only
-                            final rejected = (snapshot.data ?? []).where((p) => 
-                              (p['date'] ?? '').toString().startsWith(filterStrIso) && 
-                              p['status'] == 'rejected'
-                            ).toList();
+                            final rejected = (snapshot.data ?? []).where((p) {
+                              final pDate = (p['date'] ?? '').toString();
+                              return (pDate.startsWith(filterStrIso) || pDate.startsWith(filterStrIso.replaceAll('-', '/'))) && 
+                                     p['status'] == 'rejected';
+                            }).toList();
 
                             if (rejected.isEmpty) {
                               return const Padding(

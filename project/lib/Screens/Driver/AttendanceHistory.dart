@@ -227,9 +227,11 @@ class _AttendanceHistoryScreenState extends State<AttendanceHistoryScreen> {
         title,
         style: TextStyle(
           color: color,
-          fontSize: 16,
+          fontSize: 14,
           fontWeight: FontWeight.w500,
         ),
+        softWrap: true,
+        overflow: TextOverflow.visible,
       ),
     );
   }
