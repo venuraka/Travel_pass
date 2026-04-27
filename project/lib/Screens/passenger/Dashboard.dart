@@ -9,6 +9,7 @@ import 'Attendance.dart';
 import 'TrackVehicle.dart';
 import '../../controllers/PassengerDashboardController.dart';
 import '../../models/PassengerModel.dart';
+import 'Settings.dart';
 
 const Color primaryGreen = Color(0xFF05A664);
 const Color textDark = Color(0xFF121415);
@@ -122,7 +123,15 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
                           ],
                         ),
                         _buildCircularIconButton(
-                            Icons.refresh_rounded, () => _loadData(isRefresh: true)),
+                            Icons.settings_outlined, () async {
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const PassengerSettingsScreen(),
+                            ),
+                          );
+                          _loadData(isRefresh: true);
+                        }),
                       ],
                     ),
 

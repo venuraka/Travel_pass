@@ -11,6 +11,8 @@ import '../passenger/PendingApproval.dart';
 import '../UserRegistration/UserSelection.dart';
 import '../Components/CustomSnackBar.dart';
 import '../../models/UserModel.dart';
+import '../Driver/Dashboard.dart';
+import '../Driver/DriverPendingApproval.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -58,18 +60,20 @@ class _LoginPageState extends State<LoginPage> {
     final isDriver = await _accessController.isDriver(uid);
     if (isDriver) {
       if (!mounted) return;
-      // Navigate to Driver Dashboard (replace with your actual driver home)
-      // Assuming 'Driver/Dashboard.dart' exists or using UserSelection for now if multiple driver screens
-      // For now, let's go to UserSelection as a placeholder or proper Driver Home
-      // But based on request, we want strict routing.
-      // If driver, usually goes to Dashboard.
-      // Let's check imports. Dashboard.dart is in Screens/Driver.
-      // I'll stick to UserSelection for now as I don't see Dashboard imported,
-      // OR I can import it. Let's start with UserSelection which likely has logic or just go there.
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const UserSelectionScreen()),
-      );
+      final isDriverApproved = await _accessController.isDriverApproved(uid);
+      if (isDriverApproved) {
+        // We need to import DriverDashboardScreen if not imported.
+        // Assuming we will add the import at the top if needed. Let's just use it.
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const DriverDashboardScreen()),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const DriverPendingApprovalScreen()),
+        );
+      }
       return;
     }
 
@@ -83,45 +87,15 @@ class _LoginPageState extends State<LoginPage> {
         MaterialPageRoute(builder: (context) => const PassengerDashboardApp()),
       );
     } else {
-      // If not approved (or not found as driver/passenger yet - e.g. new user)
-      // If new user, maybe go to UserSelection to register?
-      // But checkPassengerStatus returns false if not found.
-      // So if neither, go to UserSelection.
-      // Wait, if registered=false, it means they ARE in passenger collection but not approved.
-      // We need to differentiate "Not a user yet" vs "Pending Passenger".
-
-      // Let's refine checkPassengerStatus: it returns false if not found OR not registered.
-      // We might need to know if they exist at all.
-
-      // Simple logic:
-      // If (passenger exits AND registered=false) -> Pending
-      // If (passenger exists AND registered=true) -> Updates
-      // If (neither driver nor passenger) -> UserSelection (to register)
-
-      // Reuse logic from AccessController effectively?
-      // AccessController only returned bool.
-      // Let's assume for now:
-      // If we are here, we are not a driver.
-      // Let's try to get passenger doc.
-
       final isPassenger = await _db.collection('passenger').doc(uid).get();
 
       if (isPassenger.exists) {
-        if (isPassenger.data()?['registered'] == true) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const PassengerDashboardApp(),
-            ),
-          );
-        } else {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const PendingApprovalScreen(),
-            ),
-          );
-        }
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const PendingApprovalScreen(),
+          ),
+        );
       } else {
         // New user
         Navigator.pushReplacement(

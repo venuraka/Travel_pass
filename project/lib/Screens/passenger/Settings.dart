@@ -4,7 +4,6 @@ import '../../services/Database.dart';
 import '../Components/CustomSnackBar.dart';
 import '../UserRegistration/Login.dart';
 import '../Components/Header.dart';
-import '../Components/Whitecard.dart';
 
 class PassengerSettingsScreen extends StatefulWidget {
   const PassengerSettingsScreen({super.key});
@@ -111,96 +110,194 @@ class _PassengerSettingsScreenState extends State<PassengerSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final double screenHeight = MediaQuery.of(context).size.height;
-    final double cardTopPadding = screenHeight * 0.4;
+    final double cardTopPadding = screenHeight * 0.6; // Start lower for a smaller card
 
     return Scaffold(
       backgroundColor: darkBg,
       body: Stack(
         children: [
           const RegistrationHeader(
-            title: 'Travel',
-            subtitle: 'Settings',
+            title: 'Account',
+            subtitle: 'Management',
             subtitleColor: Color(0xFF05A664),
             topPadding: 50,
           ),
-          WhiteCard(
-            topPadding: cardTopPadding,
-            child: _isLoading
-                ? const Center(
-                    child: CircularProgressIndicator(color: Color(0xFF05A664)),
-                  )
-                : Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
+          
+          // --- Custom Non-Scrollable Card ---
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            top: screenHeight * 0.35, // Balanced position to avoid large empty gaps
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(40.0),
+                  topRight: Radius.circular(40.0),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12, // Softer shadow for premium feel
+                    blurRadius: 20,
+                    offset: Offset(0, -5),
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24.0, 40.0, 24.0, 24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // --- Profile Info Section ---
+                    Row(
                       children: [
-                        const SizedBox(height: 40),
-                        
-                        // --- Logout Button ---
-                        SizedBox(
-                          width: double.infinity,
-                          height: 55,
-                          child: OutlinedButton.icon(
-                            onPressed: _logout,
-                            icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
-                            label: const Text(
-                              'Logout from Account',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.redAccent,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Colors.redAccent, width: 1.5),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12.0),
-                              ),
-                            ),
+                        Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: const Color(0xFF05A664).withOpacity(0.3), width: 2),
+                          ),
+                          child: CircleAvatar(
+                            radius: 32,
+                            backgroundColor: const Color(0xFF05A664).withOpacity(0.1),
+                            child: const Icon(Icons.person_rounded, size: 36, color: Color(0xFF05A664)),
                           ),
                         ),
-                        
-                        const SizedBox(height: 20),
-                        
-                        // --- Unsubscribe Button ---
-                        SizedBox(
-                          width: double.infinity,
-                          height: 55,
-                          child: OutlinedButton.icon(
-                            onPressed: _unsubscribe,
-                            icon: const Icon(Icons.person_remove_rounded, color: Colors.orangeAccent),
-                            label: const Text(
-                              'Unsubscribe Driver',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.orangeAccent,
-                                fontWeight: FontWeight.bold,
+                        const SizedBox(width: 20),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Your Profile",
+                                style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                  color: darkBg,
+                                  letterSpacing: -0.5,
+                                ),
                               ),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              side: const BorderSide(color: Colors.orangeAccent, width: 1.5),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12.0),
+                              const SizedBox(height: 6),
+                              Text(
+                                "Manage your account & preferences",
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                ),
                               ),
-                            ),
-                          ),
-                        ),
-                        
-                        const SizedBox(height: 40),
-                        
-                        // --- Back Button ---
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text(
-                            "Go Back",
-                            style: TextStyle(color: appGreen, fontWeight: FontWeight.bold),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                  ),
+                    
+                    const SizedBox(height: 45), // Breathing room
+                    
+                    // --- Section Title ---
+                    Text(
+                      "Security & Account",
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: darkBg.withOpacity(0.8),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 20),
+                    
+                    // --- Logout Button ---
+                    _buildSettingTile(
+                      icon: Icons.logout_rounded,
+                      title: "Logout from Account",
+                      subtitle: "Sign out securely from this device",
+                      color: Colors.redAccent,
+                      onTap: _logout,
+                    ),
+                    
+                    const SizedBox(height: 16),
+                    
+                    // --- Unsubscribe Button ---
+                    _buildSettingTile(
+                      icon: Icons.person_remove_rounded,
+                      title: "Unsubscribe Driver",
+                      subtitle: "Remove your current driver association",
+                      color: Colors.orangeAccent,
+                      onTap: _unsubscribe,
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
+          
+          // Loading Overlay
+          if (_isLoading)
+            Container(
+              color: Colors.black45,
+              child: const Center(
+                child: CircularProgressIndicator(color: Color(0xFF05A664)),
+              ),
+            ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSettingTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(15),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          border: Border.all(color: color.withOpacity(0.3)),
+          borderRadius: BorderRadius.circular(15),
+          color: color.withOpacity(0.05),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 24),
+            ),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios, color: color.withOpacity(0.5), size: 16),
+          ],
+        ),
       ),
     );
   }

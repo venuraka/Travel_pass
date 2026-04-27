@@ -54,10 +54,10 @@ class MyApp extends StatelessWidget {
             fontFamily: 'Poppins',
             scaffoldBackgroundColor: Colors.white,
           ),
-          home: const PassengerDashboardApp(),
+          // home: const PassengerDashboardApp(),
           // home: const DriverDashboardScreen(),
           // this should be default button,dont change this 
-          // home: const AuthWrapper(),
+          home: const AuthWrapper(),
           // home: LoginPage(),
         );
       },

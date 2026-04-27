@@ -104,7 +104,7 @@ class DatabaseService {
     try {
       await _db.collection('passenger').doc(passengerId).update({
         'driverId': FieldValue.delete(),
-        'driverPlate': FieldValue.delete(),
+        'vehiclePlate': FieldValue.delete(),
         'status': 'unsubscribed',
       });
     } catch (e) {
