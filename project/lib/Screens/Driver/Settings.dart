@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../controllers/SettingsController.dart'; // Import Controller
 import '../Components/CustomSnackBar.dart'; // Import CustomSnackBar
@@ -299,6 +300,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: 'Settings',
             subtitleColor: Color(0xFF05A664),
             topPadding: 50,
+          ),
+
+          // --- Info Icon Button ---
+          Positioned(
+            top: 50,
+            right: 20,
+            child: PopupMenuButton<String>(
+              icon: const Icon(
+                Icons.info_outline_rounded,
+                color: Colors.white,
+                size: 28,
+              ),
+              onSelected: (value) async {
+                final Uri url = Uri.parse(value);
+                if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+                  debugPrint("Could not launch $value");
+                }
+              },
+              itemBuilder: (BuildContext context) => [
+                const PopupMenuItem(
+                  value: "https://venuraka.github.io/TravelPass-Additional-Information/",
+                  child: Row(
+                    children: [
+                      Icon(Icons.privacy_tip_outlined, color: Colors.blue),
+                      SizedBox(width: 10),
+                      Text("Privacy Policy"),
+                    ],
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: "https://venuraka.github.io/TravelPass-Additional-Information/contactus.html",
+                  child: Row(
+                    children: [
+                      Icon(Icons.contact_support_outlined, color: Colors.green),
+                      SizedBox(width: 10),
+                      Text("Contact Us"),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
 
           // --- 2. White Card Content ---
