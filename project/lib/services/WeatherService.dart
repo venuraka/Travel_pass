@@ -1,10 +1,15 @@
 import 'package:cloud_functions/cloud_functions.dart';
 
 class WeatherService {
+  final FirebaseFunctions _functions;
+
+  WeatherService({FirebaseFunctions? functions}) 
+      : _functions = functions ?? FirebaseFunctions.instance;
+
   /// Fetches weather recommendation from the secure backend proxy.
   Future<Map<String, String>> getWeatherRecommendation(double lat, double lng) async {
     try {
-      final HttpsCallable callable = FirebaseFunctions.instance.httpsCallable('getWeatherData');
+      final HttpsCallable callable = _functions.httpsCallable('getWeatherData');
       final result = await callable.call({
         'lat': lat,
         'lon': lng,
@@ -61,7 +66,7 @@ class WeatherService {
   /// Fetches destination forecast from the secure backend proxy.
   Future<Map<String, String>> getDestinationForecast(double lat, double lng) async {
     try {
-      final HttpsCallable callable = FirebaseFunctions.instance.httpsCallable('getWeatherData');
+      final HttpsCallable callable = _functions.httpsCallable('getWeatherData');
       final result = await callable.call({
         'lat': lat,
         'lon': lng,
