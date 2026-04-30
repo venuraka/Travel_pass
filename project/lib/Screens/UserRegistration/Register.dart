@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../controllers/AuthService.dart';
 import '../../utils/AuthExceptionHandler.dart';
 import 'Login.dart';
@@ -142,12 +144,52 @@ class _RegisterPageState extends State<RegisterPage> {
                 _buildEmailForm(),
                 const SizedBox(height: 20),
 
-                const Padding(
-                  padding: EdgeInsets.only(bottom: 20.0),
-                  child: Text(
-                    'By continuing, you agree to our Terms of Service',
+                // Terms of Service & Privacy Policy Footer
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 20.0),
+                  child: RichText(
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 14, color: Color(0xFF05A664)),
+                    text: TextSpan(
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                        fontFamily: 'Poppins',
+                      ),
+                      children: [
+                        const TextSpan(text: 'By continuing, you agree to our '),
+                        TextSpan(
+                          text: 'Terms of Service',
+                          style: const TextStyle(
+                            color: Color(0xFF05A664),
+                            fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.underline,
+                          ),
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () async {
+                              final Uri url = Uri.parse('https://venuraka.github.io/TravelPass-Additional-Information/');
+                              if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+                                debugPrint("Could not launch $url");
+                              }
+                            },
+                        ),
+                        const TextSpan(text: ' and '),
+                        TextSpan(
+                          text: 'Privacy Policy',
+                          style: const TextStyle(
+                            color: Color(0xFF05A664),
+                            fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.underline,
+                          ),
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () async {
+                              final Uri url = Uri.parse('https://venuraka.github.io/TravelPass-Additional-Information/');
+                              if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+                                debugPrint("Could not launch $url");
+                              }
+                            },
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
