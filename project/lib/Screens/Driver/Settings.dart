@@ -5,6 +5,8 @@ import '../../controllers/SettingsController.dart'; // Import Controller
 import '../Components/CustomSnackBar.dart'; // Import CustomSnackBar
 import '../UserRegistration/Login.dart';
 import 'UpdateRoute.dart';
+import '../../controllers/AuthService.dart';
+import '../../services/Database.dart';
 
 import '../Components/Header.dart';
 import '../Components/Whitecard.dart';
@@ -21,8 +23,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // Style Constants based on your code
   final Color appGreen = const Color(0xFF05A664);
   final Color darkBg = const Color(0xFF121415);
-  final SettingsController _controller =
-      SettingsController(); // Controller Instance
+  final SettingsController _controller = SettingsController();
+  final AuthService _authService = AuthService();
+  final DatabaseService _dbService = DatabaseService();
 
   // State Variables
   int _monthlyAmount = 0;
@@ -171,6 +174,111 @@ class _SettingsScreenState extends State<SettingsScreen> {
       } catch (e) {
         if (mounted) {
           CustomSnackBar.showError(context, "Logout failed: $e");
+        }
+    }
+  }
+}
+
+  Future<void> _deleteAccount() async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Account', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+        content: const Text('Are you sure you want to delete your account? This action is permanent and will delete all your profile data, routes, and history.'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Continue', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      bool isGoogleUser = user.providerData.any((p) => p.providerId == 'google.com');
+      bool reauthSuccess = false;
+      String? password;
+
+      if (isGoogleUser) {
+        // For Google users, we just call reauthenticate directly
+        reauthSuccess = true; 
+      } else {
+        final TextEditingController passwordController = TextEditingController();
+        final bool? dialogResult = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Confirm Identity'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Please enter your password to confirm account deletion.'),
+                const SizedBox(height: 15),
+                TextField(
+                  controller: passwordController,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text('Confirm Deletion', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+        );
+        reauthSuccess = dialogResult ?? false;
+        password = passwordController.text;
+      }
+
+      if (reauthSuccess && (isGoogleUser || (password != null && password.isNotEmpty))) {
+        setState(() => _isLoading = true);
+        try {
+          if (user != null) {
+            final uid = user.uid;
+            
+            // 1. Delete Firestore Data
+            await _dbService.deleteDriverData(uid);
+            
+            // 2. Delete Auth Account with Re-auth
+            await _authService.deleteAccountWithReauth(password: password);
+            
+            if (mounted) {
+              CustomSnackBar.showSuccess(context, "Account deleted successfully.");
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const LoginPage()),
+                (route) => false,
+              );
+            }
+          }
+        } catch (e) {
+          if (mounted) {
+            CustomSnackBar.showError(context, "Authentication failed: ${isGoogleUser ? 'Google login failed' : 'Invalid password'}.");
+          }
+        } finally {
+          if (mounted) setState(() => _isLoading = false);
         }
       }
     }
@@ -322,20 +430,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                           const SizedBox(height: 15),
 
-                          // --- Logout Button ---
-                          TextButton.icon(
-                            onPressed: _logout,
-                            icon: const Icon(Icons.logout_rounded, color: Colors.redAccent),
-                            label: const Text(
-                              'Logout from Account',
-                              style: TextStyle(
-                                color: Colors.redAccent,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
+                          const SizedBox(height: 15),
+
+                          // --- Logout & Delete Section ---
+                          const Divider(height: 40),
+                          
+                          _buildAccountTile(
+                            icon: Icons.logout_rounded,
+                            title: "Logout",
+                            subtitle: "Sign out securely from your session",
+                            color: Colors.redAccent,
+                            onTap: _logout,
                           ),
-                          const SizedBox(height: 30),
+                          
+                          const SizedBox(height: 12),
+                          
+                          _buildAccountTile(
+                            icon: Icons.delete_forever_rounded,
+                            title: "Delete Account",
+                            subtitle: "Permanently wipe all your profile data",
+                            color: Colors.red,
+                            onTap: _deleteAccount,
+                          ),
+                          
+                          const SizedBox(height: 40),
                         ],
                       ),
                     ),
@@ -477,6 +595,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
             activeTrackColor: appGreen.withOpacity(0.3),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildAccountTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(15),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          border: Border.all(color: color.withOpacity(0.2)),
+          borderRadius: BorderRadius.circular(15),
+          color: color.withOpacity(0.05),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 22),
+            ),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios,
+                color: color.withOpacity(0.4), size: 14),
+          ],
+        ),
       ),
     );
   }

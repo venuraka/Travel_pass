@@ -4,6 +4,7 @@ import '../../services/Database.dart';
 import '../Components/CustomSnackBar.dart';
 import '../UserRegistration/Login.dart';
 import '../Components/Header.dart';
+import '../../controllers/AuthService.dart';
 
 class PassengerSettingsScreen extends StatefulWidget {
   const PassengerSettingsScreen({super.key});
@@ -18,49 +19,9 @@ class _PassengerSettingsScreenState extends State<PassengerSettingsScreen> {
   final DatabaseService _dbService = DatabaseService();
   bool _isLoading = false;
 
-  Future<void> _logout() async {
-    final bool? confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('Logout', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
 
-    if (confirm == true) {
-      try {
-        await FirebaseAuth.instance.signOut();
-        if (mounted) {
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (_) => const LoginPage()),
-            (route) => false,
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          CustomSnackBar.showError(context, "Logout failed: $e");
-        }
-      }
-    }
-  }
 
-  Future<void> _unsubscribe() async {
+Future<void> _unsubscribe() async {
     final bool? confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -107,6 +68,157 @@ class _PassengerSettingsScreenState extends State<PassengerSettingsScreen> {
     }
   }
 
+  Future<void> _logout() async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Logout', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await FirebaseAuth.instance.signOut();
+        if (mounted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const LoginPage()),
+            (route) => false,
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          CustomSnackBar.showError(context, "Logout failed: $e");
+        }
+      }
+    }
+  }
+
+  Future<void> _deleteAccount() async {
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Account',
+            style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+        content: const Text(
+            'Are you sure you want to delete your account? This action is permanent and will delete all your data including your balance and history.'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Continue',
+                style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      bool isGoogleUser = user.providerData.any((p) => p.providerId == 'google.com');
+      bool reauthSuccess = false;
+      String? password;
+
+      if (isGoogleUser) {
+        // For Google users, we just call reauthenticate directly
+        reauthSuccess = true; 
+      } else {
+        final TextEditingController passwordController = TextEditingController();
+        final bool? dialogResult = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Confirm Identity'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('Please enter your password to confirm account deletion.'),
+                const SizedBox(height: 15),
+                TextField(
+                  controller: passwordController,
+                  obscureText: true,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context, true),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                child: const Text('Confirm Deletion', style: TextStyle(color: Colors.white)),
+              ),
+            ],
+          ),
+        );
+        reauthSuccess = dialogResult ?? false;
+        password = passwordController.text;
+      }
+
+      if (reauthSuccess && (isGoogleUser || (password != null && password.isNotEmpty))) {
+        setState(() => _isLoading = true);
+        try {
+          if (user != null) {
+            final uid = user.uid;
+
+            // 1. Delete Firestore Data
+            await _dbService.deletePassengerData(uid);
+
+            // 2. Delete Auth Account with Re-auth
+            final AuthService authService = AuthService();
+            await authService.deleteAccountWithReauth(password: password);
+
+            if (mounted) {
+              CustomSnackBar.showSuccess(context, "Account deleted successfully.");
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const LoginPage()),
+                (route) => false,
+              );
+            }
+          }
+        } catch (e) {
+          if (mounted) {
+            CustomSnackBar.showError(context, "Authentication failed: Invalid password.");
+          }
+        } finally {
+          if (mounted) setState(() => _isLoading = false);
+        }
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final double screenHeight = MediaQuery.of(context).size.height;
@@ -144,7 +256,8 @@ class _PassengerSettingsScreenState extends State<PassengerSettingsScreen> {
                   ),
                 ],
               ),
-              child: Padding(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(24.0, 40.0, 24.0, 24.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -156,12 +269,16 @@ class _PassengerSettingsScreenState extends State<PassengerSettingsScreen> {
                           padding: const EdgeInsets.all(3),
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
-                            border: Border.all(color: const Color(0xFF05A664).withOpacity(0.3), width: 2),
+                            border: Border.all(
+                                color: const Color(0xFF05A664).withOpacity(0.3),
+                                width: 2),
                           ),
                           child: CircleAvatar(
                             radius: 32,
-                            backgroundColor: const Color(0xFF05A664).withOpacity(0.1),
-                            child: const Icon(Icons.person_rounded, size: 36, color: Color(0xFF05A664)),
+                            backgroundColor:
+                                const Color(0xFF05A664).withOpacity(0.1),
+                            child: const Icon(Icons.person_rounded,
+                                size: 36, color: Color(0xFF05A664)),
                           ),
                         ),
                         const SizedBox(width: 20),
@@ -191,9 +308,9 @@ class _PassengerSettingsScreenState extends State<PassengerSettingsScreen> {
                         ),
                       ],
                     ),
-                    
+
                     const SizedBox(height: 45), // Breathing room
-                    
+
                     // --- Section Title ---
                     Text(
                       "Security & Account",
@@ -204,9 +321,20 @@ class _PassengerSettingsScreenState extends State<PassengerSettingsScreen> {
                         letterSpacing: 0.5,
                       ),
                     ),
-                    
+
                     const SizedBox(height: 20),
-                    
+
+                    // --- Unsubscribe Button (Moved to Top) ---
+                    _buildSettingTile(
+                      icon: Icons.person_remove_rounded,
+                      title: "Unsubscribe Driver",
+                      subtitle: "Remove your current driver association",
+                      color: Colors.orangeAccent,
+                      onTap: _unsubscribe,
+                    ),
+
+                    const SizedBox(height: 16),
+
                     // --- Logout Button ---
                     _buildSettingTile(
                       icon: Icons.logout_rounded,
@@ -215,17 +343,18 @@ class _PassengerSettingsScreenState extends State<PassengerSettingsScreen> {
                       color: Colors.redAccent,
                       onTap: _logout,
                     ),
-                    
+
                     const SizedBox(height: 16),
-                    
-                    // --- Unsubscribe Button ---
+
+                    // --- Delete Account Button ---
                     _buildSettingTile(
-                      icon: Icons.person_remove_rounded,
-                      title: "Unsubscribe Driver",
-                      subtitle: "Remove your current driver association",
-                      color: Colors.orangeAccent,
-                      onTap: _unsubscribe,
+                      icon: Icons.delete_forever_rounded,
+                      title: "Delete Account",
+                      subtitle: "Permanently remove your account and data",
+                      color: Colors.red,
+                      onTap: _deleteAccount,
                     ),
+                    const SizedBox(height: 40), // Extra space at bottom
                   ],
                 ),
               ),

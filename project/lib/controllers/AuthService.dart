@@ -73,13 +73,46 @@ class AuthService {
     }
   }
 
-  // 5. Sign Out
-  Future<void> signOut() async {
+  // 5. Delete Account with Re-authentication
+  Future<void> deleteAccountWithReauth({String? password}) async {
     try {
-      await _ensureInitialized();
-      await _googleSignIn.signOut();
-      await _auth.signOut();
+      final User? user = _auth.currentUser;
+      if (user == null) return;
+
+      AuthCredential? credential;
+
+      // Check which provider the user is using for re-authentication
+      for (UserInfo userInfo in user.providerData) {
+        if (userInfo.providerId == 'google.com') {
+          await _ensureInitialized();
+          final GoogleSignInAccount? googleUser = await _googleSignIn.authenticate();
+          if (googleUser != null) {
+            final GoogleSignInAuthentication googleAuth =
+                await googleUser.authentication;
+            credential = GoogleAuthProvider.credential(
+              idToken: googleAuth.idToken,
+            );
+          }
+        } else if (userInfo.providerId == 'password' && password != null) {
+          credential = EmailAuthProvider.credential(
+            email: user.email!,
+            password: password,
+          );
+        }
+      }
+
+      // 1. Re-authenticate if we got a credential
+      if (credential != null) {
+        await user.reauthenticateWithCredential(credential);
+      } else if (password == null &&
+          !user.providerData.any((p) => p.providerId == 'google.com')) {
+        throw Exception("Password required for email re-authentication.");
+      }
+
+      // 2. Perform deletion
+      await user.delete();
     } catch (e) {
+      rethrow;
     }
   }
 }
