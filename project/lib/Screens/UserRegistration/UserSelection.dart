@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'DriverRegistration.dart';
 import 'PassengerRegistration.dart';
 
@@ -72,17 +74,51 @@ class UserSelectionScreen extends StatelessWidget {
               // 4. Spacer to push the Terms to the bottom
               const Spacer(),
 
-              // 5. Terms of Service Footer
-              InkWell(
-                child: Padding(
-                  padding: EdgeInsets.only(bottom: 20.0.h),
-                  child: Text(
-                    'By continuing, you agree to our Terms of Service',
-                    textAlign: TextAlign.center,
+              // 5. Terms of Service & Privacy Policy Footer
+              Padding(
+                padding: EdgeInsets.only(bottom: 20.0.h),
+                child: RichText(
+                  textAlign: TextAlign.center,
+                  text: TextSpan(
                     style: TextStyle(
-                      fontSize: 14.sp,
-                        color: const Color(0xFF05A664),
+                      fontSize: 12.sp,
+                      color: Colors.grey[600],
+                      fontFamily: 'Poppins',
                     ),
+                    children: [
+                      const TextSpan(text: 'By continuing, you agree to our '),
+                      TextSpan(
+                        text: 'Terms of Service',
+                        style: const TextStyle(
+                          color: Color(0xFF05A664),
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.underline,
+                        ),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () async {
+                            final Uri url = Uri.parse('https://venuraka.github.io/TravelPass-Additional-Information/');
+                            if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+                              debugPrint("Could not launch $url");
+                            }
+                          },
+                      ),
+                      const TextSpan(text: ' and '),
+                      TextSpan(
+                        text: 'Privacy Policy',
+                        style: const TextStyle(
+                          color: Color(0xFF05A664),
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.underline,
+                        ),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () async {
+                            final Uri url = Uri.parse('https://venuraka.github.io/TravelPass-Additional-Information/');
+                            if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+                              debugPrint("Could not launch $url");
+                            }
+                          },
+                      ),
+                    ],
                   ),
                 ),
               ),
