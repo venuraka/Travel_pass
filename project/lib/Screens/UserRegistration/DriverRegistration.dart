@@ -28,6 +28,20 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
   bool _isLoading = false;
 
   @override
+  void initState() {
+    super.initState();
+    _prefillUserInfo();
+  }
+
+  void _prefillUserInfo() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _nameController.text = user.displayName ?? '';
+      _emailController.text = user.email ?? '';
+    }
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
     _plateController.dispose();

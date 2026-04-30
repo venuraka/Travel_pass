@@ -24,13 +24,17 @@ class AuthService {
   }
 
   // 2. Sign Up with Email and Password
-  Future<MyUserModel?> signUpWithEmail(String email, String password) async {
+  Future<MyUserModel?> signUpWithEmail(String email, String password, {String? name}) async {
     try {
       UserCredential result = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
-      return MyUserModel.fromFirebaseUser(result.user!);
+      if (name != null) {
+        await result.user!.updateDisplayName(name);
+        await result.user!.reload(); // Ensure the local user object is updated
+      }
+      return MyUserModel.fromFirebaseUser(_auth.currentUser!);
     } catch (e) {
       rethrow;
     }
@@ -49,7 +53,17 @@ class AuthService {
     }
   }
 
-  // 4. Sign in with Google
+  // 4. Get Google User without Firebase Sign-In (for Auto-fill)
+  Future<GoogleSignInAccount?> getGoogleUserOnly() async {
+    try {
+      await _ensureInitialized();
+      return await _googleSignIn.signIn();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // 5. Sign in with Google
   Future<MyUserModel?> signInWithGoogle() async {
     try {
       await _ensureInitialized();

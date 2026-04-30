@@ -45,6 +45,20 @@ class _PassengerRegistrationScreenState
   Color _statusColor = Colors.grey;
 
   @override
+  void initState() {
+    super.initState();
+    _prefillUserInfo();
+  }
+
+  void _prefillUserInfo() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _nameController.text = user.displayName ?? '';
+      _emailController.text = user.email ?? '';
+    }
+  }
+
+  @override
   void dispose() {
     _debounce?.cancel();
     _nameController.dispose();

@@ -7,6 +7,10 @@ class MyUserModel {
 
   // Factory constructor to create our model from a Firebase User object
   factory MyUserModel.fromFirebaseUser(dynamic user) {
-    return MyUserModel(uid: user.uid, email: user.email);
+    return MyUserModel(
+      uid: user.uid,
+      email: user.email,
+      displayName: user.displayName,
+    );
   }
 }

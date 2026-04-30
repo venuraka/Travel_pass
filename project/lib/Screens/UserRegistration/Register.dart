@@ -18,7 +18,8 @@ class _RegisterPageState extends State<RegisterPage> {
   // MVC: Initialize the Service (Model)
   final AuthService _authService = AuthService();
 
-  // Controllers for Email/Password fields
+  // Controllers for Name/Email/Password fields
+  final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
@@ -28,6 +29,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -60,13 +62,36 @@ class _RegisterPageState extends State<RegisterPage> {
     }
   }
 
-  // 2. Corrected Email Sign-Up Logic
+  // 2. Auto-fill Name and Email from Google
+  Future<void> _autoFillFromGoogle() async {
+    setState(() => _isLoading = true);
+    try {
+      final googleUser = await _authService.getGoogleUserOnly();
+      if (googleUser != null) {
+        _nameController.text = googleUser.displayName ?? '';
+        _emailController.text = googleUser.email;
+        
+        if (mounted) {
+          CustomSnackBar.showSuccess(context, "Fields auto-filled from Google!");
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        CustomSnackBar.showError(context, "Could not auto-fill: ${e.toString()}");
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  // 3. Corrected Email Sign-Up Logic
   Future<void> _handleEmailSignUp() async {
+    final name = _nameController.text.trim();
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
     final confirm = _confirmPasswordController.text.trim();
 
-    if (email.isEmpty || password.isEmpty) {
+    if (name.isEmpty || email.isEmpty || password.isEmpty) {
       CustomSnackBar.showError(context, "Please fill all fields");
       return;
     }
@@ -78,7 +103,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
     setState(() => _isLoading = true);
     try {
-      final user = await _authService.signUpWithEmail(email, password);
+      final user = await _authService.signUpWithEmail(email, password, name: name);
       if (user != null && mounted) {
         // Navigate to User Selection Screen
         Navigator.pushReplacement(
@@ -243,9 +268,30 @@ class _RegisterPageState extends State<RegisterPage> {
     return Column(
       children: [
         _buildTextField(
-          label: 'Email',
-          controller: _emailController,
-          keyboardType: TextInputType.emailAddress,
+          label: 'Full Name',
+          controller: _nameController,
+          keyboardType: TextInputType.name,
+        ),
+        const SizedBox(height: 15),
+        Row(
+          children: [
+            Expanded(
+              child: _buildTextField(
+                label: 'Email',
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+              ),
+            ),
+            const SizedBox(width: 10),
+            TextButton.icon(
+              onPressed: _isLoading ? null : _autoFillFromGoogle,
+              icon: const Icon(Icons.auto_awesome, size: 18, color: Color(0xFF05A664)),
+              label: const Text(
+                "Auto-fill",
+                style: TextStyle(color: Color(0xFF05A664), fontSize: 12),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 15),
         _buildTextField(
