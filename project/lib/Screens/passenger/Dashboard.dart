@@ -512,16 +512,15 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
                   height: 55,
                   child: ElevatedButton(
                     onPressed: () async {
+                      final navigator = Navigator.of(context);
                       setState(() => _isLoading = true);
                       try {
                         await _controller.resetRegistration();
-                        if (mounted) {
-                          // Navigate back to AuthWrapper to re-trigger role check
-                          Navigator.of(context).pushAndRemoveUntil(
+                        // Navigate back to AuthWrapper to re-trigger role check
+                        navigator.pushAndRemoveUntil(
                             MaterialPageRoute(builder: (_) => const AuthWrapper()),
                             (route) => false,
-                          );
-                        }
+                        );
                       } catch (e) {
                         if (mounted) {
                           setState(() {
