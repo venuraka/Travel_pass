@@ -71,7 +71,6 @@ class StartJourneyController {
   Set<Marker> get markers => _markers;
   Set<Polyline> get polylines => _polylines;
   bool get isFollowingCamera => _isFollowingCamera;
-  bool get allOnboarded => _onboardedCount >= _allPassengers.length && _allPassengers.isNotEmpty; // Added
 
   final Function(Position) onLocationChanged;
   final Function(List<PassengerModel>) onProximityReached;
@@ -872,7 +871,7 @@ class StartJourneyController {
           int mins = (dDistance / 11 / 60).round(); // Assume 40km/h ~ 11m/s
           if (mins < 1) mins = 1;
 
-          _currentStatus = "${kms.toStringAsFixed(1)} km | $mins min to destination";
+          _currentStatus = "${kms.toStringAsFixed(1)} km | $mins min to dest";
           _statusColor = const Color(0xFF05A664);
        }
     }

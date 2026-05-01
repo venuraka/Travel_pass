@@ -17,7 +17,6 @@ class NextPassengerCard extends StatefulWidget {
   final VoidCallback? onFinishJourney; // Added
 
   final bool isAtFinalDestination; // Added
-  final bool allOnboarded; // Added
 
   const NextPassengerCard({
     super.key,
@@ -29,7 +28,6 @@ class NextPassengerCard extends StatefulWidget {
     required this.onPageChanged,
     this.onFinishJourney, // Added
     this.isAtFinalDestination = false, // Added
-    this.allOnboarded = false, // Added
   });
 
   @override
@@ -66,7 +64,7 @@ class _NextPassengerCardState extends State<NextPassengerCard> {
   @override
   Widget build(BuildContext context) {
     // Re-calculating allReached to include the destination phase
-    final bool allPassengersPicked = widget.allOnboarded || widget.passengers.isEmpty || 
+    final bool allPassengersPicked = widget.passengers.isEmpty || 
         (widget.currentIndex >= widget.passengers.length && widget.passengers.isNotEmpty);
     
     final currentPassenger = !allPassengersPicked && widget.passengers.isNotEmpty
@@ -145,29 +143,14 @@ class _NextPassengerCardState extends State<NextPassengerCard> {
                               ),
                             ),
                             const SizedBox(height: 8.0),
-                            if (widget.status.contains('|'))
-                              Column(
-                                children: widget.status.split('|').map((part) => Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 1.0),
-                                  child: MarqueeText(
-                                    text: part.trim(),
-                                    style: TextStyle(
-                                      color: widget.statusColor,
-                                      fontSize: 18.0,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
-                                )).toList(),
-                              )
-                            else
-                              MarqueeText(
-                                text: widget.status,
-                                style: TextStyle(
-                                  color: widget.statusColor,
-                                  fontSize: 18.0,
-                                  fontWeight: FontWeight.w900,
-                                ),
+                            MarqueeText(
+                              text: widget.status,
+                              style: TextStyle(
+                                color: widget.statusColor,
+                                fontSize: 18.0,
+                                fontWeight: FontWeight.w900,
                               ),
+                            ),
                           ],
                         );
                       },
@@ -233,32 +216,14 @@ class _NextPassengerCardState extends State<NextPassengerCard> {
                     style: const TextStyle(color: Colors.white70, fontSize: 16),
                   ),
                   const SizedBox(height: 12),
-                  // Split the status (e.g. "23km | 36min") into two lines and center them
-                  if (widget.status.contains('|')) 
-                    Column(
-                      children: widget.status.split('|').map((part) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 2.0),
-                        child: Text(
-                          part.trim(),
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: kPrimaryTextColor,
-                            fontSize: 18.0,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      )).toList(),
-                    )
-                  else
-                    Text(
-                      widget.status,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: kPrimaryTextColor,
-                        fontSize: 18.0,
-                        fontWeight: FontWeight.w800,
-                      ),
+                  Text(
+                    widget.status,
+                    style: const TextStyle(
+                      color: kPrimaryTextColor,
+                      fontSize: 18.0,
+                      fontWeight: FontWeight.w800,
                     ),
+                  ),
                 ],
               ),
             ),
