@@ -94,6 +94,7 @@ class DriverAttendanceController {
         'absent': absent,
         'notVoted': notVoted,
         'allDates': sortedDates,
+        'isPollActive': sortedDates.contains(targetDate),
       };
     } catch (e) {
       debugPrint("Error loading driver attendance data: $e");

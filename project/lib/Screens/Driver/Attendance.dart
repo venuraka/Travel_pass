@@ -25,6 +25,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   List<PassengerModel> _boarded = [];
   List<PassengerModel> _absent = [];
   List<PassengerModel> _notVoted = [];
+  bool _isPollActive = true;
 
   @override
   void initState() {
@@ -52,6 +53,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           _boarded = List<PassengerModel>.from(data['boarded']);
           _absent = List<PassengerModel>.from(data['absent']);
           _notVoted = List<PassengerModel>.from(data['notVoted']);
+          _isPollActive = data['isPollActive'] ?? false;
           _isLoading = false;
         });
       }
@@ -130,25 +132,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                   style: const TextStyle(color: Colors.red),
                 ),
               )
-            : RefreshIndicator(
-                onRefresh: () async {
-                  setState(() {
-                    _selectedDate = DateTime.now();
-                  });
-                  await _loadData();
-                },
-                color: appGreen,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 20,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                    // --- HEADER ---
-                    PageHeader(
+            : Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                    child: PageHeader(
                       title: "Attendance History",
                       subtitle: Text(
                         _dateString,
@@ -168,70 +156,109 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                         ),
                       ],
                     ),
-
-                    // --------------
-                    const SizedBox(height: 20),
-
-                    // --- Section 1: Boarded (Present) ---
-                    if (_boarded.isNotEmpty) ...[
-                      _buildSectionHeader(
-                        "Passengers Boarded on $_dateString",
-                        appGreen,
+                  ),
+                  const SizedBox(height: 10),
+                  Expanded(
+                    child: RefreshIndicator(
+                      onRefresh: () async {
+                        setState(() {
+                          _selectedDate = DateTime.now();
+                        });
+                        await _loadData();
+                      },
+                      color: appGreen,
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          return SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                              child: IntrinsicHeight(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      if (!_isPollActive)
+                                        const Expanded(
+                                          child: Center(
+                                            child: Text(
+                                              "No added poll on this day",
+                                              style: TextStyle(fontSize: 16, color: Colors.grey, fontWeight: FontWeight.w500),
+                                            ),
+                                          ),
+                                        )
+                                      else if (_boarded.isEmpty && _absent.isEmpty && _notVoted.isEmpty)
+                                        const Expanded(
+                                          child: Center(
+                                            child: Text(
+                                              "No passengers found for this date.",
+                                              style: TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w500),
+                                            ),
+                                          ),
+                                        )
+                                      else ...[
+                                        const SizedBox(height: 10),
+                                        // --- Section 1: Boarded (Present) ---
+                                        if (_boarded.isNotEmpty) ...[
+                                          _buildSectionHeader(
+                                            "Passengers Boarded on $_dateString",
+                                            appGreen,
+                                          ),
+                                          for (var p in _boarded)
+                                            InfoCard(
+                                              title: p.name,
+                                              subtitle: p.pickupLocation,
+                                              showTag: true,
+                                              tagText: p.paymentType,
+                                              trailing: _buildPhoneIcon(appGreen, p.phone),
+                                            ),
+                                          const SizedBox(height: 30),
+                                        ],
+                                        // --- Section 2: Absent ---
+                                        if (_absent.isNotEmpty) ...[
+                                          _buildSectionHeader(
+                                            "Absent Passengers on $_dateString",
+                                            Colors.red,
+                                          ),
+                                          for (var p in _absent)
+                                            InfoCard(
+                                              title: p.name,
+                                              subtitle: p.pickupLocation,
+                                              showTag: true,
+                                              tagText: p.paymentType,
+                                              trailing: _buildPhoneIcon(appGreen, p.phone),
+                                            ),
+                                          const SizedBox(height: 30),
+                                        ],
+                                        // --- Section 3: Not Voted (Pending) ---
+                                        if (_notVoted.isNotEmpty) ...[
+                                          _buildSectionHeader(
+                                            "Not Voted Passengers on $_dateString",
+                                            Colors.orange,
+                                          ),
+                                          for (var p in _notVoted)
+                                            InfoCard(
+                                              title: p.name,
+                                              subtitle: p.pickupLocation,
+                                              showTag: true,
+                                              tagText: p.paymentType,
+                                              trailing: _buildPhoneIcon(appGreen, p.phone),
+                                            ),
+                                          const SizedBox(height: 30),
+                                        ],
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                      for (var p in _boarded)
-                        InfoCard(
-                          title: p.name,
-                          subtitle: p.pickupLocation,
-                          showTag: true,
-                          tagText: p.paymentType,
-                          trailing: _buildPhoneIcon(appGreen, p.phone),
-                        ),
-                      const SizedBox(height: 30),
-                    ],
-
-                    // --- Section 2: Absent ---
-                    if (_absent.isNotEmpty) ...[
-                      _buildSectionHeader(
-                        "Absent Passengers on $_dateString",
-                        Colors.red,
-                      ),
-                      for (var p in _absent)
-                        InfoCard(
-                          title: p.name,
-                          subtitle: p.pickupLocation,
-                          showTag: true,
-                          tagText: p.paymentType,
-                          trailing: _buildPhoneIcon(appGreen, p.phone),
-                        ),
-                      const SizedBox(height: 30),
-                    ],
-
-                    // --- Section 3: Not Voted (Pending) ---
-                    if (_notVoted.isNotEmpty) ...[
-                      _buildSectionHeader(
-                        "Not Voted Passengers on $_dateString",
-                        Colors.orange,
-                      ),
-                      for (var p in _notVoted)
-                        InfoCard(
-                          title: p.name,
-                          subtitle: p.pickupLocation,
-                          showTag: true,
-                          tagText: p.paymentType,
-                          trailing: _buildPhoneIcon(appGreen, p.phone),
-                        ),
-                      const SizedBox(height: 30),
-                    ],
-
-                    if (_boarded.isEmpty &&
-                        _absent.isEmpty &&
-                        _notVoted.isEmpty)
-                      const Center(
-                        child: Text("No passengers found for this date."),
-                      ),
-                  ],
-                ),
-              ),
+                    ),
+                  ),
+                ],
             ),
       ),
     );
