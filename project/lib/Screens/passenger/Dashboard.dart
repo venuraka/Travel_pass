@@ -10,6 +10,8 @@ import 'TrackVehicle.dart';
 import '../../controllers/PassengerDashboardController.dart';
 import '../../models/PassengerModel.dart';
 import 'Settings.dart';
+import '../../utils/AuthWrapper.dart';
+
 
 const Color primaryGreen = Color(0xFF05A664);
 const Color textDark = Color(0xFF121415);
@@ -80,22 +82,45 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: bgGreenTint,
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator(color: primaryGreen))
-          : _errorMessage != null
-          ? Center(child: Text(_errorMessage!, style: const TextStyle(color: Colors.red)))
-          : _buildDashboardContent(),
+      body: SafeArea(
+        child: RefreshIndicator(
+          color: primaryGreen,
+          onRefresh: () => _loadData(isRefresh: true),
+          child: _isLoading
+              ? const SingleChildScrollView(
+                  physics: AlwaysScrollableScrollPhysics(),
+                  child: SizedBox(
+                    height: 500,
+                    child: Center(
+                        child: CircularProgressIndicator(color: primaryGreen)),
+                  ),
+                )
+              : _errorMessage != null
+                  ? (_errorMessage == 'No driver assigned'
+                      ? _buildNoDriverView()
+                      : SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          child: SizedBox(
+                            height: 500,
+                            child: Center(
+                                child: Text(_errorMessage!,
+                                    style: const TextStyle(color: Colors.red))),
+                          ),
+                        ))
+                  : _buildDashboardContent(),
+        ),
+      ),
     );
   }
 
   Widget _buildDashboardContent() {
-    return SafeArea(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics()),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 16.h),
                 child: Column(
@@ -105,23 +130,28 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('${_getGreeting()},',
-                                style: TextStyle(
-                                    fontSize: 14.sp,
-                                    fontWeight: FontWeight.w600,
-                                    color: primaryGreen)),
-                            SizedBox(height: 4.h),
-                            Text(_passenger?.name ?? 'Passenger',
-                                style: TextStyle(
-                                    fontSize: 26.sp,
-                                    fontWeight: FontWeight.w800,
-                                    color: textDark,
-                                    letterSpacing: -0.5)),
-                          ],
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('${_getGreeting()},',
+                                  style: TextStyle(
+                                      fontSize: 14.sp,
+                                      fontWeight: FontWeight.w600,
+                                      color: primaryGreen)),
+                              SizedBox(height: 4.h),
+                              Text(_passenger?.name ?? 'Passenger',
+                                  style: TextStyle(
+                                      fontSize: 26.sp,
+                                      fontWeight: FontWeight.w800,
+                                      color: textDark,
+                                      letterSpacing: -0.5),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis),
+                            ],
+                          ),
                         ),
+                        SizedBox(width: 16.w),
                         _buildCircularIconButton(
                             Icons.settings_outlined, () async {
                           await Navigator.push(
@@ -224,8 +254,7 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
             ),
           );
         },
-      ),
-    );
+      );
   }
 
   Widget _buildCircularIconButton(IconData icon, VoidCallback onPressed) {
@@ -449,5 +478,78 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
   Future<void> _handleOpenAlerts() async {
     await Navigator.push(context, MaterialPageRoute(builder: (context) => UpdatesScreen(driverId: _passenger?.driverId)));
     _loadData();
+  }
+
+  Widget _buildNoDriverView() {
+    return LayoutBuilder(builder: (context, constraints) {
+      return SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: Padding(
+            padding: const EdgeInsets.all(30.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.no_accounts_rounded,
+                    size: 80, color: Colors.orangeAccent),
+                const SizedBox(height: 24),
+                const Text(
+                  'No Driver Assigned',
+                  style: TextStyle(
+                      fontSize: 24, fontWeight: FontWeight.bold, color: textDark),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  'It looks like you are not currently assigned to any driver. This usually happens if you have unsubscribed or your driver has removed you.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16, color: textGrey),
+                ),
+                const SizedBox(height: 40),
+                SizedBox(
+                  width: double.infinity,
+                  height: 55,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      setState(() => _isLoading = true);
+                      try {
+                        await _controller.resetRegistration();
+                        if (mounted) {
+                          // Navigate back to AuthWrapper to re-trigger role check
+                          Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(builder: (_) => const AuthWrapper()),
+                            (route) => false,
+                          );
+                        }
+                      } catch (e) {
+                        if (mounted) {
+                          setState(() {
+                            _isLoading = false;
+                            _errorMessage = "Failed to reset registration: $e";
+                          });
+                        }
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: primaryGreen,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30)),
+                    ),
+                    child: const Text(
+                      'Go to Registration',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    });
   }
 }

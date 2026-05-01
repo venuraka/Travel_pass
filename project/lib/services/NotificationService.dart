@@ -10,6 +10,8 @@ import 'package:project/Screens/Driver/NewPassenger.dart'; // Added
 import 'package:project/Screens/passenger/Updates.dart'; // Added
 import 'package:project/Screens/passenger/TrackVehicle.dart'; // Added
 import 'package:flutter/material.dart'; // Added
+import 'package:project/utils/AuthWrapper.dart'; // Added
+
 
 class PushNotificationService {
   final FirebaseMessaging _fcm = FirebaseMessaging.instance;
@@ -147,6 +149,11 @@ class PushNotificationService {
               passengerId: _auth.currentUser?.uid ?? '',
             ),
           ),
+        );
+      } else if (data['type'] == 'registration_approved') {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const AuthWrapper()),
+          (route) => false,
         );
       }
     }

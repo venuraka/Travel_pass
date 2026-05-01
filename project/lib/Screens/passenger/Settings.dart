@@ -6,6 +6,9 @@ import '../Components/CustomSnackBar.dart';
 import '../UserRegistration/Login.dart';
 import '../Components/Header.dart';
 import '../../controllers/AuthService.dart';
+import '../../services/NotificationService.dart';
+import '../../models/PassengerModel.dart';
+
 
 class PassengerSettingsScreen extends StatefulWidget {
   const PassengerSettingsScreen({super.key});
@@ -51,11 +54,34 @@ Future<void> _unsubscribe() async {
       try {
         final user = FirebaseAuth.instance.currentUser;
         if (user != null) {
+          // 1. Get driver info before unsubscribing to notify them
+          final PassengerModel? passenger = await _dbService.getPassengerData(user.uid);
+          final String? driverId = passenger?.driverId;
+          final String passengerName = passenger?.name ?? "A passenger";
+
+          // 2. Perform unsubscribe in database
           await _dbService.unsubscribePassengerFromDriver(user.uid);
+
+          // 3. Notify driver
+          if (driverId != null && driverId.isNotEmpty) {
+            try {
+              await PushNotificationService().sendNotificationToDriver(
+                driverId: driverId,
+                title: 'Passenger Unsubscribed',
+                body: '$passengerName has unsubscribed from your vehicle service.',
+                data: {
+                  'type': 'unsubscribe',
+                  'passengerId': user.uid,
+                },
+              );
+            } catch (e) {
+              debugPrint('⚠️ Could not notify driver of unsubscribe: $e');
+            }
+          }
+
           if (mounted) {
             CustomSnackBar.showSuccess(context, "Successfully unsubscribed.");
-            // After unsubscribing, they probably need to re-login or be redirected to a "Find Driver" state.
-            // For now, let's just go back to dashboard which should handle the null driverId state.
+            // After unsubscribing, return to dashboard which will handle redirection
             Navigator.pop(context);
           }
         }

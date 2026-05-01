@@ -295,4 +295,18 @@ class PassengerDashboardController {
       },
     );
   }
+  /// Resets the registration status for the current passenger.
+  Future<void> resetRegistration() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+    
+    await FirebaseFirestore.instance
+        .collection('passenger')
+        .doc(user.uid)
+        .update({
+      'registered': false,
+      'driverId': '',
+      'driverName': '',
+    });
+  }
 }

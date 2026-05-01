@@ -249,7 +249,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("Welcome Back,", style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: primaryGreen)),
+                      Text("${_getGreeting()},", style: TextStyle(fontSize: 14.sp, fontWeight: FontWeight.w600, color: primaryGreen)),
                       SizedBox(height: 4.h),
                       Text(_driverName, style: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.w800, color: textDark, letterSpacing: -0.5), maxLines: 1, overflow: TextOverflow.ellipsis),
                     ],

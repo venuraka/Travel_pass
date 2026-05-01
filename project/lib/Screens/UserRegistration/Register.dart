@@ -45,13 +45,9 @@ class _RegisterPageState extends State<RegisterPage> {
 
       if (user != null && mounted) {
         // Navigate to User Selection Screen
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const UserSelectionScreen()),
-        );
+        Navigator.of(context).popUntil((route) => route.isFirst);
       }
     } catch (e) {
-      if (!mounted) return;
       if (!mounted) return;
       CustomSnackBar.showError(
         context,
@@ -106,10 +102,7 @@ class _RegisterPageState extends State<RegisterPage> {
       final user = await _authService.signUpWithEmail(email, password, name: name);
       if (user != null && mounted) {
         // Navigate to User Selection Screen
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const UserSelectionScreen()),
-        );
+        Navigator.of(context).popUntil((route) => route.isFirst);
       }
     } catch (e) {
       if (mounted) {

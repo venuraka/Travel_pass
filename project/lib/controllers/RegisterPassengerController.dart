@@ -32,7 +32,10 @@ class RegisterPassengerController {
         role: passenger.role,
         registered: true, // Mark as registered
         createdAt: passenger.createdAt,
-        paymentAmount: paymentAmount, // Save payment amount
+        paymentAmount: paymentAmount,
+        fcmToken: passenger.fcmToken, // Preserve token
+        balance: passenger.balance, // Preserve balance
+        lastChargedMonth: passenger.lastChargedMonth, // Preserve charging state
       );
 
       // Save to database
@@ -43,7 +46,7 @@ class RegisterPassengerController {
         await _notificationService.sendNotificationToPassengers(
           passengerIds: [updatedPassenger.uid],
           title: 'Registration Approved 🎉',
-          body: 'You have been registered by your driver. You can use the app from now on.',
+          body: 'You have been registered for vehicle ${updatedPassenger.vehiclePlate}. You can now access your dashboard.',
           data: {
             'type': 'registration_approved',
           },
@@ -100,6 +103,9 @@ class RegisterPassengerController {
         registered: true,
         createdAt: passenger.createdAt,
         paymentAmount: paymentAmount,
+        fcmToken: passenger.fcmToken, // Preserve token
+        balance: passenger.balance, // Preserve balance
+        lastChargedMonth: passenger.lastChargedMonth, // Preserve charging state
       );
 
       // Save to database

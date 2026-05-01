@@ -96,7 +96,14 @@ class _AuthWrapperState extends State<AuthWrapper> {
     try {
       final doc = await _db.collection('passenger').doc(uid).get();
       if (doc.exists && doc.data() != null) {
-        final bool registered = doc.data()!['registered'] == true;
+        final data = doc.data()!;
+        final bool registered = data['registered'] == true;
+        final String driverId = data['driverId'] ?? '';
+
+        if (driverId.isEmpty) {
+          return {'role': 'unknown', 'isApproved': false};
+        }
+        
         return {'role': 'passenger', 'isApproved': registered};
       }
     } catch (e) {

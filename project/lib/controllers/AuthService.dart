@@ -57,7 +57,7 @@ class AuthService {
   Future<GoogleSignInAccount?> getGoogleUserOnly() async {
     try {
       await _ensureInitialized();
-      return await _googleSignIn.signIn();
+      return await _googleSignIn.authenticate();
     } catch (e) {
       rethrow;
     }
@@ -101,8 +101,7 @@ class AuthService {
           await _ensureInitialized();
           final GoogleSignInAccount? googleUser = await _googleSignIn.authenticate();
           if (googleUser != null) {
-            final GoogleSignInAuthentication googleAuth =
-                await googleUser.authentication;
+            final GoogleSignInAuthentication googleAuth = googleUser.authentication;
             credential = GoogleAuthProvider.credential(
               idToken: googleAuth.idToken,
             );
