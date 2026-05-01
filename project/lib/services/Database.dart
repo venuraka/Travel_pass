@@ -1304,13 +1304,15 @@ class DatabaseService {
               orElse: () => <String, dynamic>{}
             );
 
-            cleared.add({
-              ...data,
-              'id': doc.id,
-              'lastAmount': lastPayment['amount'] ?? '0',
-              'lastDate': lastPayment['date']?.toString().split('T').first.replaceAll('-', '/') ?? 'N/A',
-              'lastStatus': lastPayment['status'] ?? 'unknown',
-            });
+            if (lastPayment.isNotEmpty) {
+              cleared.add({
+                ...data,
+                'id': doc.id,
+                'lastAmount': lastPayment['amount'] ?? '0',
+                'lastDate': lastPayment['date']?.toString().split('T').first.replaceAll('-', '/') ?? 'N/A',
+                'lastStatus': lastPayment['status'] ?? 'unknown',
+              });
+            }
           }
         }
         return cleared;
