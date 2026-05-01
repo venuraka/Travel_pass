@@ -45,9 +45,11 @@ class StartJourneyController {
   Set<Polyline> _polylines = {};
   
   StreamSubscription? _passengerLocationExtSubscription;
-  StreamSubscription? _onboardedCountSubscription; // Added
+  StreamSubscription? _onboardedCountSubscription;
+  StreamSubscription? _onboardedIdsSubscription; // Added
   LatLng? _currentPassengerLocation;
-  int _onboardedCount = 0; // Added
+  int _onboardedCount = 0;
+  Set<String> _onboardedPassengerIds = {}; // Added
 
   // Navigation arrow fields
   GoogleMapController? _mapController;
@@ -169,7 +171,7 @@ class StartJourneyController {
     // 8. Share initial journey progress
     _shareJourneyProgress();
 
-    // 9. Subscribe to onboarded count for summary logic
+    // 9. Subscribe to onboarded count and IDs for summary logic
     _onboardedCountSubscription = _rtDbService.getOnboardedCountStream(driverId).listen((count) {
       _onboardedCount = count;
       // Trigger update if we have position
@@ -182,6 +184,10 @@ class StartJourneyController {
           altitudeAccuracy: 0, headingAccuracy: 0,
         ));
       }
+    });
+
+    _onboardedIdsSubscription = _rtDbService.getOnboardedPassengerIdsStream(driverId).listen((ids) {
+      _onboardedPassengerIds = ids;
     });
   }
 
@@ -772,6 +778,9 @@ class StartJourneyController {
       List<PassengerModel> proximalPassengers = [];
       for (var passenger in _allPassengers) {
         if (passenger.pickupLocation == targetPassenger.pickupLocation) {
+          // SKIP if already onboarded according to RTDB
+          if (_onboardedPassengerIds.contains(passenger.uid)) continue;
+
           final status = await _dbService.getTodayAttendanceStatus(passenger.uid);
           if (status == 'Present') {
             proximalPassengers.add(passenger);
@@ -1015,7 +1024,8 @@ class StartJourneyController {
     _positionSubscription?.cancel();
     _pooledSubscription?.cancel(); // Cancel pooled too
     _passengerLocationExtSubscription?.cancel();
-    _onboardedCountSubscription?.cancel(); // Added
+    _onboardedCountSubscription?.cancel();
+    _onboardedIdsSubscription?.cancel(); // Added
     _autoFinishTimer?.cancel();
   }
 }

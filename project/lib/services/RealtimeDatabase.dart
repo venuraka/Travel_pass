@@ -264,5 +264,23 @@ class RealtimeDatabaseService {
       return count;
     });
   }
+
+  /// Returns a stream of the set of onboarded passenger IDs for a driver.
+  Stream<Set<String>> getOnboardedPassengerIdsStream(String driverId) {
+    if (driverId.isEmpty) return Stream.value({});
+    return _db.ref('status/$driverId/passengers').onValue.map((event) {
+      final data = event.snapshot.value as Map<dynamic, dynamic>?;
+      if (data == null) return {};
+      
+      Set<String> ids = {};
+      data.forEach((key, value) {
+        final pStatus = value as Map<dynamic, dynamic>?;
+        if (pStatus != null && pStatus['onboarded'] == true) {
+          ids.add(key.toString());
+        }
+      });
+      return ids;
+    });
+  }
 }
 
