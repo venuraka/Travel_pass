@@ -185,8 +185,7 @@ class PassengerDashboardController {
   }
 
   DateTime _normalizeDate(DateTime dt) {
-    final utc = dt.toUtc();
-    return DateTime.utc(utc.year, utc.month, utc.day);
+    return DateTime(dt.year, dt.month, dt.day);
   }
 
   Future<void> markAlertsAsRead() async {
@@ -205,13 +204,16 @@ class PassengerDashboardController {
 
 
   /// Combined stream specifically for the "Today's Status" section
+  /// Now includes a periodic timer to ensure it refreshes at midnight.
   Stream<Map<String, dynamic>> getTodayStatusCombinedStream(String driverId, String passengerId) {
-    return Rx.combineLatest3(
+    return Rx.combineLatest4(
       _dbService.getJourneyStatusStream(driverId),
       _dbService.getPassengerAttendanceStream(passengerId),
       _dbService.getTodayPollStatusStream(driverId),
-      (bool isStarted, AttendanceModel? attendance, bool hasPollToday) {
-        final today = _normalizeDate(DateTime.now());
+      Stream.periodic(const Duration(minutes: 1)), // Refresh every minute to catch midnight
+      (bool isStarted, AttendanceModel? attendance, bool hasPollToday, _) {
+        final now = DateTime.now();
+        final today = _normalizeDate(now);
         final dateKey = "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
         
         final status = attendance?.records[dateKey] ?? 'Not Marked';
@@ -246,14 +248,16 @@ class PassengerDashboardController {
   }
 
   /// Returns a real-time stream of dates that need marking.
+  /// Now includes a periodic timer to ensure it refreshes at midnight.
   Stream<List<Map<String, dynamic>>> getAttendanceDatesStream(String passengerId, String driverId) {
     final pollsStream = _dbService.getPollsByDriverStream(driverId);
     final attendanceStream = _dbService.getPassengerAttendanceStream(passengerId);
 
-    return Rx.combineLatest2<List<PollModel>, AttendanceModel?, List<Map<String, dynamic>>>(
+    return Rx.combineLatest3<List<PollModel>, AttendanceModel?, dynamic, List<Map<String, dynamic>>>(
       pollsStream,
       attendanceStream,
-      (polls, attendance) {
+      Stream.periodic(const Duration(minutes: 1)), // Refresh to catch midnight
+      (polls, attendance, _) {
         List<Map<String, dynamic>> datesToMark = [];
         Map<String, String> markedMap = attendance?.records ?? {};
         
@@ -264,8 +268,8 @@ class PassengerDashboardController {
           }
         }
 
-        final now = DateTime.now().toUtc();
-        final today = DateTime.utc(now.year, now.month, now.day);
+        final now = DateTime.now();
+        final today = _normalizeDate(now);
         final List<DateTime> sortedDates = allPollDates.toList()..sort();
 
         for (var date in sortedDates) {

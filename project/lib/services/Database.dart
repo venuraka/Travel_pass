@@ -657,16 +657,15 @@ class DatabaseService {
         .where('driverId', isEqualTo: driverId)
         .snapshots()
         .map((snapshot) {
-      final now = DateTime.now().toUtc();
-      final today = DateTime.utc(now.year, now.month, now.day);
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
 
       for (var doc in snapshot.docs) {
         final poll = PollModel.fromMap(doc.data(), doc.id);
         if (poll.activeDates.any((d) {
-          final utcDate = d.toUtc();
-          return utcDate.year == today.year &&
-                 utcDate.month == today.month &&
-                 utcDate.day == today.day;
+          return d.year == today.year &&
+                 d.month == today.month &&
+                 d.day == today.day;
         })) {
           return true;
         }
