@@ -9,12 +9,14 @@ import '../services/WeatherService.dart';
 import '../services/NotificationService.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
+import '../services/RealtimeDatabase.dart';
 
 class DriverDashboardController {
   final DatabaseService _dbService = DatabaseService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final WeatherService _weatherService = WeatherService();
   final PushNotificationService _notificationService = PushNotificationService();
+  final RealtimeDatabaseService _rtDbService = RealtimeDatabaseService();
 
 
 
@@ -80,11 +82,18 @@ class DriverDashboardController {
   }
 
   /// Sets the journey as started in the database and sends weather alerts.
-  Future<void> startJourney() async {
+  Future<void> startJourney({bool isRestart = true}) async {
     final uid = getDriverId();
     if (uid != null) {
       // 1. Mark journey as started in DB
       await _dbService.updateJourneyStatus(uid, true);
+      
+      if (isRestart) {
+        // 2. Clear previous onboarded state from Realtime Database (Fresh Start)
+        await _rtDbService.clearOnboardedPassengers(uid);
+      } else {
+        return; // Skip alerts and reset if just resuming
+      }
 
       // 2. TRIGGER WEATHER-BASED NOTIFICATIONS (Scanning Whole Route)
       try {
@@ -234,6 +243,13 @@ class DriverDashboardController {
     final uid = getDriverId();
     if (uid == null) return Stream.value('Driver');
     return _dbService.getDriverNameStream(uid);
+  }
+
+  /// Returns a stream of the driver's journey active status.
+  Stream<bool> getJourneyStatusStream() {
+    final uid = getDriverId();
+    if (uid == null) return Stream.value(false);
+    return _dbService.getJourneyStatusStream(uid);
   }
 
   /// 🔹 PAYMENT REMINDERS ACTIONS 🔹

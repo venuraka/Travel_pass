@@ -121,9 +121,6 @@ class StartJourneyController {
   Future<void> init(String driverId) async {
     _currentDriverId = driverId;
     
-    // Clear previous onboarded state from Realtime Database
-    await _rtDbService.clearOnboardedPassengers(driverId);
-    
     // 0. Create the navigation arrow icon
     await _createNavigationArrowIcon();
 
@@ -160,6 +157,21 @@ class StartJourneyController {
     
     // 3. Initial markers
     await _updateMarkers();
+
+    // 3.5. Resume Logic: Find the first unhandled passenger index
+    final initialHandledIds = await _rtDbService.getOnboardedPassengerIds(driverId);
+    _onboardedPassengerIds = initialHandledIds;
+    _handledCount = initialHandledIds.length;
+
+    for (int i = 0; i < _allPassengers.length; i++) {
+      if (!_onboardedPassengerIds.contains(_allPassengers[i].uid)) {
+        _currentPassengerIndex = i;
+        break;
+      } else if (i == _allPassengers.length - 1) {
+        // If all are handled, move index to the end
+        _currentPassengerIndex = _allPassengers.length;
+      }
+    }
     
     // 4. Start location tracking
     await _startLocationTracking(driverId);
@@ -866,28 +878,63 @@ class StartJourneyController {
 
     // Check if ALL passengers are handled to switch to Drop-off summary mode
     if (allOnboarded) {
-       // All are onboarded, switch focus to final destination
-       if (_driverRoute != null && _driverRoute!.isNotEmpty) {
-          final last = _driverRoute!.last;
-          final lastLatLng = LatLng((last['lat'] as num).toDouble(), (last['lng'] as num).toDouble());
-          
-          double dDistance = Geolocator.distanceBetween(
-            position.latitude, position.longitude,
-            lastLatLng.latitude, lastLatLng.longitude
-          );
+      _updateDestinationStatus(position);
+    }
+  }
 
-          double kms = dDistance / 1000;
-          int mins = (dDistance / 11 / 60).round(); // Assume 40km/h ~ 11m/s
-          if (mins < 1) mins = 1;
+  /// Helper to update status with distance and ETA to final destination
+  void _updateDestinationStatus(Position position) {
+    if (_driverRoute != null && _driverRoute!.isNotEmpty) {
+      // Find the point explicitly marked as 'destination', or fallback to the very last point
+      Map<String, dynamic>? finalDest;
+      for (var i = _driverRoute!.length - 1; i >= 0; i--) {
+        if (_driverRoute![i]['role'] == 'destination') {
+          finalDest = _driverRoute![i];
+          break;
+        }
+      }
 
-          _currentStatus = "${kms.toStringAsFixed(1)} km | $mins min to destination";
-          _statusColor = const Color(0xFF05A664);
-       }
+      // Fallback: If no point has 'destination' role, use the very last point in the route
+      finalDest ??= _driverRoute!.last;
+
+      if (finalDest == null) {
+        _currentStatus = "Drop-off Phase";
+        return;
+      }
+
+      LatLng lastLatLng = LatLng(
+        (finalDest['lat'] as num).toDouble(), 
+        (finalDest['lng'] as num).toDouble()
+      );
+      
+      double dDistance = Geolocator.distanceBetween(
+        position.latitude, position.longitude,
+        lastLatLng.latitude, lastLatLng.longitude
+      );
+
+      double kms = dDistance / 1000;
+      int mins = (dDistance / 11 / 60).round(); // Assume 40km/h ~ 11m/s
+      if (mins < 1) mins = 1;
+
+      if (dDistance < 50) {
+        if (!_isAtFinalDestination) {
+          _isAtFinalDestination = true;
+          _startAutoFinishTimer();
+        }
+        _currentStatus = "At Destination";
+      } else {
+        _isAtFinalDestination = false;
+        _autoFinishTimer?.cancel();
+        _currentStatus = "${kms.toStringAsFixed(1)} km | $mins min to destination";
+      }
+      _statusColor = const Color(0xFF05A664);
     }
   }
 
   Future<void> _checkDestinationProximity(Position position) async {
-    // Find the LAST destination in the route
+    _updateDestinationStatus(position);
+
+    // Keep the notification logic separate
     Map<String, dynamic>? finalDest;
     for (var i = _driverRoute!.length - 1; i >= 0; i--) {
       if (_driverRoute![i]['role'] == 'destination') {
@@ -895,12 +942,7 @@ class StartJourneyController {
         break;
       }
     }
-
-    if (finalDest == null) {
-      _isAtFinalDestination = true; // Fallback if no destination defined
-      _currentStatus = "Trip Complete";
-      return;
-    }
+    if (finalDest == null) return;
 
     LatLng targetLatLng = LatLng(
       (finalDest['lat'] as num).toDouble(),
@@ -912,13 +954,7 @@ class StartJourneyController {
       targetLatLng.latitude, targetLatLng.longitude
     );
 
-    if (distance < 50) {
-      if (!_isAtFinalDestination) {
-        _isAtFinalDestination = true;
-        _startAutoFinishTimer(); // Trigger auto-finish
-      }
-      _currentStatus = "At Destination";
-    } else {
+    if (distance >= 50) {
       // 🟢 SMART NOTIFICATION LOGIC: End of Journey reminder
       final now = DateTime.now();
       if (!_notifiedEndJourney && 
@@ -944,12 +980,6 @@ class StartJourneyController {
           );
         }
       }
-
-      _isAtFinalDestination = false;
-      _autoFinishTimer?.cancel(); // Cancel if they move away before it finishes
-      int mins = (distance / 11 / 60).round();
-      if (mins < 1) mins = 1;
-      _currentStatus = "$mins min to final destination";
     }
   }
 

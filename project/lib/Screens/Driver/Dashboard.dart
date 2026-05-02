@@ -50,6 +50,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   double? _fabTop;
   double? _fabLeft;
   bool _isStartingJourney = false; // Guard to prevent duplicate StartJourney pushes
+  bool _isJourneyActive = false; // Track if journey is already in progress
   bool _showVoiceAssistant = true;
 
   @override
@@ -73,6 +74,10 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
 
     _nameSubscription = _controller.getDriverNameStream().listen((name) {
       if (mounted) setState(() { _driverName = name; });
+    });
+
+    _controller.getJourneyStatusStream().listen((isActive) {
+      if (mounted) setState(() { _isJourneyActive = isActive; });
     });
     _initVoiceController();
   }
@@ -125,7 +130,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Cannot start journey: No passengers are present!"), backgroundColor: Colors.redAccent, behavior: SnackBarBehavior.floating));
              return;
           }
-          await _controller.startJourney();
+          await _controller.startJourney(isRestart: !_isJourneyActive);
           if (mounted) Navigator.push(context, MaterialPageRoute(builder: (_) => const Startjourney()));
         } finally {
           if (mounted) setState(() => _isStartingJourney = false);
@@ -419,7 +424,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
           if (_isStartingJourney) return;
           setState(() => _isStartingJourney = true);
           try {
-            await _controller.startJourney();
+            await _controller.startJourney(isRestart: !_isJourneyActive);
             if (mounted) await Navigator.push(context, MaterialPageRoute(builder: (_) => const Startjourney()));
           } finally {
             if (mounted) setState(() => _isStartingJourney = false);
@@ -434,9 +439,9 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(_hasPollToday ? 'Start Journey' : 'Make a poll to start', style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.w700)),
+            Text(_isJourneyActive ? 'Resume Journey' : (_hasPollToday ? 'Start Journey' : 'Make a poll to start'), style: TextStyle(fontSize: 17.sp, fontWeight: FontWeight.w700)),
             SizedBox(width: 12.w),
-            Icon(_hasPollToday ? Icons.arrow_forward_rounded : Icons.lock_outline_rounded, size: 24.r),
+            Icon(_isJourneyActive ? Icons.play_arrow_rounded : (_hasPollToday ? Icons.arrow_forward_rounded : Icons.lock_outline_rounded), size: 24.r),
           ],
         ),
       ),

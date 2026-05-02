@@ -493,6 +493,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             subtitle: "Permanently wipe all your profile data",
                             color: Colors.red,
                             onTap: _deleteAccount,
+                            isSolid: true,
                           ),
                           
                           const SizedBox(height: 40),
@@ -647,6 +648,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required String subtitle,
     required Color color,
     required VoidCallback onTap,
+    bool isSolid = false,
   }) {
     return InkWell(
       onTap: onTap,
@@ -654,19 +656,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          border: Border.all(color: color.withOpacity(0.2)),
+          border: Border.all(color: isSolid ? color : color.withOpacity(0.2)),
           borderRadius: BorderRadius.circular(15),
-          color: color.withOpacity(0.05),
+          color: isSolid ? color : color.withOpacity(0.05),
+          boxShadow: isSolid ? [
+            BoxShadow(
+              color: color.withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            )
+          ] : null,
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: isSolid ? Colors.white.withOpacity(0.2) : color.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: color, size: 22),
+              child: Icon(icon, color: isSolid ? Colors.white : color, size: 22),
             ),
             const SizedBox(width: 15),
             Expanded(
@@ -678,21 +687,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: color,
+                      color: isSolid ? Colors.white : color,
                     ),
                   ),
                   Text(
                     subtitle,
                     style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey[600],
+                      color: isSolid ? Colors.white.withOpacity(0.9) : Colors.grey[600],
                     ),
                   ),
                 ],
               ),
             ),
             Icon(Icons.arrow_forward_ios,
-                color: color.withOpacity(0.4), size: 14),
+                color: isSolid ? Colors.white.withOpacity(0.8) : color.withOpacity(0.4), size: 14),
           ],
         ),
       ),
