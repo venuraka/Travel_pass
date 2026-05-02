@@ -265,6 +265,16 @@ class RealtimeDatabaseService {
     });
   }
 
+  /// Returns a stream of the total count of 'handled' passengers (onboarded OR absent) for a driver.
+  Stream<int> getHandledCountStream(String driverId) {
+    if (driverId.isEmpty) return Stream.value(0);
+    return _db.ref('status/$driverId/passengers').onValue.map((event) {
+      final data = event.snapshot.value as Map<dynamic, dynamic>?;
+      if (data == null) return 0;
+      return data.length; // Number of keys in the passengers map
+    });
+  }
+
   /// Returns a stream of the set of onboarded passenger IDs for a driver.
   Stream<Set<String>> getOnboardedPassengerIdsStream(String driverId) {
     if (driverId.isEmpty) return Stream.value({});
@@ -274,13 +284,17 @@ class RealtimeDatabaseService {
       
       Set<String> ids = {};
       data.forEach((key, value) {
-        final pStatus = value as Map<dynamic, dynamic>?;
-        if (pStatus != null && pStatus['onboarded'] == true) {
-          ids.add(key.toString());
-        }
+        // Any entry in this map means the passenger has been handled (either onboarded or absent)
+        ids.add(key.toString());
       });
       return ids;
     });
+  }
+
+  /// Clears all onboarded/handled passenger state for a driver.
+  Future<void> clearOnboardedPassengers(String driverId) async {
+    if (driverId.isEmpty) return;
+    await _db.ref('status/$driverId/passengers').remove();
   }
 }
 

@@ -49,7 +49,8 @@ class StartJourneyController {
   StreamSubscription? _onboardedIdsSubscription; // Added
   LatLng? _currentPassengerLocation;
   int _onboardedCount = 0;
-  Set<String> _onboardedPassengerIds = {}; // Added
+  int _handledCount = 0; // Added
+  Set<String> _onboardedPassengerIds = {};
 
   // Navigation arrow fields
   GoogleMapController? _mapController;
@@ -71,7 +72,7 @@ class StartJourneyController {
   Set<Marker> get markers => _markers;
   Set<Polyline> get polylines => _polylines;
   bool get isFollowingCamera => _isFollowingCamera;
-  bool get allOnboarded => _onboardedCount >= _allPassengers.length && _allPassengers.isNotEmpty; // Added
+  bool get allOnboarded => _handledCount >= _allPassengers.length && _allPassengers.isNotEmpty; // Updated to use handledCount
 
   final Function(Position) onLocationChanged;
   final Function(List<PassengerModel>) onProximityReached;
@@ -119,6 +120,9 @@ class StartJourneyController {
 
   Future<void> init(String driverId) async {
     _currentDriverId = driverId;
+    
+    // Clear previous onboarded state from Realtime Database
+    await _rtDbService.clearOnboardedPassengers(driverId);
     
     // 0. Create the navigation arrow icon
     await _createNavigationArrowIcon();
@@ -189,6 +193,10 @@ class StartJourneyController {
 
     _onboardedIdsSubscription = _rtDbService.getOnboardedPassengerIdsStream(driverId).listen((ids) {
       _onboardedPassengerIds = ids;
+    });
+
+    _rtDbService.getHandledCountStream(driverId).listen((count) {
+      _handledCount = count;
     });
   }
 
@@ -856,8 +864,8 @@ class StartJourneyController {
       }
     }
 
-    // Check if ALL passengers are onboarded to switch to Drop-off summary mode
-    if (_onboardedCount >= _allPassengers.length && _allPassengers.isNotEmpty) {
+    // Check if ALL passengers are handled to switch to Drop-off summary mode
+    if (allOnboarded) {
        // All are onboarded, switch focus to final destination
        if (_driverRoute != null && _driverRoute!.isNotEmpty) {
           final last = _driverRoute!.last;
@@ -965,12 +973,24 @@ class StartJourneyController {
 
   Future<void> markOnboarded(String passengerId, bool onboarded) async {
     if (_currentDriverId != null) {
+      // Optimistic update to prevent race conditions with proximity check
+      if (!_onboardedPassengerIds.contains(passengerId)) {
+        _onboardedPassengerIds.add(passengerId);
+        _handledCount++;
+        if (onboarded) _onboardedCount++; // Only increment onboarded if true
+      }
       await _rtDbService.setOnboarded(_currentDriverId!, passengerId, onboarded);
     }
   }
 
   Future<void> markAsAbsent(String passengerId) async {
     if (_currentDriverId != null) {
+      // Optimistic update to prevent race conditions with proximity check
+      if (!_onboardedPassengerIds.contains(passengerId)) {
+        _onboardedPassengerIds.add(passengerId);
+        _handledCount++;
+      }
+
       // 1. Update RTDB status
       await _rtDbService.setOnboarded(_currentDriverId!, passengerId, false);
       
