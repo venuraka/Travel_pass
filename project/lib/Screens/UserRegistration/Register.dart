@@ -184,7 +184,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           ),
                           recognizer: TapGestureRecognizer()
                             ..onTap = () async {
-                              final Uri url = Uri.parse('https://venuraka.github.io/TravelPass-Additional-Information/');
+                              final Uri url = Uri.parse('https://venuraka.github.io/TravelPass-Additional-Information/#terms');
                               if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
                                 debugPrint("Could not launch $url");
                               }
@@ -200,7 +200,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           ),
                           recognizer: TapGestureRecognizer()
                             ..onTap = () async {
-                              final Uri url = Uri.parse('https://venuraka.github.io/TravelPass-Additional-Information/');
+                              final Uri url = Uri.parse('https://venuraka.github.io/TravelPass-Additional-Information/#privacy');
                               if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
                                 debugPrint("Could not launch $url");
                               }
