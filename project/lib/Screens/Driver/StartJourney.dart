@@ -153,7 +153,8 @@ class _StartjourneyState extends State<Startjourney> {
                     _controller.setPassengerIndex(index);
                   });
                 },
-                isAtFinalDestination: _controller.isAtFinalDestination, // Added
+                isAtFinalDestination: _controller.isAtFinalDestination,
+                allOnboarded: _controller.allOnboarded,
                 onFinishJourney: () async {
                   await _controller.finishJourney();
                   if (mounted) {
