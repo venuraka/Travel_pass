@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -159,8 +160,10 @@ class _LoginPageState extends State<LoginPage> {
 
                 // Social Sign In Buttons
                 _buildGoogleButton(),
-                const SizedBox(height: 15),
-                _buildAppleButton(),
+                if (Platform.isIOS) ...[
+                  _buildAppleButton(),
+                  const SizedBox(height: 15),
+                ],
 
                 const SizedBox(height: 30),
 

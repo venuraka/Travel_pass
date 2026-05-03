@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -145,8 +146,10 @@ class _RegisterPageState extends State<RegisterPage> {
                 SizedBox(height: 40.h),
 
                 _buildGoogleButton(),
-                const SizedBox(height: 15),
-                _buildAppleButton(),
+                if (Platform.isIOS) ...[
+                  _buildAppleButton(),
+                  const SizedBox(height: 15),
+                ],
 
                 const SizedBox(height: 30),
                 Row(
