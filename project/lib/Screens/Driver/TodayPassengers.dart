@@ -3,7 +3,9 @@ import '../Components/AppBar.dart';
 import '../Components/Cards.dart';
 import '../../controllers/TodayPassengersController.dart'; // Added
 import '../../models/PassengerModel.dart'; // Added
-import 'package:url_launcher/url_launcher.dart'; // Added
+import 'package:url_launcher/url_launcher.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../services/Database.dart'; // Added
 
 class TodaypassengersScreen extends StatefulWidget {
   const TodaypassengersScreen({super.key});
@@ -22,6 +24,8 @@ class _TodaypassengersScreenState extends State<TodaypassengersScreen> {
   bool _isLoading = true;
   bool _noPoll = false;
   String? _errorMessage;
+  String _badgePreference = "Both";
+  final DatabaseService _dbService = DatabaseService();
 
   @override
   void initState() {
@@ -37,6 +41,16 @@ class _TodaypassengersScreenState extends State<TodaypassengersScreen> {
     });
 
     final data = await _controller.loadTodayData();
+    
+    // Fetch Badge Preference
+    String preference = "Both";
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final driver = await _dbService.getDriverData(user.uid);
+      if (driver != null) {
+        preference = driver.badgePreference;
+      }
+    }
 
     if (mounted) {
       if (data.containsKey('error')) {
@@ -54,6 +68,7 @@ class _TodaypassengersScreenState extends State<TodaypassengersScreen> {
           _boarded = List<PassengerModel>.from(data['boarded']);
           _absent = List<PassengerModel>.from(data['absent']);
           _notVoted = List<PassengerModel>.from(data['notVoted']);
+          _badgePreference = preference;
           _isLoading = false;
         });
       }
@@ -171,6 +186,7 @@ class _TodaypassengersScreenState extends State<TodaypassengersScreen> {
                               subtitle: passenger.pickupLocation,
                               showTag: true,
                               tagText: passenger.paymentType,
+                              overallPreference: _badgePreference,
                               trailing: _buildPhoneIcon(
                                 appGreen,
                                 passenger.phone,
@@ -189,6 +205,7 @@ class _TodaypassengersScreenState extends State<TodaypassengersScreen> {
                             subtitle: passenger.pickupLocation,
                             showTag: true,
                             tagText: passenger.paymentType,
+                            overallPreference: _badgePreference,
                             trailing: _buildPhoneIcon(
                               appGreen,
                               passenger.phone,
@@ -206,6 +223,7 @@ class _TodaypassengersScreenState extends State<TodaypassengersScreen> {
                             subtitle: passenger.pickupLocation,
                             showTag: true,
                             tagText: passenger.paymentType,
+                            overallPreference: _badgePreference,
                             trailing: _buildPhoneIcon(
                               appGreen,
                               passenger.phone,

@@ -5,6 +5,8 @@ import '../Components/Cards.dart';
 import '../Components/Topic.dart';
 import '../../controllers/DriverAttendanceController.dart';
 import '../../models/PassengerModel.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../services/Database.dart';
 
 class AttendanceScreen extends StatefulWidget {
   const AttendanceScreen({super.key});
@@ -26,6 +28,8 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   List<PassengerModel> _absent = [];
   List<PassengerModel> _notVoted = [];
   bool _isPollActive = true;
+  String _badgePreference = "Both";
+  final DatabaseService _dbService = DatabaseService();
 
   @override
   void initState() {
@@ -40,6 +44,16 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     });
 
     final data = await _controller.loadAttendanceData(_selectedDate);
+    
+    // Fetch Badge Preference
+    String preference = "Both";
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final driver = await _dbService.getDriverData(user.uid);
+      if (driver != null) {
+        preference = driver.badgePreference;
+      }
+    }
 
     if (mounted) {
       if (data.containsKey('error')) {
@@ -54,6 +68,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           _absent = List<PassengerModel>.from(data['absent']);
           _notVoted = List<PassengerModel>.from(data['notVoted']);
           _isPollActive = data['isPollActive'] ?? false;
+          _badgePreference = preference;
           _isLoading = false;
         });
       }
@@ -211,6 +226,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                               subtitle: p.pickupLocation,
                                               showTag: true,
                                               tagText: p.paymentType,
+                                              overallPreference: _badgePreference,
                                               trailing: _buildPhoneIcon(appGreen, p.phone),
                                             ),
                                           const SizedBox(height: 30),
@@ -227,6 +243,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                               subtitle: p.pickupLocation,
                                               showTag: true,
                                               tagText: p.paymentType,
+                                              overallPreference: _badgePreference,
                                               trailing: _buildPhoneIcon(appGreen, p.phone),
                                             ),
                                           const SizedBox(height: 30),
@@ -243,6 +260,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                                               subtitle: p.pickupLocation,
                                               showTag: true,
                                               tagText: p.paymentType,
+                                              overallPreference: _badgePreference,
                                               trailing: _buildPhoneIcon(appGreen, p.phone),
                                             ),
                                           const SizedBox(height: 30),
