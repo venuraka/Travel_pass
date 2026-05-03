@@ -46,8 +46,12 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   StreamSubscription? _reminderSubscription;
   String _driverName = 'Loading...';
   StreamSubscription? _nameSubscription;
+
+  double? _fabTop;
+  double? _fabLeft;
   bool _isStartingJourney = false; // Guard to prevent duplicate StartJourney pushes
   bool _isJourneyActive = false; // Track if journey is already in progress
+
 
   @override
   void initState() {
@@ -95,7 +99,12 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: bgGreenTint,
-      body: _getSelectedScreen(),
+      body: Stack(
+        children: [
+          _getSelectedScreen(),
+
+        ],
+      ),
       bottomNavigationBar: CustomBottomNavBar(
         selectedIndex: _selectedIndex,
         onTabSelected: (index) {
@@ -104,8 +113,6 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
       ),
     );
   }
-
-
 
   Widget _getSelectedScreen() {
     switch (_selectedIndex) {

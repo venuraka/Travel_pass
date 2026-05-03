@@ -35,6 +35,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _badgePreference = "Both"; // Current preference
   bool _isLoading = false; // Loading state
 
+
   @override
   void initState() {
     super.initState();
@@ -44,6 +45,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _loadSettings() async {
     setState(() => _isLoading = true);
     try {
+      final prefs = await SharedPreferences.getInstance();
+
+
       final driver = await _controller.getSettings();
       if (driver != null) {
         if (mounted) {
@@ -109,6 +113,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _saveSettings() async {
     setState(() => _isLoading = true);
     try {
+      final prefs = await SharedPreferences.getInstance();
+
+
       await _controller.saveSettings(
         paymentDate: _selectedDate,
         monthlyAmount: _monthlyAmount.toString(),

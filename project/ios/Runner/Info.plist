@@ -59,7 +59,6 @@
 		<string>Precise location is essential for pinpointing bus stops accurately, ensuring fair distance-based payments, and providing high-fidelity tracking for safety.</string>
 	</dict>
 
-
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>
