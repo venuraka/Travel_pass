@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../../controllers/AuthService.dart';
 import '../../utils/AuthExceptionHandler.dart';
@@ -112,6 +113,10 @@ class _LoginPageState extends State<LoginPage> {
     await _handleAuth(_authService.signInWithGoogle);
   }
 
+  Future<void> _signInWithApple() async {
+    await _handleAuth(_authService.signInWithApple);
+  }
+
   Future<void> _handleEmailLogin() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
@@ -152,8 +157,10 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 SizedBox(height: 40.h),
 
-                // Google Sign In Button
+                // Social Sign In Buttons
                 _buildGoogleButton(),
+                const SizedBox(height: 15),
+                _buildAppleButton(),
 
                 const SizedBox(height: 30),
 
@@ -287,6 +294,63 @@ class _LoginPageState extends State<LoginPage> {
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF121415),
+                    ),
+                  ),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAppleButton() {
+    return InkWell(
+      onTap: _isLoading ? null : _signInWithApple,
+      child: Container(
+        width: double.infinity,
+        height: 55.h,
+        decoration: BoxDecoration(
+          color: Colors.black, // Apple's standard black style
+          borderRadius: BorderRadius.circular(30.r),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              offset: Offset(0, 4.h),
+              blurRadius: 10.r,
+            ),
+          ],
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            if (_isLoading)
+              const Center(
+                child: SizedBox(
+                  height: 24,
+                  width: 24,
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    strokeWidth: 2,
+                  ),
+                ),
+              )
+            else
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.apple,
+                    color: Colors.white,
+                    size: 26,
+                  ),
+                  const SizedBox(width: 10),
+                  const Text(
+                    'SignUp with Apple',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
                     ),
                   ),
                 ],

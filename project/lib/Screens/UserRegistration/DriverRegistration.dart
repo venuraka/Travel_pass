@@ -33,11 +33,24 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
     _prefillUserInfo();
   }
 
-  void _prefillUserInfo() {
+  Future<void> _prefillUserInfo() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      _nameController.text = user.displayName ?? '';
-      _emailController.text = user.email ?? '';
+      try {
+        // Force reload to ensure we get the latest displayName (especially for first-time Apple Sign-In)
+        await user.reload();
+        final updatedUser = FirebaseAuth.instance.currentUser;
+        if (updatedUser != null) {
+          setState(() {
+            _nameController.text = updatedUser.displayName ?? '';
+            _emailController.text = updatedUser.email ?? '';
+          });
+        }
+      } catch (e) {
+        // Fallback to current data if reload fails
+        _nameController.text = user.displayName ?? '';
+        _emailController.text = user.email ?? '';
+      }
     }
   }
 

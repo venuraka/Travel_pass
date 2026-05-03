@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../controllers/AuthService.dart';
 import '../../utils/AuthExceptionHandler.dart';
 import 'Login.dart';
@@ -19,7 +21,6 @@ class _RegisterPageState extends State<RegisterPage> {
   final AuthService _authService = AuthService();
 
   // Controllers for Name/Email/Password fields
-  final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
@@ -29,7 +30,6 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   void dispose() {
-    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -58,36 +58,36 @@ class _RegisterPageState extends State<RegisterPage> {
     }
   }
 
-  // 2. Auto-fill Name and Email from Google
-  Future<void> _autoFillFromGoogle() async {
+  Future<void> _signInWithApple() async {
     setState(() => _isLoading = true);
+
     try {
-      final googleUser = await _authService.getGoogleUserOnly();
-      if (googleUser != null) {
-        _nameController.text = googleUser.displayName ?? '';
-        _emailController.text = googleUser.email;
-        
-        if (mounted) {
-          CustomSnackBar.showSuccess(context, "Fields auto-filled from Google!");
-        }
+      final user = await _authService.signInWithApple();
+
+      if (user != null && mounted) {
+        // Navigate to User Selection Screen
+        Navigator.of(context).popUntil((route) => route.isFirst);
       }
     } catch (e) {
-      if (mounted) {
-        CustomSnackBar.showError(context, "Could not auto-fill: ${e.toString()}");
-      }
+      if (!mounted) return;
+      CustomSnackBar.showError(
+        context,
+        AuthExceptionHandler.handleException(e),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  // 3. Corrected Email Sign-Up Logic
+
+
+  // 4. Corrected Email Sign-Up Logic
   Future<void> _handleEmailSignUp() async {
-    final name = _nameController.text.trim();
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
     final confirm = _confirmPasswordController.text.trim();
 
-    if (name.isEmpty || email.isEmpty || password.isEmpty) {
+    if (email.isEmpty || password.isEmpty) {
       CustomSnackBar.showError(context, "Please fill all fields");
       return;
     }
@@ -99,7 +99,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
     setState(() => _isLoading = true);
     try {
-      final user = await _authService.signUpWithEmail(email, password, name: name);
+      final user = await _authService.signUpWithEmail(email, password);
       if (user != null && mounted) {
         // Navigate to User Selection Screen
         Navigator.of(context).popUntil((route) => route.isFirst);
@@ -142,9 +142,11 @@ class _RegisterPageState extends State<RegisterPage> {
                   'Create an account to get started',
                   style: TextStyle(fontSize: 16, color: Color(0xFF05A664)),
                 ),
-                const SizedBox(height: 40),
+                SizedBox(height: 40.h),
 
                 _buildGoogleButton(),
+                const SizedBox(height: 15),
+                _buildAppleButton(),
 
                 const SizedBox(height: 30),
                 Row(
@@ -223,11 +225,11 @@ class _RegisterPageState extends State<RegisterPage> {
       onTap: _isLoading ? null : _signInWithGoogle,
       child: Container(
         width: double.infinity,
-        height: 55,
+        height: 55.h,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(30),
-          border: Border.all(color: const Color(0xFF121415), width: 1.5),
+          borderRadius: BorderRadius.circular(30.r),
+          border: Border.all(color: const Color(0xFF121415), width: 1.5.w),
         ),
         child: _isLoading
             ? const Center(
@@ -257,34 +259,58 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
+  Widget _buildAppleButton() {
+    return InkWell(
+      onTap: _isLoading ? null : _signInWithApple,
+      child: Container(
+        width: double.infinity,
+        height: 55.h,
+        decoration: BoxDecoration(
+          color: Colors.black,
+          borderRadius: BorderRadius.circular(30.r),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              offset: Offset(0, 4.h),
+              blurRadius: 10.r,
+            ),
+          ],
+        ),
+        child: _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.apple,
+                    color: Colors.white,
+                    size: 26,
+                  ),
+                  const SizedBox(width: 10),
+                  const Text(
+                    'Sign up with Apple',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+
   Widget _buildEmailForm() {
     return Column(
       children: [
+
         _buildTextField(
-          label: 'Full Name',
-          controller: _nameController,
-          keyboardType: TextInputType.name,
-        ),
-        const SizedBox(height: 15),
-        Row(
-          children: [
-            Expanded(
-              child: _buildTextField(
-                label: 'Email',
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-              ),
-            ),
-            const SizedBox(width: 10),
-            TextButton.icon(
-              onPressed: _isLoading ? null : _autoFillFromGoogle,
-              icon: const Icon(Icons.auto_awesome, size: 18, color: Color(0xFF05A664)),
-              label: const Text(
-                "Auto-fill",
-                style: TextStyle(color: Color(0xFF05A664), fontSize: 12),
-              ),
-            ),
-          ],
+          label: 'Email',
+          controller: _emailController,
+          keyboardType: TextInputType.emailAddress,
         ),
         const SizedBox(height: 15),
         _buildTextField(
@@ -302,13 +328,13 @@ class _RegisterPageState extends State<RegisterPage> {
 
         SizedBox(
           width: double.infinity,
-          height: 55,
+          height: 55.h,
           child: ElevatedButton(
             onPressed: _isLoading ? null : _handleEmailSignUp,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF05A664),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
+                borderRadius: BorderRadius.circular(30.r),
               ),
             ),
             child: const Text(
@@ -321,7 +347,7 @@ class _RegisterPageState extends State<RegisterPage> {
             ),
           ),
         ),
-        const SizedBox(height: 15),
+        SizedBox(height: 15.h),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -357,11 +383,16 @@ class _RegisterPageState extends State<RegisterPage> {
       keyboardType: keyboardType,
       decoration: InputDecoration(
         labelText: label,
-        enabledBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Color(0xFF05A664)),
+        labelStyle: TextStyle(
+          color: const Color(0xFF121415),
+          fontWeight: FontWeight.w500,
+          fontSize: 14.sp,
         ),
-        focusedBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Color(0xFF05A664), width: 2.0),
+        enabledBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: const Color(0xFF05A664), width: 1.0.w),
+        ),
+        focusedBorder: UnderlineInputBorder(
+          borderSide: BorderSide(color: const Color(0xFF05A664), width: 2.0.w),
         ),
       ),
     );

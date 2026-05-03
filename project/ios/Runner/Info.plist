@@ -48,20 +48,17 @@
 	<true/>
 
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>This app needs access to location when open to show your current location on the map.</string>
+	<string>Travel Pass uses your location to track your journey in real-time, providing passengers with accurate ETAs and ensuring seamless fare calculation.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
-	<string>This app needs access to location when in the background to show your current location on the map.</string>
+	<string>Your location is used in the background to ensure continuous journey tracking and real-time updates for passengers, even when the screen is off.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>This app needs access to location when open and in the background to show your current location on the map.</string>
+	<string>Travel Pass requires constant location access to provide seamless real-time tracking, accurate navigation for drivers, and reliable ETAs for passengers throughout the entire journey.</string>
 	<key>NSLocationTemporaryUsageDescriptionDictionary</key>
 	<dict>
 		<key>PreciseLocation</key>
-		<string>This app needs precise location for accurate driver tracking during journeys.</string>
+		<string>Precise location is essential for pinpointing bus stops accurately, ensuring fair distance-based payments, and providing high-fidelity tracking for safety.</string>
 	</dict>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>This app needs access to the microphone for the voice assistant features.</string>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>This app needs access to speech recognition to process your voice commands.</string>
+
 
 	<key>UIBackgroundModes</key>
 	<array>

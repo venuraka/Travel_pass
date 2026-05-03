@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../models/UserModel.dart';
 
 class AuthService {
@@ -87,6 +88,57 @@ class AuthService {
     }
   }
 
+  // 6. Sign in with Apple
+  Future<MyUserModel?> signInWithApple() async {
+    try {
+      final appleCredential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+
+      final OAuthProvider oAuthProvider = OAuthProvider("apple.com");
+      final AuthCredential credential = oAuthProvider.credential(
+        idToken: appleCredential.identityToken,
+        accessToken: appleCredential.authorizationCode,
+      );
+
+      // Sign in to Firebase
+      UserCredential result = await _auth.signInWithCredential(credential);
+
+      // Apple only provides the name on the first sign-in
+      // If it's provided, update the Firebase user profile
+      if (appleCredential.givenName != null || appleCredential.familyName != null) {
+        String fullName = [appleCredential.givenName, appleCredential.familyName]
+            .where((name) => name != null)
+            .join(' ');
+        if (fullName.isNotEmpty) {
+          await result.user!.updateDisplayName(fullName);
+          await result.user!.reload();
+        }
+      }
+
+      return MyUserModel.fromFirebaseUser(_auth.currentUser!);
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // 7. Get Apple User without Firebase Sign-In (for Auto-fill)
+  Future<AuthorizationCredentialAppleID?> getAppleUserOnly() async {
+    try {
+      return await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   // 5. Delete Account with Re-authentication
   Future<void> deleteAccountWithReauth({String? password}) async {
     try {
@@ -106,6 +158,18 @@ class AuthService {
               idToken: googleAuth.idToken,
             );
           }
+        } else if (userInfo.providerId == 'apple.com') {
+          final appleCredential = await SignInWithApple.getAppleIDCredential(
+            scopes: [
+              AppleIDAuthorizationScopes.email,
+              AppleIDAuthorizationScopes.fullName,
+            ],
+          );
+          final OAuthProvider oAuthProvider = OAuthProvider("apple.com");
+          credential = oAuthProvider.credential(
+            idToken: appleCredential.identityToken,
+            accessToken: appleCredential.authorizationCode,
+          );
         } else if (userInfo.providerId == 'password' && password != null) {
           credential = EmailAuthProvider.credential(
             email: user.email!,

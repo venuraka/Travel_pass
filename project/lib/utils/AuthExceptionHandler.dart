@@ -30,6 +30,9 @@ class AuthExceptionHandler {
     } else if (e.toString().contains('GoogleSignInException') &&
         e.toString().contains('canceled')) {
       return 'Sign in cancelled.';
+    } else if (e.toString().contains('SignInWithAppleAuthorizationException') &&
+        e.toString().contains('canceled')) {
+      return 'Sign in cancelled.';
     } else {
       return 'An error occurred: ${e.toString()}';
     }
