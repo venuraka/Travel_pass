@@ -15,114 +15,114 @@ class UserSelectionScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF1F8F5),
       body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 30.0.w),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: <Widget>[
-
-              // 1. Header Section
-              SizedBox(height: 50.h),
-              Text(
-                'Welcome',
-                style: TextStyle(
-                  fontSize: 60.sp,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF121415),
-                ),
-              ),
-              SizedBox(height: 8.h),
-              Text(
-                'Choose How you want to continue',
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  color: const Color(0xFF05A664),
-                ),
-              ),
-
-              // Add spacing before the selection tiles
-              SizedBox(height: 50.h),
-
-              // 2. Driver Selection Tile (using the new overlapping design)
-              SelectionTile(
-                icon: Icons.directions_bus,
-                title: 'Driver',
-                subtitle: 'Register As a Driver',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const DriverRegistrationScreen()),
-                  );
-                },
-              ),
-
-              SizedBox(height: 20.h),
-
-              // 3. Passenger Selection Tile (using the new overlapping design)
-              SelectionTile(
-                icon: Icons.person,
-                title: 'Passenger',
-                subtitle: 'Register As a Passenger',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const PassengerRegistrationScreen()),
-                  );
-                },
-              ),
-
-              // 4. Spacer to push the Terms to the bottom
-              const Spacer(),
-
-              // 5. Terms of Service & Privacy Policy Footer
-              Padding(
-                padding: EdgeInsets.only(bottom: 20.0.h),
-                child: RichText(
-                  textAlign: TextAlign.center,
-                  text: TextSpan(
-                    style: TextStyle(
-                      fontSize: 12.sp,
-                      color: Colors.grey[600],
-                      fontFamily: 'Poppins',
-                    ),
-                    children: [
-                      const TextSpan(text: 'By continuing, you agree to our '),
-                      TextSpan(
-                        text: 'Terms of Service',
-                        style: const TextStyle(
-                          color: Color(0xFF05A664),
-                          fontWeight: FontWeight.bold,
-                          decoration: TextDecoration.underline,
-                        ),
-                        recognizer: TapGestureRecognizer()
-                          ..onTap = () async {
-                            final Uri url = Uri.parse('https://venuraka.github.io/TravelPass-Additional-Information/');
-                            if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-                              debugPrint("Could not launch $url");
-                            }
-                          },
-                      ),
-                      const TextSpan(text: ' and '),
-                      TextSpan(
-                        text: 'Privacy Policy',
-                        style: const TextStyle(
-                          color: Color(0xFF05A664),
-                          fontWeight: FontWeight.bold,
-                          decoration: TextDecoration.underline,
-                        ),
-                        recognizer: TapGestureRecognizer()
-                          ..onTap = () async {
-                            final Uri url = Uri.parse('https://venuraka.github.io/TravelPass-Additional-Information/');
-                            if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-                              debugPrint("Could not launch $url");
-                            }
-                          },
-                      ),
-                    ],
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 30.0.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: <Widget>[
+                // 1. Header Section
+                SizedBox(height: 50.h),
+                Text(
+                  'Welcome',
+                  style: TextStyle(
+                    fontSize: 60.sp,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF121415),
                   ),
                 ),
-              ),
-            ],
+                SizedBox(height: 8.h),
+                Text(
+                  'Choose How you want to continue',
+                  style: TextStyle(
+                    fontSize: 18.sp,
+                    color: const Color(0xFF05A664),
+                  ),
+                ),
+
+                // Add spacing before the selection tiles
+                SizedBox(height: 50.h),
+
+                // 2. Driver Selection Tile
+                SelectionTile(
+                  icon: Icons.directions_bus,
+                  title: 'Driver',
+                  subtitle: 'Register As a Driver',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const DriverRegistrationScreen()),
+                    );
+                  },
+                ),
+
+                SizedBox(height: 20.h),
+
+                // 3. Passenger Selection Tile
+                SelectionTile(
+                  icon: Icons.person,
+                  title: 'Passenger',
+                  subtitle: 'Register As a Passenger',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const PassengerRegistrationScreen()),
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 40),
+
+                // 5. Terms of Service & Privacy Policy Footer
+                Padding(
+                  padding: EdgeInsets.only(bottom: 20.0.h),
+                  child: RichText(
+                    textAlign: TextAlign.center,
+                    text: TextSpan(
+                      style: TextStyle(
+                        fontSize: 12.sp,
+                        color: Colors.grey[600],
+                        fontFamily: 'Poppins',
+                      ),
+                      children: [
+                        const TextSpan(text: 'By continuing, you agree to our '),
+                        TextSpan(
+                          text: 'Terms of Service',
+                          style: const TextStyle(
+                            color: Color(0xFF05A664),
+                            fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.underline,
+                          ),
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () async {
+                              final Uri url = Uri.parse('https://venuraka.github.io/TravelPass-Additional-Information/');
+                              if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+                                debugPrint("Could not launch $url");
+                              }
+                            },
+                        ),
+                        const TextSpan(text: ' and '),
+                        TextSpan(
+                          text: 'Privacy Policy',
+                          style: const TextStyle(
+                            color: Color(0xFF05A664),
+                            fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.underline,
+                          ),
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () async {
+                              final Uri url = Uri.parse('https://venuraka.github.io/TravelPass-Additional-Information/');
+                              if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+                                debugPrint("Could not launch $url");
+                              }
+                            },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
