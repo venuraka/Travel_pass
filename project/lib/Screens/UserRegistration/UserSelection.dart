@@ -7,8 +7,91 @@ import 'PassengerRegistration.dart';
 
 
 // You would use this in your main.dart or a dedicated screen file
-class UserSelectionScreen extends StatelessWidget {
+import 'package:shared_preferences/shared_preferences.dart';
+
+class UserSelectionScreen extends StatefulWidget {
   const UserSelectionScreen({super.key});
+
+  @override
+  State<UserSelectionScreen> createState() => _UserSelectionScreenState();
+}
+
+class _UserSelectionScreenState extends State<UserSelectionScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkLocationDisclosure());
+  }
+
+  Future<void> _checkLocationDisclosure() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenDisclosure = prefs.getBool('has_seen_location_disclosure') ?? false;
+
+    if (!hasSeenDisclosure && mounted) {
+      _showDisclosureDialog(prefs);
+    }
+  }
+
+  void _showDisclosureDialog(SharedPreferences prefs) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+        title: Row(
+          children: [
+            Icon(Icons.location_on_rounded, color: const Color(0xFF05A664), size: 28.sp),
+            SizedBox(width: 10.w),
+            Text(
+              "Location Usage",
+              style: TextStyle(fontSize: 20.sp, fontWeight: FontWeight.bold, color: const Color(0xFF121415)),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              "Travel Pass collects location data to enable real-time journey tracking and accurate passenger ETAs even when the app is closed or not in use.",
+              style: TextStyle(fontSize: 14.sp, color: const Color(0xFF121415)),
+            ),
+            SizedBox(height: 15.h),
+            Container(
+              padding: EdgeInsets.all(10.r),
+              decoration: BoxDecoration(
+                color: const Color(0xFF05A664).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10.r),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.security_rounded, color: const Color(0xFF05A664), size: 18.sp),
+                  SizedBox(width: 10.w),
+                  Expanded(
+                    child: Text(
+                      "We don't save your personal location history. Data is only used for real-time tracking during journeys.",
+                      style: TextStyle(fontSize: 12.sp, color: const Color(0xFF05A664), fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await prefs.setBool('has_seen_location_disclosure', true);
+              if (mounted) Navigator.pop(context);
+            },
+            child: Text(
+              "I UNDERSTAND",
+              style: TextStyle(color: const Color(0xFF05A664), fontWeight: FontWeight.bold, fontSize: 14.sp),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
