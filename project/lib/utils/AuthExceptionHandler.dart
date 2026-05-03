@@ -25,7 +25,7 @@ class AuthExceptionHandler {
         case 'credential-already-in-use':
           return 'This credential is already associated with a different user account.';
         default:
-          return 'Authentication failed: ${e.message ?? "Unknown error"}';
+          return 'User Is not Registerd';
       }
     } else if (e.toString().contains('GoogleSignInException') &&
         e.toString().contains('canceled')) {

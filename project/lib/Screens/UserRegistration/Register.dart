@@ -2,13 +2,20 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+// import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../controllers/AuthService.dart';
+import '../../controllers/AccessController.dart';
 import '../../utils/AuthExceptionHandler.dart';
-import 'Login.dart';
-import 'UserSelection.dart';
+import '../passenger/Dashboard.dart';
+import '../passenger/PendingApproval.dart';
+import '../UserRegistration/UserSelection.dart';
 import '../Components/CustomSnackBar.dart';
+import '../../models/UserModel.dart';
+import '../Driver/Dashboard.dart';
+import '../Driver/DriverPendingApproval.dart';
+import 'Login.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -20,6 +27,8 @@ class RegisterPage extends StatefulWidget {
 class _RegisterPageState extends State<RegisterPage> {
   // MVC: Initialize the Service (Model)
   final AuthService _authService = AuthService();
+  final AccessController _accessController = AccessController();
+  final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   // Controllers for Name/Email/Password fields
   final TextEditingController _emailController = TextEditingController();
@@ -37,16 +46,12 @@ class _RegisterPageState extends State<RegisterPage> {
     super.dispose();
   }
 
-  // 1. Corrected Google Sign-In Logic
-  Future<void> _signInWithGoogle() async {
+  Future<void> _handleAuth(Future<MyUserModel?> Function() authFunction) async {
     setState(() => _isLoading = true);
-
     try {
-      final user = await _authService.signInWithGoogle();
-
+      final user = await authFunction();
       if (user != null && mounted) {
-        // Navigate to User Selection Screen
-        Navigator.of(context).popUntil((route) => route.isFirst);
+        _navigateBasedOnRole(user.uid);
       }
     } catch (e) {
       if (!mounted) return;
@@ -59,25 +64,62 @@ class _RegisterPageState extends State<RegisterPage> {
     }
   }
 
-  Future<void> _signInWithApple() async {
-    setState(() => _isLoading = true);
-
-    try {
-      final user = await _authService.signInWithApple();
-
-      if (user != null && mounted) {
-        // Navigate to User Selection Screen
-        Navigator.of(context).popUntil((route) => route.isFirst);
-      }
-    } catch (e) {
+  Future<void> _navigateBasedOnRole(String uid) async {
+    // Check if Driver
+    final isDriver = await _accessController.isDriver(uid);
+    if (isDriver) {
       if (!mounted) return;
-      CustomSnackBar.showError(
-        context,
-        AuthExceptionHandler.handleException(e),
-      );
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+      final isDriverApproved = await _accessController.isDriverApproved(uid);
+      if (isDriverApproved) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const DriverDashboardScreen()),
+        );
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const DriverPendingApprovalScreen()),
+        );
+      }
+      return;
     }
+
+    // Check if Passenger
+    final isApproved = await _accessController.checkPassengerStatus(uid);
+    if (!mounted) return;
+
+    if (isApproved) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const PassengerDashboardApp()),
+      );
+    } else {
+      final isPassenger = await _db.collection('passenger').doc(uid).get();
+
+      if (isPassenger.exists) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const PendingApprovalScreen(),
+          ),
+        );
+      } else {
+        // New user
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const UserSelectionScreen()),
+        );
+      }
+    }
+  }
+
+  // 1. Corrected Google Sign-In Logic
+  Future<void> _signInWithGoogle() async {
+    await _handleAuth(_authService.signInWithGoogle);
+  }
+
+  Future<void> _signInWithApple() async {
+    await _handleAuth(_authService.signInWithApple);
   }
 
 
@@ -98,23 +140,7 @@ class _RegisterPageState extends State<RegisterPage> {
       return;
     }
 
-    setState(() => _isLoading = true);
-    try {
-      final user = await _authService.signUpWithEmail(email, password);
-      if (user != null && mounted) {
-        // Navigate to User Selection Screen
-        Navigator.of(context).popUntil((route) => route.isFirst);
-      }
-    } catch (e) {
-      if (mounted) {
-        CustomSnackBar.showError(
-          context,
-          AuthExceptionHandler.handleException(e),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
+    await _handleAuth(() => _authService.signUpWithEmail(email, password));
   }
 
   @override
@@ -146,7 +172,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 SizedBox(height: 40.h),
 
                 _buildGoogleButton(),
-                if (Platform.isIOS) ...[
+                if (Platform.isIOS && false) ...[ // Temporarily disabled for free accounts
                   _buildAppleButton(),
                   const SizedBox(height: 15),
                 ],

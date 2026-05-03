@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+// import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../models/UserModel.dart';
 
 class AuthService {
@@ -88,8 +88,10 @@ class AuthService {
     }
   }
 
-  // 6. Sign in with Apple
+  // 6. Sign in with Apple (Disabled until paid developer account)
   Future<MyUserModel?> signInWithApple() async {
+    throw Exception("Apple Sign-In is currently disabled.");
+    /*
     try {
       final appleCredential = await SignInWithApple.getAppleIDCredential(
         scopes: [
@@ -123,10 +125,13 @@ class AuthService {
     } catch (e) {
       rethrow;
     }
+    */
   }
 
-  // 7. Get Apple User without Firebase Sign-In (for Auto-fill)
-  Future<AuthorizationCredentialAppleID?> getAppleUserOnly() async {
+  // 7. Get Apple User without Firebase Sign-In (for Auto-fill) - Disabled
+  Future<dynamic> getAppleUserOnly() async {
+    return null;
+    /*
     try {
       return await SignInWithApple.getAppleIDCredential(
         scopes: [
@@ -137,6 +142,7 @@ class AuthService {
     } catch (e) {
       rethrow;
     }
+    */
   }
 
   // 5. Delete Account with Re-authentication
@@ -159,6 +165,9 @@ class AuthService {
             );
           }
         } else if (userInfo.providerId == 'apple.com') {
+          // Apple Re-auth disabled for free accounts
+          throw Exception("Apple re-authentication is currently unavailable.");
+          /*
           final appleCredential = await SignInWithApple.getAppleIDCredential(
             scopes: [
               AppleIDAuthorizationScopes.email,
@@ -170,6 +179,7 @@ class AuthService {
             idToken: appleCredential.identityToken,
             accessToken: appleCredential.authorizationCode,
           );
+          */
         } else if (userInfo.providerId == 'password' && password != null) {
           credential = EmailAuthProvider.credential(
             email: user.email!,
