@@ -93,6 +93,48 @@ class _PassengersummeryScreenState extends State<PassengersummeryScreen> {
             children: [
               const SizedBox(height: 10),
 
+              // --- Date Display Section ---
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: appGreen.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(15),
+                    border: Border.all(color: appGreen.withOpacity(0.1)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.calendar_month_rounded, color: appGreen, size: 28),
+                      const SizedBox(width: 15),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            DateFormat('EEEE').format(widget.selectedDay),
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: appGreen,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            DateFormat('MMMM dd, yyyy').format(widget.selectedDay),
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF121415),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 5),
+
               // --- Section 1: Confirmed Passengers ---
               if (_boarded.isNotEmpty) ...[
                 _buildSectionHeader("Confirmed Passengers", appGreen),
