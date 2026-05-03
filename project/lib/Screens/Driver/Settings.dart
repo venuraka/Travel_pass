@@ -34,7 +34,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   DateTime? _selectedDate;
   String _badgePreference = "Both"; // Current preference
   bool _isLoading = false; // Loading state
-  bool _showVoiceAssistant = true;
+
 
   @override
   void initState() {
@@ -46,7 +46,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _isLoading = true);
     try {
       final prefs = await SharedPreferences.getInstance();
-      _showVoiceAssistant = prefs.getBool('show_ai_assistant') ?? true;
+
 
       final driver = await _controller.getSettings();
       if (driver != null) {
@@ -114,7 +114,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _isLoading = true);
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('show_ai_assistant', _showVoiceAssistant);
+
 
       await _controller.saveSettings(
         paymentDate: _selectedDate,
@@ -406,12 +406,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           _buildBadgePreferenceSection(),
                           const SizedBox(height: 30),
 
-                          // --- AI Assistant Toggle ---
-                          _buildToggleSection(
-                            "AI Voice Assistant",
-                            _showVoiceAssistant,
-                            (val) => setState(() => _showVoiceAssistant = val),
-                          ),
+
 
                           const SizedBox(height: 40),
 

@@ -58,10 +58,6 @@
 		<key>PreciseLocation</key>
 		<string>This app needs precise location for accurate driver tracking during journeys.</string>
 	</dict>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>This app needs access to the microphone for the voice assistant features.</string>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>This app needs access to speech recognition to process your voice commands.</string>
 
 	<key>UIBackgroundModes</key>
 	<array>
