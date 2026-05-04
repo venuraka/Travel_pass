@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:url_launcher/url_launcher.dart';
-// import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../controllers/AuthService.dart';
@@ -172,7 +172,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 SizedBox(height: 40.h),
 
                 _buildGoogleButton(),
-                if (Platform.isIOS && false) ...[ // Temporarily disabled for free accounts
+                if (Platform.isIOS) ...[ 
                   _buildAppleButton(),
                   const SizedBox(height: 15),
                 ],

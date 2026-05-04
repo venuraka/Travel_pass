@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
-// import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
 import '../../controllers/AuthService.dart';
 import '../../utils/AuthExceptionHandler.dart';
@@ -160,7 +160,7 @@ class _LoginPageState extends State<LoginPage> {
 
                 // Social Sign In Buttons
                 _buildGoogleButton(),
-                if (Platform.isIOS && false) ...[ // Temporarily disabled for free accounts
+                if (Platform.isIOS) ...[ 
                   _buildAppleButton(),
                   const SizedBox(height: 15),
                 ],
@@ -349,7 +349,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   const SizedBox(width: 10),
                   const Text(
-                    'SignUp with Apple',
+                    'Sign in with Apple',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
