@@ -161,8 +161,8 @@ class _LoginPageState extends State<LoginPage> {
                 // Social Sign In Buttons
                 _buildGoogleButton(),
                 if (Platform.isIOS) ...[ 
+                  SizedBox(height: 20.h),
                   _buildAppleButton(),
-                  const SizedBox(height: 15),
                 ],
 
                 const SizedBox(height: 30),
@@ -306,6 +306,8 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
+
+  
 
   Widget _buildAppleButton() {
     return InkWell(

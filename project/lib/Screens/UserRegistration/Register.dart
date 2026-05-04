@@ -146,104 +146,125 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
+      backgroundColor: const Color(0xFFF1F8F5),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent, 
+        elevation: 0,
+        toolbarHeight: 40.h,
+      ),
+      resizeToAvoidBottomInset: true,
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 30.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: <Widget>[
-                const SizedBox(height: 30),
-                const Text(
-                  'Register',
-                  style: TextStyle(
-                    fontSize: 40,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF121415),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  'Create an account to get started',
-                  style: TextStyle(fontSize: 16, color: Color(0xFF05A664)),
-                ),
-                SizedBox(height: 40.h),
-
-                _buildGoogleButton(),
-                if (Platform.isIOS) ...[ 
-                  _buildAppleButton(),
-                  const SizedBox(height: 15),
-                ],
-
-                const SizedBox(height: 30),
-                Row(
-                  children: const [
-                    Expanded(child: Divider(color: Color(0xFF121415))),
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 10),
-                      child: Text("Register with Email"),
-                    ),
-                    Expanded(child: Divider(color: Color(0xFF121415))),
-                  ],
-                ),
-
-                const SizedBox(height: 30),
-                _buildEmailForm(),
-                const SizedBox(height: 20),
-
-                // Terms of Service & Privacy Policy Footer
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 20.0),
-                  child: RichText(
-                    textAlign: TextAlign.center,
-                    text: TextSpan(
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                        fontFamily: 'Poppins',
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return Padding(
+              padding: EdgeInsets.symmetric(horizontal: 30.w),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: <Widget>[
+                  // 1. Header Section (Title + Subtitle)
+                  Column(
+                    children: [
+                      SizedBox(height: 10.h),
+                      Text(
+                        'Register',
+                        style: TextStyle(
+                          fontSize: 36.sp,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF121415),
+                        ),
                       ),
-                      children: [
-                        const TextSpan(text: 'By continuing, you agree to our '),
-                        TextSpan(
-                          text: 'Terms of Service',
-                          style: const TextStyle(
-                            color: Color(0xFF05A664),
-                            fontWeight: FontWeight.bold,
-                            decoration: TextDecoration.underline,
-                          ),
-                          recognizer: TapGestureRecognizer()
-                            ..onTap = () async {
-                              final Uri url = Uri.parse('https://venuraka.github.io/TravelPass-Additional-Information/#terms');
-                              if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-                                debugPrint("Could not launch $url");
-                              }
-                            },
+                      SizedBox(height: 5.h),
+                      Text(
+                        'Create an account to get started',
+                        style: TextStyle(
+                          fontSize: 14.sp, 
+                          color: const Color(0xFF05A664),
                         ),
-                        const TextSpan(text: ' and '),
-                        TextSpan(
-                          text: 'Privacy Policy',
-                          style: const TextStyle(
-                            color: Color(0xFF05A664),
-                            fontWeight: FontWeight.bold,
-                            decoration: TextDecoration.underline,
-                          ),
-                          recognizer: TapGestureRecognizer()
-                            ..onTap = () async {
-                              final Uri url = Uri.parse('https://venuraka.github.io/TravelPass-Additional-Information/#privacy');
-                              if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-                                debugPrint("Could not launch $url");
-                              }
-                            },
-                        ),
+                      ),
+                    ],
+                  ),
+
+                  // 2. Social Buttons Section
+                  Column(
+                    children: [
+                      _buildGoogleButton(),
+                      if (Platform.isIOS) ...[ 
+                        SizedBox(height: 12.h),
+                        _buildAppleButton(),
                       ],
+                    ],
+                  ),
+
+                  // 3. Divider
+                  Row(
+                    children: [
+                      const Expanded(child: Divider(color: Color(0xFF121415))),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 10.w),
+                        child: Text(
+                          "Register with Email",
+                          style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                      const Expanded(child: Divider(color: Color(0xFF121415))),
+                    ],
+                  ),
+
+                  // 4. Email Form Section
+                  _buildEmailForm(),
+
+                  // 5. Terms of Service Footer
+                  Padding(
+                    padding: EdgeInsets.only(bottom: 15.h),
+                    child: RichText(
+                      textAlign: TextAlign.center,
+                      text: TextSpan(
+                        style: TextStyle(
+                          fontSize: 11.sp,
+                          color: Colors.grey[600],
+                          fontFamily: 'Poppins',
+                        ),
+                        children: [
+                          const TextSpan(text: 'By continuing, you agree to our '),
+                          TextSpan(
+                            text: 'Terms of Service',
+                            style: const TextStyle(
+                              color: Color(0xFF05A664),
+                              fontWeight: FontWeight.bold,
+                              decoration: TextDecoration.underline,
+                            ),
+                            recognizer: TapGestureRecognizer()
+                              ..onTap = () async {
+                                final Uri url = Uri.parse('https://venuraka.github.io/TravelPass-Additional-Information/#terms');
+                                if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+                                  debugPrint("Could not launch $url");
+                                }
+                              },
+                          ),
+                          const TextSpan(text: ' and '),
+                          TextSpan(
+                            text: 'Privacy Policy',
+                            style: const TextStyle(
+                              color: Color(0xFF05A664),
+                              fontWeight: FontWeight.bold,
+                              decoration: TextDecoration.underline,
+                            ),
+                            recognizer: TapGestureRecognizer()
+                              ..onTap = () async {
+                                final Uri url = Uri.parse('https://venuraka.github.io/TravelPass-Additional-Information/#privacy');
+                                if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+                                  debugPrint("Could not launch $url");
+                                }
+                              },
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
+                ],
+              ),
+            );
+          },
         ),
       ),
     );

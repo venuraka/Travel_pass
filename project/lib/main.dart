@@ -57,8 +57,8 @@ class MyApp extends StatelessWidget {
           // home: const PassengerDashboardApp(),
           // home: const DriverDashboardScreen(),
           // this should be default button,dont change this 
-          home: const AuthWrapper(),
-          // home: LoginPage(),
+          // home: const AuthWrapper(),
+          home: LoginPage(),
         );
       },
     );
