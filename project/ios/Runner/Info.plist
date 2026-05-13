@@ -56,6 +56,10 @@
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Travel Pass uses your location to track your journey in real-time, providing passengers with accurate ETAs and ensuring seamless fare calculation.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app needs access to the microphone for the voice assistant features.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>This app needs access to speech recognition to process your voice commands.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

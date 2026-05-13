@@ -34,6 +34,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   DateTime? _selectedDate;
   String _badgePreference = "Both"; // Current preference
   bool _isLoading = false; // Loading state
+  bool _showVoiceAssistant = true;
 
 
   @override
@@ -46,6 +47,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _isLoading = true);
     try {
       final prefs = await SharedPreferences.getInstance();
+      _showVoiceAssistant = prefs.getBool('show_ai_assistant') ?? true;
 
 
       final driver = await _controller.getSettings();
@@ -114,6 +116,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     setState(() => _isLoading = true);
     try {
       final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('show_ai_assistant', _showVoiceAssistant);
 
 
       await _controller.saveSettings(
@@ -406,7 +409,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           _buildBadgePreferenceSection(),
                           const SizedBox(height: 30),
 
-
+                          // --- AI Assistant Toggle ---
+                          _buildToggleSection(
+                            "AI Voice Assistant",
+                            _showVoiceAssistant,
+                            (val) => setState(() => _showVoiceAssistant = val),
+                          ),
 
                           const SizedBox(height: 40),
 
@@ -607,6 +615,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildToggleSection(
+      String title, bool value, ValueChanged<bool> onChanged) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 5.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: Color(0xFF05A664),
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeColor: appGreen,
+            activeTrackColor: appGreen.withOpacity(0.3),
+          ),
+        ],
+      ),
     );
   }
 

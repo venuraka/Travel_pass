@@ -9,6 +9,7 @@ const db = admin.firestore();
 
 const payhereSecret = defineSecret("PAYHERE_MERCHANT_SECRET");
 const payhereMerchantId = defineSecret("PAYHERE_MERCHANT_ID");
+const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
 const weatherApiKey = defineSecret("OPENWEATHER_API_KEY");
 
@@ -303,8 +304,65 @@ export const payhereNotify = onRequest({secrets: [payhereSecret]},
   These functions keep API keys on the server and use defineSecret.
 */
 
+// 1. Gemini AI Proxy
+export const getGeminiResponse = onCall(
+  {secrets: [geminiApiKey]},
+  async (request) => {
+    if (!request.auth) throw new Error("Unauthorized");
 
+    const {prompt, history, systemInstruction} = request.data;
+    const apiKey = geminiApiKey.value();
 
+    logger.info("Gemini Request:", {prompt, historyCount: history?.length});
+
+    try {
+      const candidateModels = [
+        "gemini-2.5-flash",
+        "gemini-2.0-flash-001",
+        "gemini-flash-latest",
+      ];
+      let lastErrorText = "No model attempts were made.";
+      let lastStatus = -1;
+
+      for (const model of candidateModels) {
+        const url = "https://generativelanguage.googleapis.com/v1beta/models/" +
+          `${model}:generateContent?key=${apiKey}`;
+
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({
+            contents: [
+              ...(history || []),
+              {role: "user", parts: [{text: prompt}]},
+            ],
+            system_instruction: systemInstruction ?
+              {parts: [{text: systemInstruction}]} : undefined,
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          logger.info("Gemini Response received successfully", {model});
+          return data;
+        }
+
+        const errorText = await response.text();
+        lastErrorText = errorText;
+        lastStatus = response.status;
+        logger.error("Gemini API Error Response:", {
+          model,
+          status: response.status,
+          error: errorText,
+        });
+      }
+
+      throw new Error(`Gemini API returned ${lastStatus}: ${lastErrorText}`);
+    } catch (error) {
+      logger.error("Gemini Proxy Error:", error);
+      throw new Error("Failed to get AI response");
+    }
+  });
 
 // 2. OpenWeather Proxy
 export const getWeatherData = onCall(
