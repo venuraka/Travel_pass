@@ -156,112 +156,121 @@ class _RegisterPageState extends State<RegisterPage> {
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            return Padding(
-              padding: EdgeInsets.symmetric(horizontal: 30.w),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: <Widget>[
-                  // 1. Header Section (Title + Subtitle)
-                  Column(
-                    children: [
-                      SizedBox(height: 10.h),
-                      Text(
-                        'Register',
-                        style: TextStyle(
-                          fontSize: 36.sp,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF121415),
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: constraints.maxHeight,
+                ),
+                child: IntrinsicHeight(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 30.w),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: <Widget>[
+                        // 1. Header Section (Title + Subtitle)
+                        Column(
+                          children: [
+                            SizedBox(height: 10.h),
+                            Text(
+                              'Register',
+                              style: TextStyle(
+                                fontSize: 36.sp,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF121415),
+                              ),
+                            ),
+                            SizedBox(height: 5.h),
+                            Text(
+                              'Create an account to get started',
+                              style: TextStyle(
+                                fontSize: 14.sp, 
+                                color: const Color(0xFF05A664),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      SizedBox(height: 5.h),
-                      Text(
-                        'Create an account to get started',
-                        style: TextStyle(
-                          fontSize: 14.sp, 
-                          color: const Color(0xFF05A664),
-                        ),
-                      ),
-                    ],
-                  ),
 
-                  // 2. Social Buttons Section
-                  Column(
-                    children: [
-                      _buildGoogleButton(),
-                      if (Platform.isIOS) ...[ 
-                        SizedBox(height: 12.h),
-                        _buildAppleButton(),
+                        // 2. Social Buttons Section
+                        Column(
+                          children: [
+                            _buildGoogleButton(),
+                            if (Platform.isIOS) ...[ 
+                              SizedBox(height: 12.h),
+                              _buildAppleButton(),
+                            ],
+                          ],
+                        ),
+
+                        // 3. Divider
+                        Row(
+                          children: [
+                            const Expanded(child: Divider(color: Color(0xFF121415))),
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 10.w),
+                              child: Text(
+                                "Register with Email",
+                                style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w500),
+                              ),
+                            ),
+                            const Expanded(child: Divider(color: Color(0xFF121415))),
+                          ],
+                        ),
+
+                        // 4. Email Form Section
+                        _buildEmailForm(),
+
+                        // 5. Terms of Service Footer
+                        Padding(
+                          padding: EdgeInsets.only(bottom: 15.h),
+                          child: RichText(
+                            textAlign: TextAlign.center,
+                            text: TextSpan(
+                              style: TextStyle(
+                                fontSize: 11.sp,
+                                color: Colors.grey[600],
+                                fontFamily: 'Poppins',
+                              ),
+                              children: [
+                                const TextSpan(text: 'By continuing, you agree to our '),
+                                TextSpan(
+                                  text: 'Terms of Service',
+                                  style: const TextStyle(
+                                    color: Color(0xFF05A664),
+                                    fontWeight: FontWeight.bold,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = () async {
+                                      final Uri url = Uri.parse('https://venuraka.github.io/TravelPass-Additional-Information/#terms');
+                                      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+                                        debugPrint("Could not launch $url");
+                                      }
+                                    },
+                                ),
+                                const TextSpan(text: ' and '),
+                                TextSpan(
+                                  text: 'Privacy Policy',
+                                  style: const TextStyle(
+                                    color: Color(0xFF05A664),
+                                    fontWeight: FontWeight.bold,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                  recognizer: TapGestureRecognizer()
+                                    ..onTap = () async {
+                                      final Uri url = Uri.parse('https://venuraka.github.io/TravelPass-Additional-Information/#privacy');
+                                      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+                                        debugPrint("Could not launch $url");
+                                      }
+                                    },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ],
-                    ],
-                  ),
-
-                  // 3. Divider
-                  Row(
-                    children: [
-                      const Expanded(child: Divider(color: Color(0xFF121415))),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 10.w),
-                        child: Text(
-                          "Register with Email",
-                          style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w500),
-                        ),
-                      ),
-                      const Expanded(child: Divider(color: Color(0xFF121415))),
-                    ],
-                  ),
-
-                  // 4. Email Form Section
-                  _buildEmailForm(),
-
-                  // 5. Terms of Service Footer
-                  Padding(
-                    padding: EdgeInsets.only(bottom: 15.h),
-                    child: RichText(
-                      textAlign: TextAlign.center,
-                      text: TextSpan(
-                        style: TextStyle(
-                          fontSize: 11.sp,
-                          color: Colors.grey[600],
-                          fontFamily: 'Poppins',
-                        ),
-                        children: [
-                          const TextSpan(text: 'By continuing, you agree to our '),
-                          TextSpan(
-                            text: 'Terms of Service',
-                            style: const TextStyle(
-                              color: Color(0xFF05A664),
-                              fontWeight: FontWeight.bold,
-                              decoration: TextDecoration.underline,
-                            ),
-                            recognizer: TapGestureRecognizer()
-                              ..onTap = () async {
-                                final Uri url = Uri.parse('https://venuraka.github.io/TravelPass-Additional-Information/#terms');
-                                if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-                                  debugPrint("Could not launch $url");
-                                }
-                              },
-                          ),
-                          const TextSpan(text: ' and '),
-                          TextSpan(
-                            text: 'Privacy Policy',
-                            style: const TextStyle(
-                              color: Color(0xFF05A664),
-                              fontWeight: FontWeight.bold,
-                              decoration: TextDecoration.underline,
-                            ),
-                            recognizer: TapGestureRecognizer()
-                              ..onTap = () async {
-                                final Uri url = Uri.parse('https://venuraka.github.io/TravelPass-Additional-Information/#privacy');
-                                if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-                                  debugPrint("Could not launch $url");
-                                }
-                              },
-                          ),
-                        ],
-                      ),
                     ),
                   ),
-                ],
+                ),
               ),
             );
           },

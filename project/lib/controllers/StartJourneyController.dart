@@ -847,6 +847,9 @@ class StartJourneyController {
       }
 
       // Logic for Dynamic Status
+      int mins = (distance / 11 / 60).round(); // Driver ETA
+      if (mins < 1) mins = 1;
+
       if (_currentPassengerLocation != null) {
         // Calculate passenger's distance to pickup
         double pDistance = Geolocator.distanceBetween(
@@ -855,23 +858,19 @@ class StartJourneyController {
         );
 
         if (pDistance > 50) {
-           // Passenger is not at pickup point - show passenger's ETA in Orange
+           // Passenger is not at pickup point - show both ETAs in Orange
            int pMins = (pDistance / 1.4 / 60).round(); // Assume walking/slow speed 1.4m/s (~5km/h)
            if (pMins < 1) pMins = 1;
-           _currentStatus = "$pMins min wait"; // Shortened
+           _currentStatus = "passenger walking: $pMins min | bus arrival: $mins min";
            _statusColor = Colors.orange;
         } else {
-           // Passenger reached pickup - show driver's ETA in Green
-           int mins = (distance / 11 / 60).round();
-           if (mins < 1) mins = 1;
-           _currentStatus = "$mins min pickup"; // Shortened
+           // Passenger reached pickup - show passenger reached + driver ETA in Green
+           _currentStatus = "passenger: at pickup | bus arrival: $mins min";
            _statusColor = const Color(0xFF05A664);
         }
       } else {
         // Fallback to driver ETA if passenger location not available
-        int mins = (distance / 11 / 60).round();
-        if (mins < 1) mins = 1;
-        _currentStatus = "$mins min pickup"; // Shortened
+        _currentStatus = "bus arrival: $mins min";
         _statusColor = const Color(0xFF05A664);
       }
     }

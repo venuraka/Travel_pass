@@ -63,6 +63,137 @@ class _NextPassengerCardState extends State<NextPassengerCard> {
     super.dispose();
   }
 
+  Widget _buildStatusBlock(String status, Color statusColor) {
+    if (!status.contains('|')) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 12.0),
+        child: MarqueeText(
+          text: status.toLowerCase(),
+          style: TextStyle(
+            color: statusColor,
+            fontSize: 18.0,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      );
+    }
+
+    final parts = status.split('|');
+    if (parts.length != 2) {
+      return Column(
+        children: parts.map((p) => Padding(
+          padding: const EdgeInsets.symmetric(vertical: 1.0),
+          child: MarqueeText(
+            text: p.trim(),
+            style: TextStyle(
+              color: statusColor,
+              fontSize: 18.0,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        )).toList(),
+      );
+    }
+
+    final leftRaw = parts[0].trim();
+    final rightRaw = parts[1].trim();
+
+    String leftLabel = "";
+    String leftVal = "";
+    if (leftRaw.contains(':')) {
+      final sub = leftRaw.split(':');
+      leftLabel = sub[0].trim();
+      leftVal = sub[1].trim();
+    } else {
+      leftVal = leftRaw;
+    }
+
+    String rightLabel = "";
+    String rightVal = "";
+    if (rightRaw.contains(':')) {
+      final sub = rightRaw.split(':');
+      rightLabel = sub[0].trim();
+      rightVal = sub[1].trim();
+    } else {
+      rightVal = rightRaw;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(top: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          // Left Column (Passenger)
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (leftLabel.isNotEmpty)
+                  Text(
+                    leftLabel.toLowerCase(),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.6),
+                      fontSize: 12.0,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                const SizedBox(height: 4),
+                Text(
+                  leftVal.toLowerCase(),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: statusColor,
+                    fontSize: 18.0,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // Vertical Divider
+          Container(
+            height: 30,
+            width: 1,
+            color: Colors.white.withOpacity(0.1),
+            margin: const EdgeInsets.symmetric(horizontal: 8),
+          ),
+
+          // Right Column (Bus)
+          Expanded(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (rightLabel.isNotEmpty)
+                  Text(
+                    rightLabel.toLowerCase(),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.6),
+                      fontSize: 12.0,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                const SizedBox(height: 4),
+                Text(
+                  rightVal.toLowerCase(),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: kPrimaryTextColor,
+                    fontSize: 18.0,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Re-calculating allReached to include the destination phase
@@ -104,7 +235,7 @@ class _NextPassengerCardState extends State<NextPassengerCard> {
           if (!allPassengersPicked) ...[
             // --- Passenger Info Row with Swipeable PageView ---
             SizedBox(
-              height: 140,
+              height: 165,
               child: Row(
                 children: [
                   IconButton(
@@ -144,30 +275,8 @@ class _NextPassengerCardState extends State<NextPassengerCard> {
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
-                            const SizedBox(height: 8.0),
-                            if (widget.status.contains('|'))
-                              Column(
-                                children: widget.status.split('|').map((part) => Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 1.0),
-                                  child: MarqueeText(
-                                    text: part.trim(),
-                                    style: TextStyle(
-                                      color: widget.statusColor,
-                                      fontSize: 18.0,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
-                                )).toList(),
-                              )
-                            else
-                              MarqueeText(
-                                text: widget.status,
-                                style: TextStyle(
-                                  color: widget.statusColor,
-                                  fontSize: 18.0,
-                                  fontWeight: FontWeight.w900,
-                                ),
-                              ),
+                            const SizedBox(height: 6.0),
+                            _buildStatusBlock(widget.status, widget.statusColor),
                           ],
                         );
                       },

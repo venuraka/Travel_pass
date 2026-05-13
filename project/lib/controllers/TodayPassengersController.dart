@@ -20,7 +20,7 @@ class TodayPassengersController {
 
       // 1. Check if there is an active poll for today
       final DateTime now = DateTime.now();
-      final DateTime today = DateTime.utc(now.year, now.month, now.day);
+      final DateTime today = DateTime(now.year, now.month, now.day);
       final String dateKey =
           "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
 
@@ -90,8 +90,8 @@ class TodayPassengersController {
       if (user == null) return;
 
       final DateTime now = DateTime.now();
-      // Use UTC date stripping time to ensure consistency with load
-      final DateTime today = DateTime.utc(now.year, now.month, now.day);
+      // Use local date stripping time to ensure consistency with load
+      final DateTime today = DateTime(now.year, now.month, now.day);
 
       // Update DB
       // Note: "Boarded" in UI usually maps to 'Present' in DB logic
