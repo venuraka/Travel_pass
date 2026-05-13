@@ -73,12 +73,16 @@ class _RegisterPageState extends State<RegisterPage> {
       if (isDriverApproved) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const DriverDashboardScreen()),
+          MaterialPageRoute(
+            builder: (context) => const DriverDashboardScreen(),
+          ),
         );
       } else {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => const DriverPendingApprovalScreen()),
+          MaterialPageRoute(
+            builder: (context) => const DriverPendingApprovalScreen(),
+          ),
         );
       }
       return;
@@ -122,8 +126,6 @@ class _RegisterPageState extends State<RegisterPage> {
     await _handleAuth(_authService.signInWithApple);
   }
 
-
-
   // 4. Corrected Email Sign-Up Logic
   Future<void> _handleEmailSignUp() async {
     final email = _emailController.text.trim();
@@ -145,135 +147,152 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Define static screen metrics to make sure spacing scales elegantly and doesn't scroll
+    final double screenHeight = MediaQuery.of(context).size.height;
+
+    // Dynamic layout spacings tied to screen height to ensure fit without packing
+    final double spacingTop = screenHeight * 0.025;
+    final double spacingTitle = screenHeight * 0.008;
+    final double spacingSocial = screenHeight * 0.03;
+    final double spacingBetweenSocial = screenHeight * 0.015;
+    final double spacingDivider = screenHeight * 0.025;
+    final double spacingFooter = screenHeight * 0.02;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF1F8F5),
       appBar: AppBar(
-        backgroundColor: Colors.transparent, 
+        backgroundColor: Colors.transparent,
         elevation: 0,
         toolbarHeight: 40.h,
       ),
       resizeToAvoidBottomInset: true,
       body: SafeArea(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            return SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: constraints.maxHeight,
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 30.w),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: <Widget>[
+                SizedBox(height: spacingTop),
+                Text(
+                  'Register',
+                  style: TextStyle(
+                    fontSize: 36.sp,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF121415),
+                  ),
                 ),
-                child: IntrinsicHeight(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 30.w),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: <Widget>[
-                        // 1. Header Section (Title + Subtitle)
-                        Column(
-                          children: [
-                            SizedBox(height: 10.h),
-                            Text(
-                              'Register',
-                              style: TextStyle(
-                                fontSize: 36.sp,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF121415),
-                              ),
-                            ),
-                            SizedBox(height: 5.h),
-                            Text(
-                              'Create an account to get started',
-                              style: TextStyle(
-                                fontSize: 14.sp, 
-                                color: const Color(0xFF05A664),
-                              ),
-                            ),
-                          ],
+                SizedBox(height: spacingTitle),
+                Text(
+                  'Create an account to get started',
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    color: const Color(0xFF05A664),
+                  ),
+                ),
+                SizedBox(height: spacingSocial),
+
+                // 2. Social Buttons Section
+                _buildGoogleButton(),
+                if (Platform.isIOS) ...[
+                  SizedBox(height: spacingBetweenSocial),
+                  _buildAppleButton(),
+                ],
+
+                SizedBox(height: spacingDivider),
+
+                // 3. Divider
+                Row(
+                  children: [
+                    const Expanded(child: Divider(color: Color(0xFF121415))),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 10.w),
+                      child: Text(
+                        "Register with Email",
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w500,
                         ),
+                      ),
+                    ),
+                    const Expanded(child: Divider(color: Color(0xFF121415))),
+                  ],
+                ),
 
-                        // 2. Social Buttons Section
-                        Column(
-                          children: [
-                            _buildGoogleButton(),
-                            if (Platform.isIOS) ...[ 
-                              SizedBox(height: 12.h),
-                              _buildAppleButton(),
-                            ],
-                          ],
+                SizedBox(height: spacingDivider),
+
+                // 4. Email Form Section
+                _buildEmailForm(
+                  fieldGap: screenHeight * 0.018,
+                  submitGap: screenHeight * 0.03,
+                  linkGap: screenHeight * 0.015,
+                ),
+
+                SizedBox(height: spacingFooter),
+
+                // 5. Terms of Service Footer
+                Padding(
+                  padding: EdgeInsets.only(bottom: 20.h),
+                  child: RichText(
+                    textAlign: TextAlign.center,
+                    text: TextSpan(
+                      style: TextStyle(
+                        fontSize: 11.sp,
+                        color: Colors.grey[600],
+                        fontFamily: 'Poppins',
+                      ),
+                      children: [
+                        const TextSpan(
+                          text: 'By continuing, you agree to our ',
                         ),
-
-                        // 3. Divider
-                        Row(
-                          children: [
-                            const Expanded(child: Divider(color: Color(0xFF121415))),
-                            Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 10.w),
-                              child: Text(
-                                "Register with Email",
-                                style: TextStyle(fontSize: 12.sp, fontWeight: FontWeight.w500),
-                              ),
-                            ),
-                            const Expanded(child: Divider(color: Color(0xFF121415))),
-                          ],
-                        ),
-
-                        // 4. Email Form Section
-                        _buildEmailForm(),
-
-                        // 5. Terms of Service Footer
-                        Padding(
-                          padding: EdgeInsets.only(bottom: 15.h),
-                          child: RichText(
-                            textAlign: TextAlign.center,
-                            text: TextSpan(
-                              style: TextStyle(
-                                fontSize: 11.sp,
-                                color: Colors.grey[600],
-                                fontFamily: 'Poppins',
-                              ),
-                              children: [
-                                const TextSpan(text: 'By continuing, you agree to our '),
-                                TextSpan(
-                                  text: 'Terms of Service',
-                                  style: const TextStyle(
-                                    color: Color(0xFF05A664),
-                                    fontWeight: FontWeight.bold,
-                                    decoration: TextDecoration.underline,
-                                  ),
-                                  recognizer: TapGestureRecognizer()
-                                    ..onTap = () async {
-                                      final Uri url = Uri.parse('https://venuraka.github.io/TravelPass-Additional-Information/#terms');
-                                      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-                                        debugPrint("Could not launch $url");
-                                      }
-                                    },
-                                ),
-                                const TextSpan(text: ' and '),
-                                TextSpan(
-                                  text: 'Privacy Policy',
-                                  style: const TextStyle(
-                                    color: Color(0xFF05A664),
-                                    fontWeight: FontWeight.bold,
-                                    decoration: TextDecoration.underline,
-                                  ),
-                                  recognizer: TapGestureRecognizer()
-                                    ..onTap = () async {
-                                      final Uri url = Uri.parse('https://venuraka.github.io/TravelPass-Additional-Information/#privacy');
-                                      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-                                        debugPrint("Could not launch $url");
-                                      }
-                                    },
-                                ),
-                              ],
-                            ),
+                        TextSpan(
+                          text: 'Terms of Service',
+                          style: const TextStyle(
+                            color: Color(0xFF05A664),
+                            fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.underline,
                           ),
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () async {
+                              final Uri url = Uri.parse(
+                                'https://venuraka.github.io/TravelPass-Additional-Information/#terms',
+                              );
+                              if (!await launchUrl(
+                                url,
+                                mode: LaunchMode.externalApplication,
+                              )) {
+                                debugPrint("Could not launch $url");
+                              }
+                            },
+                        ),
+                        const TextSpan(text: ' and '),
+                        TextSpan(
+                          text: 'Privacy Policy',
+                          style: const TextStyle(
+                            color: Color(0xFF05A664),
+                            fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.underline,
+                          ),
+                          recognizer: TapGestureRecognizer()
+                            ..onTap = () async {
+                              final Uri url = Uri.parse(
+                                'https://venuraka.github.io/TravelPass-Additional-Information/#privacy',
+                              );
+                              if (!await launchUrl(
+                                url,
+                                mode: LaunchMode.externalApplication,
+                              )) {
+                                debugPrint("Could not launch $url");
+                              }
+                            },
                         ),
                       ],
                     ),
                   ),
                 ),
-              ),
-            );
-          },
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -298,7 +317,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Image.asset(
-                     'Assets/Images/google_logo.png',
+                    'Assets/Images/google_logo.png',
                     height: 24,
                     width: 24,
                     errorBuilder: (context, error, stackTrace) => const Icon(
@@ -342,11 +361,7 @@ class _RegisterPageState extends State<RegisterPage> {
             : Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
-                    Icons.apple,
-                    color: Colors.white,
-                    size: 26,
-                  ),
+                  const Icon(Icons.apple, color: Colors.white, size: 26),
                   const SizedBox(width: 10),
                   const Text(
                     'Sign up with Apple',
@@ -362,28 +377,31 @@ class _RegisterPageState extends State<RegisterPage> {
     );
   }
 
-  Widget _buildEmailForm() {
+  Widget _buildEmailForm({
+    required double fieldGap,
+    required double submitGap,
+    required double linkGap,
+  }) {
     return Column(
       children: [
-
         _buildTextField(
           label: 'Email',
           controller: _emailController,
           keyboardType: TextInputType.emailAddress,
         ),
-        const SizedBox(height: 15),
+        SizedBox(height: fieldGap),
         _buildTextField(
           label: 'Password',
           controller: _passwordController,
           obscureText: true,
         ),
-        const SizedBox(height: 15),
+        SizedBox(height: fieldGap),
         _buildTextField(
           label: 'Confirm Password',
           controller: _confirmPasswordController,
           obscureText: true,
         ),
-        const SizedBox(height: 30),
+        SizedBox(height: submitGap),
 
         SizedBox(
           width: double.infinity,
@@ -406,7 +424,7 @@ class _RegisterPageState extends State<RegisterPage> {
             ),
           ),
         ),
-        SizedBox(height: 15.h),
+        SizedBox(height: linkGap),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
