@@ -42,7 +42,7 @@ dependencies:
   cloud_functions: ^6.1.0
   package_info_plus: ^8.2.1
   flutter_local_notifications: ^18.0.1
-  payhere_mobilesdk_flutter: ^3.2.2
+
 
 
   # The following adds the Cupertino Icons font to your application.

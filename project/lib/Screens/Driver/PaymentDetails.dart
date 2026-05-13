@@ -5,7 +5,7 @@ import '../../services/Database.dart';
 import '../Components/Cards.dart';
 import '../Components/Topic.dart';
 import 'PaymentHistory.dart';
-import 'PaymentCollection.dart';
+
 import 'CashHistory.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../controllers/DriverDashboardController.dart';
@@ -23,8 +23,7 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
   final DatabaseService _dbService = DatabaseService();
   final String _driverId = FirebaseAuth.instance.currentUser?.uid ?? '';
   String _badgePreference = "Both";
-  bool _isRequesting = false;
-  bool _hasPayoutPending = false;
+
   final DriverDashboardController _controller = DriverDashboardController();
 
 
@@ -112,18 +111,7 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
                     ),
 
                     const SizedBox(height: 20),
-                    // --- Driver Balance Card ---
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: StreamBuilder<double>(
-                        stream: _dbService.getDriverBalanceStream(_driverId),
-                        builder: (context, snapshot) {
-                          final balance = snapshot.data ?? 0.0;
-                          return _buildBalanceCard(balance);
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 12), // Space between cards
+
                     
                     // --- Cash Collected Card ---
                     Padding(
@@ -295,9 +283,16 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
                                     );
                                   }
                                 } else {
-                                  // Forgive Debt when swiped LEFT
-                                  final balance = double.tryParse(amount.replaceAll('Rs ', '')) ?? 0.0;
-                                  await _dbService.updatePassengerBalance(reminder['id'], -balance);
+                                  // Forgive Debt / Reject when swiped LEFT
+                                  await _dbService.recordManualPayment(
+                                    passengerId: reminder['id'],
+                                    passengerName: name,
+                                    driverId: _driverId,
+                                    driverName: "Driver", 
+                                    amount: amount.replaceAll('Rs ', ''),
+                                    type: type,
+                                    status: 'rejected',
+                                  );
                                   if (mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(content: Text("❌ Arrears rejected (Balance reset)"), backgroundColor: Colors.redAccent),
@@ -592,236 +587,7 @@ class _PaymentDetailsScreenState extends State<PaymentDetailsScreen> {
     );
   }
 
-  // --- NEW: Balance Card Widget ---
-  Widget _buildBalanceCard(double balance) {
-    const Color textColor = Colors.white;
 
-    return StreamBuilder<Map<String, dynamic>?>(
-      stream: _dbService.getPayoutRequestStatusStream(_driverId),
-      builder: (context, payoutSnapshot) {
-        final payoutData = payoutSnapshot.data;
-        final isPending = payoutData != null && payoutData['status'] == 'pending';
-
-        return InkWell(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => PaymentCollectionScreen(),
-              ),
-            );
-          },
-          borderRadius: BorderRadius.circular(16),
-          child: Card(
-            elevation: 6,
-            margin: EdgeInsets.zero,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16.0),
-            ),
-            color: isPending ? Colors.grey.shade600 : appGreen, // Turns grey when pending
-            child: Container(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Flexible(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              "Accumulated Balance",
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: textColor.withOpacity(0.9),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            FittedBox(
-                              fit: BoxFit.scaleDown,
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                "Rs ${balance.toInt()}",
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 32,
-                                  color: textColor,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.account_balance_wallet_rounded,
-                          color: Colors.white,
-                          size: 24,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  Divider(color: Colors.white.withOpacity(0.2), thickness: 1),
-                  const SizedBox(height: 1),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Flexible(
-                        child: Text(
-                          isPending ? "Payout in progress" : "Ready to redeem?",
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      _isRequesting
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
-                          : TextButton(
-                              onPressed: isPending
-                                  ? null
-                                  : () => _showRequestPayoutDialog(balance),
-                              style: TextButton.styleFrom(
-                                backgroundColor: isPending
-                                    ? Colors.white.withOpacity(0.4)
-                                    : Colors.white,
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
-                                  vertical: 8,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-                              child: Text(
-                                isPending ? "Payout Pending" : "Request Payout",
-                                style: TextStyle(
-                                  color: isPending
-                                      ? Colors.white.withOpacity(0.7)
-                                      : appGreen,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-
-  // --- NEW: Request Payout Dialog ---
-  void _showRequestPayoutDialog(double balance) {
-    if (balance <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("No balance to redeem.")),
-      );
-      return;
-    }
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          "Request Payout",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        content: Text(
-          "Are you sure you want to request a payout of Rs ${balance.toInt()} to your registered account?",
-          style: const TextStyle(color: Colors.black87),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text("Cancel", style: TextStyle(color: Colors.grey[600])),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _handlePaymentRequest(balance);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: appGreen,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: const Text(
-              "Confirm",
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _handlePaymentRequest(double balance) async {
-    setState(() => _isRequesting = true);
-    try {
-      final remainingDays = await _dbService.requestPayment(_driverId, balance);
-      if (mounted) {
-        if (remainingDays != null) {
-          // Cooldown active — show toast with remaining days
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text("You have already requested a payout. Try again in $remainingDays day${remainingDays == 1 ? '' : 's'}."),
-              backgroundColor: Colors.orangeAccent,
-              duration: const Duration(seconds: 4),
-            ),
-          );
-        } else {
-          // Success
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text("Payout request submitted! We will process it shortly."),
-              backgroundColor: appGreen,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Failed to submit request. Please try again."),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isRequesting = false);
-    }
-  }
 
   Widget _buildPaidTrailing(Color color, String price, String date) {
     return Column(

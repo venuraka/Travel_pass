@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:developer' as developer;
-import '../../services/PaymentService.dart';
+
 import '../Components/AppBar.dart';
 import '../../services/Database.dart';
 
@@ -133,99 +133,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
     }
   }
 
-  bool get _isButtonEnabled {
-    // 1. Basic safety checks
-    if (_passenger == null || _driver == null || _amountDue <= 0 || _isProcessing) return false;
 
-    // 2. If there is a balance, they SHOULD be allowed to pay it.
-    // We don't need complex date math anymore because the 'balance' field 
-    // only increases when a valid charge is applied.
-    return true;
-  }
-
-  String _getMonthName() {
-    final now = DateTime.now();
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    return months[now.month - 1];
-  }
-
-  void _handlePayment() {
-    if (!_isButtonEnabled) return;
-
-    final amountStr = _amountDue.toStringAsFixed(2);
-
-    setState(() {
-      _isProcessing = true;
-    });
-
-    final orderId = 'PAY-${_passenger!.uid}-${DateTime.now().millisecondsSinceEpoch}';
-
-    PaymentService.startOneTimePayment(
-      amount: amountStr,
-      orderId: orderId,
-      itemsDescription: '${_passenger!.paymentType} Payment - ${_getMonthName()}',
-      firstName: _passenger!.name.split(' ').first,
-      lastName: _passenger!.name.contains(' ') ? _passenger!.name.split(' ').last : 'Passenger',
-      email: _passenger!.email,
-      phone: _passenger!.phone,
-      address: _passenger!.address,
-      city: 'Colombo',
-      onCompleted: (paymentId) async {
-        developer.log('Payment completed with ID: $paymentId');
-        
-        // NEW: Record the payment and update the balance IMMEDIATELY
-        try {
-          await _dbService.recordPayment(
-            passengerId: _passenger!.uid,
-            passengerName: _passenger!.name,
-            driverId: _passenger!.driverId,
-            driverName: _driver?.name ?? 'Driver',
-            amount: amountStr,
-            type: _passenger!.paymentType,
-            paymentId: paymentId, // PayHere Payment No
-            orderId: orderId,    // Use this as the Doc ID
-          );
-          developer.log('Payment recorded and balance updated locally.');
-        } catch (e) {
-          developer.log('Error recording payment: $e');
-        }
-
-        // Refresh data to show "Paid" state immediately
-        _loadData();
-        if (mounted) {
-          setState(() {
-            _isProcessing = false;
-          });
-        }
-      },
-      onError: (error) {
-        if (mounted) {
-          setState(() {
-            _isProcessing = false;
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Payment Failed: $error'),
-              backgroundColor: Colors.red,
-              duration: Duration(seconds: 3),
-            )
-          );
-        }
-      },
-      onDismissed: () {
-        developer.log('Payment screen dismissed');
-        _loadData(); // Refresh just in case status changed
-        if (mounted) {
-          setState(() {
-            _isProcessing = false;
-          });
-        }
-      },
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -277,6 +185,15 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
     );
   }
 
+  String _getMonthName() {
+    final now = DateTime.now();
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return months[now.month - 1];
+  }
+
   Widget _buildOutstandingCard(Color color) {
     const Color textColor = Colors.white;
     final isMonthly = _passenger?.paymentType == 'Monthly';
@@ -284,7 +201,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
     return Card(
       elevation: 6,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
-      color: _isButtonEnabled ? color : Colors.grey.shade400,
+      color: !_isPaid ? color : Colors.grey.shade400,
       child: Container(
         padding: const EdgeInsets.all(18.0),
         child: Column(
@@ -327,34 +244,57 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
               ],
             ),
             const SizedBox(height: 15),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isButtonEnabled ? _handlePayment : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: color,
-                  disabledBackgroundColor: Colors.white.withOpacity(0.5),
-                  disabledForegroundColor: Colors.grey,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  elevation: 0,
+            if (!_isPaid)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withOpacity(0.3)),
                 ),
-                child: Text(
-                  _isPaid ? "Paid" : (_isProcessing ? "Processing..." : "Pay Now"), 
-                  style: const TextStyle(fontWeight: FontWeight.bold)
-                ),
-              ),
-            ),
-            if (!_isButtonEnabled && !_isPaid && !_isProcessing)
-              Padding(
-                padding: const EdgeInsets.only(top: 8.0),
-                child: Text(
-                  isMonthly 
-                    ? "Available from ${(_driver?.paymentDate?.day) ?? 1} ${_getMonthName()}"
-                    : (_attendanceStatus == 'Present' ? "Ready to Pay" : "You haven't joind the journey today!"),
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline_rounded, color: Colors.white, size: 20),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        "Please pay your driver in cash. The driver will record the payment.",
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.95),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               )
+            else
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withOpacity(0.3)),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 20),
+                    SizedBox(width: 10),
+                    Text(
+                      "All Caught Up! 🎉",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ),
       ),
@@ -437,7 +377,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: (status == 'rejected')
-                      ? Colors.grey.withOpacity(0.1)
+                      ? Colors.red.withOpacity(0.1)
                       : (status == 'collected' || status == 'paid_to_driver' || status == 'distribution_pending' || status == 'distribution_failed' || status == 'cash') 
                           ? Colors.green.withOpacity(0.1) 
                           : Colors.red.withOpacity(0.1),
@@ -451,7 +391,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                           : "Online Payment",
                   style: TextStyle(
                     color: (status == 'rejected')
-                        ? Colors.grey.shade700
+                        ? Colors.red
                         : (status == 'cash' || status == 'collected' || status == 'paid_to_driver') 
                             ? Colors.green 
                             : Colors.red,
@@ -530,7 +470,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
               Text(
                 'Rs $amount',
                 style: TextStyle(
-                  color: (status == 'rejected') ? Colors.grey.shade600 : color,
+                  color: (status == 'rejected') ? Colors.red : color,
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                   decoration: (status == 'rejected') ? TextDecoration.lineThrough : null,

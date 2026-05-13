@@ -115,8 +115,11 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                           final location = p['pickupLocation'] ?? 'No location';
                           final status = p['status'] ?? 'unknown';
                           final type = p['type'] ?? 'Daily';
-                          
-                          final methodLabel = (status == 'cash') ? "Cash" : "Online";
+                          final methodLabel = (status == 'rejected')
+                              ? "Rejected"
+                              : (status == 'cash')
+                                  ? "Cash"
+                                  : "Online";
 
                           bool showDateHeader = false;
                           if (index == 0) {
@@ -154,9 +157,10 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                                   trailing: Text(
                                     "Rs ${double.tryParse(amount.toString())?.toInt() ?? 0}",
                                     style: TextStyle(
-                                      color: appGreen,
+                                      color: (status == 'rejected') ? Colors.grey.shade600 : appGreen,
                                       fontWeight: FontWeight.bold,
                                       fontSize: 16,
+                                      decoration: (status == 'rejected') ? TextDecoration.lineThrough : null,
                                     ),
                                   ),
                                 ),
@@ -259,7 +263,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
 
                         // --- SECTION 3: REJECTED / FORGIVEN PAYMENTS ---
                         const SizedBox(height: 20),
-                        _buildSectionHeader("Rejected / Forgiven", Colors.grey.shade700),
+                        _buildSectionHeader("Rejected / Forgven", Colors.grey.shade700),
                         StreamBuilder<List<Map<String, dynamic>>>(
                           stream: _dbService.getDriverPaymentHistoryStream(_driverId),
                           builder: (context, snapshot) {

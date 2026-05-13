@@ -71,12 +71,7 @@ import GoogleMaps
         } else if call.method == "getOpenWeatherApiKey" {
             let key = Bundle.main.object(forInfoDictionaryKey: "OpenWeatherApiKey") as? String ?? ""
             result(key)
-        } else if call.method == "getPayhereMerchantId" {
-            let key = Bundle.main.object(forInfoDictionaryKey: "PayhereMerchantID") as? String ?? ""
-            result(key)
-        } else if call.method == "getPayhereMerchantSecret" {
-            let key = Bundle.main.object(forInfoDictionaryKey: "PayhereMerchantSecret") as? String ?? ""
-            result(key)
+
         } else {
             result(FlutterMethodNotImplemented)
         }

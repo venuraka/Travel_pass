@@ -83,7 +83,7 @@ class _DriverPendingApprovalScreenState extends State<DriverPendingApprovalScree
               ),
               const SizedBox(height: 15),
               const Text(
-                'Your account is awaiting administrator approval. We are currently verifying your bank details and documents. You will be notified once you can access the dashboard.',
+                'Your account is awaiting administrator approval. We are currently verifying your documents. You will be notified once you can access the dashboard.',
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16, color: Colors.grey),
               ),

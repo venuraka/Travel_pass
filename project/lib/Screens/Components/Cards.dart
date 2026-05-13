@@ -137,9 +137,11 @@ class InfoCard extends StatelessWidget {
                       vertical: 4.h,
                     ),
                     decoration: BoxDecoration(
-                      color: (paymentMethod == 'Cash' || paymentMethod == 'CASH') 
+                      color: (paymentMethod?.toUpperCase() == 'CASH') 
                           ? Colors.orange.shade100 
-                          : Colors.blue.shade100,
+                          : (paymentMethod?.toUpperCase() == 'REJECTED')
+                              ? Colors.red.shade100
+                              : Colors.blue.shade100,
                       borderRadius: BorderRadius.only(
                         bottomLeft: Radius.circular(16.r),
                       ),
@@ -147,9 +149,11 @@ class InfoCard extends StatelessWidget {
                     child: Text(
                       paymentMethod!.toUpperCase(),
                       style: TextStyle(
-                        color: (paymentMethod == 'Cash' || paymentMethod == 'CASH') 
+                        color: (paymentMethod?.toUpperCase() == 'CASH') 
                             ? Colors.orange.shade800 
-                            : Colors.blue.shade800,
+                            : (paymentMethod?.toUpperCase() == 'REJECTED')
+                                ? Colors.red.shade800
+                                : Colors.blue.shade800,
                         fontSize: 9.sp,
                         fontWeight: FontWeight.bold,
                       ),
