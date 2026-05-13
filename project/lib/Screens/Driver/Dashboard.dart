@@ -78,7 +78,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen> {
       if (mounted) setState(() { _hasPollToday = hasPoll; });
     });
 
-    _reminderSubscription = _controller.getPendingRequestsCountStream().listen((count) {
+    _reminderSubscription = _controller.getMissedPaymentCountStream().listen((count) {
       if (mounted) setState(() { _pendingReminders = count; });
     });
 

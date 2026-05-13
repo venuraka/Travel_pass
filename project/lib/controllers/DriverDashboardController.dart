@@ -29,17 +29,16 @@ class DriverDashboardController {
       }
 
       // 1. Check if there is an active poll for today (Optimization: Check this first)
-      final DateTime now = DateTime.now().toUtc();
-      final DateTime today = DateTime.utc(now.year, now.month, now.day);
+      final DateTime now = DateTime.now();
+      final DateTime today = DateTime(now.year, now.month, now.day);
 
       List<PollModel> polls = await _dbService.getPollsByDriver(user.uid);
       bool isPollActiveToday = false;
       for (var poll in polls) {
         if (poll.activeDates.any((d) {
-          final utcDate = d.toUtc();
-          return utcDate.year == today.year &&
-                 utcDate.month == today.month &&
-                 utcDate.day == today.day;
+          return d.year == today.year &&
+                 d.month == today.month &&
+                 d.day == today.day;
         })) {
           isPollActiveToday = true;
           break;
@@ -201,14 +200,13 @@ class DriverDashboardController {
       final user = _auth.currentUser;
       if (user == null) return false;
 
-      final now = DateTime.now().toUtc();
-      final today = DateTime.utc(now.year, now.month, now.day);
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
 
       List<PollModel> polls = await _dbService.getPollsByDriver(user.uid);
       for (var poll in polls) {
         if (poll.activeDates.any((d) {
-          final utcDate = d.toUtc();
-          return utcDate.year == today.year && utcDate.month == today.month && utcDate.day == today.day;
+          return d.year == today.year && d.month == today.month && d.day == today.day;
         })) {
           return true;
         }
@@ -259,6 +257,13 @@ class DriverDashboardController {
     final uid = getDriverId();
     if (uid == null) return Stream.value([]);
     return _dbService.getMissedPaymentPassengersStream(uid);
+  }
+
+  /// Returns a stream of the count of passengers who have missed payments.
+  Stream<int> getMissedPaymentCountStream() {
+    final uid = getDriverId();
+    if (uid == null) return Stream.value(0);
+    return _dbService.getMissedPaymentPassengersStream(uid).map((list) => list.length);
   }
 
   /// Initiates a phone call to the passenger.

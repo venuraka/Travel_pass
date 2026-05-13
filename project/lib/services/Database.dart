@@ -657,16 +657,15 @@ class DatabaseService {
         .where('driverId', isEqualTo: driverId)
         .snapshots()
         .map((snapshot) {
-      final now = DateTime.now().toUtc();
-      final today = DateTime.utc(now.year, now.month, now.day);
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
 
       for (var doc in snapshot.docs) {
         final poll = PollModel.fromMap(doc.data(), doc.id);
         if (poll.activeDates.any((d) {
-          final utcDate = d.toUtc();
-          return utcDate.year == today.year &&
-                 utcDate.month == today.month &&
-                 utcDate.day == today.day;
+          return d.year == today.year &&
+                 d.month == today.month &&
+                 d.day == today.day;
         })) {
           return true;
         }
@@ -698,7 +697,7 @@ class DatabaseService {
         .where('driverId', isEqualTo: driverId)
         .snapshots()
         .map((snapshot) {
-      final now = DateTime.now().toUtc();
+      final now = DateTime.now();
       final dateKey =
           "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
       
@@ -716,7 +715,7 @@ class DatabaseService {
   /// Returns a list of passenger UIDs who are marked 'Present' for today for a specific driver.
   Future<List<String>> getPresentPassengerIds(String driverId) async {
     try {
-      final now = DateTime.now().toUtc();
+      final now = DateTime.now();
       final dateKey =
           "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
 

@@ -43,6 +43,7 @@ class _TrackVehicleState extends State<TrackVehicle> {
   bool _hasNextPickup = true; // Added
   List<Map<String, dynamic>> _fullRoute = []; // Added
   int _currentStopIndexInRoute = -1; // Added
+  bool _hasCenteredOnPassenger = false; // New flag for auto-centering
 
 
   @override
@@ -103,6 +104,12 @@ class _TrackVehicleState extends State<TrackVehicle> {
           setState(() {
             _passengerLocation = loc;
           });
+          if (!_hasCenteredOnPassenger && _mapController != null) {
+            _hasCenteredOnPassenger = true;
+            _mapController!.animateCamera(
+              CameraUpdate.newLatLngZoom(loc, 16),
+            );
+          }
         }
       },
       onPickupLocationAcquired: (LatLng loc) {
@@ -278,6 +285,10 @@ class _TrackVehicleState extends State<TrackVehicle> {
             bottomPadding: 240, 
             onMapCreated: (c) {
               _mapController = c;
+              if (_passengerLocation != null && !_hasCenteredOnPassenger) {
+                _hasCenteredOnPassenger = true;
+                c.animateCamera(CameraUpdate.newLatLngZoom(_passengerLocation!, 16));
+              }
             },
           ),
 
