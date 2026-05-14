@@ -6,8 +6,12 @@ import '../models/AttendanceModel.dart';
 import '../models/PollModel.dart';
 
 class DriverAttendanceController {
-  final DatabaseService _dbService = DatabaseService();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final DatabaseService _dbService;
+  final FirebaseAuth _auth;
+
+  DriverAttendanceController({DatabaseService? dbService, FirebaseAuth? auth})
+      : _dbService = dbService ?? DatabaseService(),
+        _auth = auth ?? FirebaseAuth.instance;
 
   Future<Map<String, dynamic>> loadAttendanceData(
     DateTime? selectedDate,
