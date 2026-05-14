@@ -4,8 +4,12 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../models/UserModel.dart';
 
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn.instance;
+  final FirebaseAuth _auth;
+  final GoogleSignIn _googleSignIn;
+
+  AuthService({FirebaseAuth? auth, GoogleSignIn? googleSignIn})
+      : _auth = auth ?? FirebaseAuth.instance,
+        _googleSignIn = googleSignIn ?? GoogleSignIn.instance;
 
   bool _initialized = false;
 
