@@ -7,10 +7,15 @@ import '../services/NotificationService.dart';
 class SettingsController {
   final DatabaseService _dbService;
   final FirebaseAuth _auth;
+  final PushNotificationService _notificationService;
 
-  SettingsController({DatabaseService? dbService, FirebaseAuth? auth})
-      : _dbService = dbService ?? DatabaseService(),
-        _auth = auth ?? FirebaseAuth.instance;
+  SettingsController({
+    DatabaseService? dbService,
+    FirebaseAuth? auth,
+    PushNotificationService? notificationService,
+  })  : _dbService = dbService ?? DatabaseService(),
+        _auth = auth ?? FirebaseAuth.instance,
+        _notificationService = notificationService ?? PushNotificationService();
 
   // Fetch current settings for the logged-in driver
   Future<DriverModel?> getSettings() async {
@@ -58,8 +63,6 @@ class SettingsController {
         badgePreference,
       );
 
-      final notificationService = PushNotificationService();
-
       // 3. Update Passengers based on type and Notify
       if (monthlyDelta != 0) {
         await _dbService.adjustPassengerPaymentAmounts(
@@ -77,7 +80,7 @@ class SettingsController {
               .toList();
 
           if (monthlyIds.isNotEmpty) {
-            await notificationService.sendNotificationToPassengers(
+            await _notificationService.sendNotificationToPassengers(
               passengerIds: monthlyIds,
               title: 'Monthly Fare Updated 💳',
               body: 'The driver has updated the monthly travel fee to Rs $monthlyAmount.',
@@ -105,7 +108,7 @@ class SettingsController {
               .toList();
 
           if (dailyIds.isNotEmpty) {
-            await notificationService.sendNotificationToPassengers(
+            await _notificationService.sendNotificationToPassengers(
               passengerIds: dailyIds,
               title: 'Daily Fare Updated 💳',
               body: 'The driver has updated the daily travel fee to Rs $dailyAmount.',

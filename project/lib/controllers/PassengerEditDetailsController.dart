@@ -5,23 +5,19 @@ import '../services/Database.dart';
 import '../models/PassengerModel.dart';
 
 class PassengerEditDetailsController {
-  final DatabaseService _dbService = DatabaseService();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final DatabaseService _dbService;
+  final FirebaseAuth _auth;
+
+  PassengerEditDetailsController({DatabaseService? dbService, FirebaseAuth? auth})
+      : _dbService = dbService ?? DatabaseService(),
+        _auth = auth ?? FirebaseAuth.instance;
 
   Future<PassengerModel?> loadPassengerDetails() async {
     try {
       final user = _auth.currentUser;
       if (user == null) return null;
 
-      DocumentSnapshot doc = await FirebaseFirestore.instance
-          .collection('passenger')
-          .doc(user.uid)
-          .get();
-
-      if (doc.exists) {
-        return PassengerModel.fromMap(doc.data() as Map<String, dynamic>);
-      }
-      return null;
+      return await _dbService.getPassengerData(user.uid);
     } catch (e) {
       debugPrint("Error loading passenger details: $e");
       return null;

@@ -23,18 +23,11 @@ class AttendanceHistoryController {
       }
 
       // 1. Get Passenger Details (to get driverId)
-      DocumentSnapshot passengerDoc = await FirebaseFirestore.instance
-          .collection('passenger')
-          .doc(user.uid)
-          .get();
+      PassengerModel? passenger = await _dbService.getPassengerData(user.uid);
 
-      if (!passengerDoc.exists) {
+      if (passenger == null) {
         throw Exception('Passenger profile not found');
       }
-
-      PassengerModel passenger = PassengerModel.fromMap(
-        passengerDoc.data() as Map<String, dynamic>,
-      );
 
       if (passenger.driverId.isEmpty) {
         throw Exception('No driver assigned');

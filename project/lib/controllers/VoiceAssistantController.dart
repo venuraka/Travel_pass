@@ -7,11 +7,10 @@ import '../services/LocalIntentService.dart';
 import 'DriverDashboardController.dart';
 
 class VoiceAssistantController extends ChangeNotifier {
-  final stt.SpeechToText _speech = stt.SpeechToText();
-  final FlutterTts _tts = FlutterTts();
-  final GeminiService _geminiService = GeminiService();
-  final DriverDashboardController _dashboardController =
-      DriverDashboardController();
+  final stt.SpeechToText _speech;
+  final FlutterTts _tts;
+  final GeminiService _geminiService;
+  final DriverDashboardController _dashboardController;
 
   bool _isListening = false;
   String _recognizedText = '';
@@ -28,7 +27,17 @@ class VoiceAssistantController extends ChangeNotifier {
   final Function(String screenName)? onNavigate;
   final VoidCallback? onStartJourney;
 
-  VoiceAssistantController({this.onNavigate, this.onStartJourney}) {
+  VoiceAssistantController({
+    this.onNavigate,
+    this.onStartJourney,
+    stt.SpeechToText? speech,
+    FlutterTts? tts,
+    GeminiService? geminiService,
+    DriverDashboardController? dashboardController,
+  })  : _speech = speech ?? stt.SpeechToText(),
+        _tts = tts ?? FlutterTts(),
+        _geminiService = geminiService ?? GeminiService(),
+        _dashboardController = dashboardController ?? DriverDashboardController() {
     _initTts();
   }
 

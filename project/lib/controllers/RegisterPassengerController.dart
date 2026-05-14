@@ -4,8 +4,14 @@ import '../services/Database.dart';
 import '../services/NotificationService.dart';
 
 class RegisterPassengerController {
-  final DatabaseService _dbService = DatabaseService();
-  final PushNotificationService _notificationService = PushNotificationService();
+  final DatabaseService _dbService;
+  final PushNotificationService _notificationService;
+
+  RegisterPassengerController({
+    DatabaseService? dbService,
+    PushNotificationService? notificationService,
+  })  : _dbService = dbService ?? DatabaseService(),
+        _notificationService = notificationService ?? PushNotificationService();
 
   Future<void> registerPassenger({
     required PassengerModel passenger,

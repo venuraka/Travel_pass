@@ -58,14 +58,20 @@ jobs:
         run: flutter test test/unit/AuthService_test.dart --reporter compact
 
       # ── Unit Tests: Controllers ────────────────────────────────────────────
-      - name: 🔷 Unit Tests — Controllers (7 suites)
+      - name: 🔷 Unit Tests — Controllers (13 suites)
         run: |
           flutter test test/unit/AccessController_test.dart \
+                       test/unit/AttendanceHistoryController_test.dart \
+                       test/unit/AuthController_test.dart \
                        test/unit/DriverAttendanceController_test.dart \
-                       test/unit/UpdatesController_test.dart \
-                       test/unit/PassengerController_test.dart \
-                       test/unit/TodayPassengersController_test.dart \
                        test/unit/DriverDashboardController_test.dart \
+                       test/unit/PassengerController_test.dart \
+                       test/unit/PassengerEditDetailsController_test.dart \
+                       test/unit/RegisterPassengerController_test.dart \
+                       test/unit/SettingsController_test.dart \
+                       test/unit/TodayPassengersController_test.dart \
+                       test/unit/UpdatesController_test.dart \
+                       test/unit/VoiceAssistantController_test.dart \
                        --reporter compact
 
       # ── Unit Tests: Utilities ──────────────────────────────────────────────
@@ -83,10 +89,36 @@ jobs:
         run: flutter test test/unit/PlaceService_test.dart --reporter compact
 
       # ── Widget Tests ───────────────────────────────────────────────────────
-      - name: 🎨 Widget Tests — UI Components
+      - name: 🎨 Widget Tests — UI Components (23 suites)
         run: |
-          flutter test test/widget/JourneyInfoCard_test.dart \
+          flutter test test/widget/BottomBar_test.dart \
+                       test/widget/Cards_test.dart \
+                       test/widget/CustomSnackBar_test.dart \
+                       test/widget/DriverDashboard_test.dart \
+                       test/widget/DriverPaymentReminders_test.dart \
+                       test/widget/DriverPoll_test.dart \
+                       test/widget/DriverRegistration_test.dart \
+                       test/widget/DriverSettings_test.dart \
+                       test/widget/DriverUpdateRoute_test.dart \
+                       test/widget/DriverAttendanceHistory_test.dart \
+                       test/widget/DriverCashHistory_test.dart \
+                       test/widget/DriverPassengers_test.dart \
+                       test/widget/DriverTodayPassengers_test.dart \
+                       test/widget/DriverPaymentDetails_test.dart \
+                       test/widget/Header_test.dart \
+                       test/widget/InputTexts_test.dart \
+                       test/widget/JourneyInfoCard_test.dart \
                        test/widget/LoginPage_test.dart \
+                       test/widget/PassengerDashboard_test.dart \
+                       test/widget/PassengerPaymentHistory_test.dart \
+                       test/widget/PassengerRegistration_test.dart \
+                       test/widget/PassengerSettings_test.dart \
+                       test/widget/PassengerUpdates_test.dart \
+                       test/widget/RegisterPage_test.dart \
+                       test/widget/Topic_test.dart \
+                       test/widget/UserSelection_test.dart \
+                       test/widget/VehicleRegistration_test.dart \
+                       test/widget/WhiteCard_test.dart \
                        --reporter compact
 
       - name: 🎨 Widget Tests — Smoke Test

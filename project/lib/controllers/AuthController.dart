@@ -3,7 +3,10 @@ import 'AuthService.dart';
 
 
 class AuthController {
-  final AuthService _authService = AuthService();
+  final AuthService _authService;
+
+  AuthController({AuthService? authService})
+      : _authService = authService ?? AuthService();
 
   // Controllers for text fields
   final emailController = TextEditingController();
