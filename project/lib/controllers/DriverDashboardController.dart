@@ -212,6 +212,7 @@ class DriverDashboardController {
         }
       }
     } catch (e) {
+      debugPrint('Could not check active poll: $e');
     }
     return false;
   }

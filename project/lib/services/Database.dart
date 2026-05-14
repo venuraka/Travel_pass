@@ -1,7 +1,6 @@
 // lib/services/database_service.dart
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:uuid/uuid.dart';
 import 'package:rxdart/rxdart.dart';
 
 import '../models/DriverModel.dart';
@@ -472,6 +471,7 @@ class DatabaseService {
         'records.$dateKey': FieldValue.delete(),
       });
     } catch (e) {
+      debugPrint('Error removing attendance record: $e');
     }
   }
 
@@ -512,7 +512,7 @@ class DatabaseService {
         'balance': FieldValue.increment(amount),
       });
     } catch (e) {
-      print("Error updating balance: $e");
+      debugPrint('Error updating balance: $e');
     }
   }
 
@@ -565,11 +565,11 @@ class DatabaseService {
             'balance': FieldValue.increment(rate),
             'lastChargedMonth': chargeKey,
           });
-          print("✅ Charged monthly fee for $chargeKey to $passengerId");
+          debugPrint('Charged monthly fee for $chargeKey to $passengerId');
         }
       }
     } catch (e) {
-      print("Error checking monthly fees: $e");
+      debugPrint('Error checking monthly fees: $e');
     }
   }
 
@@ -795,7 +795,7 @@ class DatabaseService {
         'balance': FieldValue.increment(delta),
       });
     } catch (e) {
-      print('Error updating driver balance: $e');
+      debugPrint('Error updating driver balance: $e');
     }
   }
   /// Returns a stream of cash collected by a driver since midnight today (resets daily at 12 AM).
@@ -814,7 +814,7 @@ class DatabaseService {
         .map((snapshot) {
       double total = 0.0;
       for (var doc in snapshot.docs) {
-        final data = doc.data() as Map<String, dynamic>;
+        final data = doc.data();
         total += double.tryParse(data['amount']?.toString() ?? '0') ?? 0.0;
       }
       return total;
@@ -931,9 +931,6 @@ class DatabaseService {
       (attSnap, paySnap, passSnap) {
         final List<Map<String, dynamic>> arrearsList = [];
         
-        // Create lookup maps
-        final passengerMap = {for (var doc in passSnap.docs) doc.id: doc.data() as Map<String, dynamic>};
-        
         for (var passDoc in passSnap.docs) {
           final pId = passDoc.id;
           final passData = passDoc.data() as Map<String, dynamic>;
@@ -943,8 +940,9 @@ class DatabaseService {
 
           // 1. Calculate Total Expected Cost up to selectedDate
           double expectedCost = 0.0;
-          final attDoc = attSnap.docs.firstWhere((d) => d.id == pId, orElse: () => null as dynamic);
-          if (attDoc != null) {
+          final attMatches = attSnap.docs.where((d) => d.id == pId);
+          if (attMatches.isNotEmpty) {
+            final attDoc = attMatches.first;
             final records = (attDoc.data() as Map<String, dynamic>)['records'] as Map<String, dynamic>? ?? {};
             records.forEach((date, status) {
               if (status == 'Present' && date.compareTo(dateStr) <= 0) {
@@ -1103,9 +1101,9 @@ class DatabaseService {
       // NEW: Add to driver's accumulated balance (online payments go to the central pool)
       await updateDriverBalance(driverId, double.parse(amount));
       
-      print("✅ Payment recorded with ID: $docId");
+      debugPrint('Payment recorded with ID: $docId');
     } catch (e) {
-      print("Error recording payment: $e");
+      debugPrint('Error recording payment: $e');
     }
   }
 

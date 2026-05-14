@@ -1,5 +1,6 @@
 import 'dart:async';
 import '../../services/NotificationService.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -465,7 +466,16 @@ class _DashboardScreenState extends State<PassengerDashboardApp> {
 
   Future<void> _updateTodayStatus(String status, DateTime date) async {
     if (_passenger == null) return;
-    try { await _controller.markAttendance(passengerId: _passenger!.uid, driverId: _passenger!.driverId, date: date, status: status); } catch (e) {}
+    try {
+      await _controller.markAttendance(
+        passengerId: _passenger!.uid,
+        driverId: _passenger!.driverId,
+        date: date,
+        status: status,
+      );
+    } catch (e) {
+      debugPrint('Failed to update today attendance status: $e');
+    }
   }
 
   Future<void> _handleCallDriver() async {

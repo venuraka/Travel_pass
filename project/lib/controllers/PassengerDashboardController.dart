@@ -123,7 +123,8 @@ class PassengerDashboardController {
             .where((u) => u.timestamp.isAfter(lastCheckTime))
             .length;
       } catch (e) {
-        // Non-critical, continue
+        debugPrint('Could not load unread alerts count: $e');
+        // Non-critical: unread count defaults to 0
       }
 
       // 6. Get Driver Phone Number
@@ -132,6 +133,7 @@ class PassengerDashboardController {
         final driverData = await _dbService.getDriverData(passenger.driverId);
         driverPhone = driverData?.phone;
       } catch (e) {
+        debugPrint('Could not load driver phone: $e');
       }
 
       return {
