@@ -5,8 +5,12 @@ import '../models/DriverModel.dart';
 import '../services/Database.dart';
 
 class PassengerController {
-  final DatabaseService _dbService = DatabaseService();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final DatabaseService _dbService;
+  final FirebaseAuth _auth;
+
+  PassengerController({DatabaseService? dbService, FirebaseAuth? auth})
+      : _dbService = dbService ?? DatabaseService(),
+        _auth = auth ?? FirebaseAuth.instance;
 
   Future<List<PassengerModel>> getRegisteredPassengers() async {
     try {

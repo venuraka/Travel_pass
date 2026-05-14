@@ -6,8 +6,12 @@ import '../models/PollModel.dart';
 import '../models/AttendanceModel.dart';
 
 class TodayPassengersController {
-  final DatabaseService _dbService = DatabaseService();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final DatabaseService _dbService;
+  final FirebaseAuth _auth;
+
+  TodayPassengersController({DatabaseService? dbService, FirebaseAuth? auth})
+      : _dbService = dbService ?? DatabaseService(),
+        _auth = auth ?? FirebaseAuth.instance;
 
   /// Loads today's active passengers grouped by status (Not Voted, Boarded, Absent).
   /// Returns a map with lists or 'error' key.

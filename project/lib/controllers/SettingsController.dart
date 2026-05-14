@@ -5,8 +5,12 @@ import '../services/Database.dart';
 import '../services/NotificationService.dart';
 
 class SettingsController {
-  final DatabaseService _dbService = DatabaseService();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final DatabaseService _dbService;
+  final FirebaseAuth _auth;
+
+  SettingsController({DatabaseService? dbService, FirebaseAuth? auth})
+      : _dbService = dbService ?? DatabaseService(),
+        _auth = auth ?? FirebaseAuth.instance;
 
   // Fetch current settings for the logged-in driver
   Future<DriverModel?> getSettings() async {

@@ -12,11 +12,23 @@ import 'dart:io';
 import '../services/RealtimeDatabase.dart';
 
 class DriverDashboardController {
-  final DatabaseService _dbService = DatabaseService();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final WeatherService _weatherService = WeatherService();
-  final PushNotificationService _notificationService = PushNotificationService();
-  final RealtimeDatabaseService _rtDbService = RealtimeDatabaseService();
+  final DatabaseService _dbService;
+  final FirebaseAuth _auth;
+  final WeatherService _weatherService;
+  final PushNotificationService _notificationService;
+  final RealtimeDatabaseService _rtDbService;
+
+  DriverDashboardController({
+    DatabaseService? dbService,
+    FirebaseAuth? auth,
+    WeatherService? weatherService,
+    PushNotificationService? notificationService,
+    RealtimeDatabaseService? rtDbService,
+  })  : _dbService = dbService ?? DatabaseService(),
+        _auth = auth ?? FirebaseAuth.instance,
+        _weatherService = weatherService ?? WeatherService(),
+        _notificationService = notificationService ?? PushNotificationService(),
+        _rtDbService = rtDbService ?? RealtimeDatabaseService();
 
 
 

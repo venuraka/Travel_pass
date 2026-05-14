@@ -8,8 +8,12 @@ import '../models/PollModel.dart';
 import '../models/AttendanceModel.dart';
 
 class AttendanceHistoryController {
-  final DatabaseService _dbService = DatabaseService();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final DatabaseService _dbService;
+  final FirebaseAuth _auth;
+
+  AttendanceHistoryController({DatabaseService? dbService, FirebaseAuth? auth})
+      : _dbService = dbService ?? DatabaseService(),
+        _auth = auth ?? FirebaseAuth.instance;
 
   Future<Map<DateTime, String>> loadAttendanceHistory() async {
     try {
