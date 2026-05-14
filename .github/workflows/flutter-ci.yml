@@ -11,6 +11,9 @@ jobs:
   test-suite:
     name: Analyze & Test Framework
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: project
 
     steps:
       # 1. Check out the repository code to the GitHub runner
