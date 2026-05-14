@@ -1,0 +1,53 @@
+name: TravelPass - Continuous Integration
+
+# Run this pipeline on every code push to the repository and pull requests
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
+
+jobs:
+  test-suite:
+    name: Analyze & Test Framework
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Check out the repository code to the GitHub runner
+      - name: 📂 Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Set up the Java Runtime Environment (needed by Flutter/Android build tools)
+      - name: ☕ Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      # 3. Install and cache the Flutter SDK environment
+      - name: 🚀 Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true # Speeds up subsequent CI runs by caching dependencies
+
+      # 4. Fetch all Dart/Flutter packages
+      - name: 📦 Install dependencies
+        run: flutter pub get
+
+      # 5. Static Code Analysis: Verify no formatting/lint errors or compiler warnings
+      - name: 🔍 Run Static Analyzer
+        run: flutter analyze
+
+      # 6. Execute headless testing suites: Unit, Widget, and API Mock tests
+      - name: 🧪 Run Unit & Widget & API Tests
+        run: flutter test test/
+
+      # 7. Execute E2E/Integration Test
+      # This runs the integration test shell inside the Dart VM command-line tester!
+      - name: 🏗️ Run Integration Test Bench
+        run: flutter test integration_test/app_test.dart -d flutter-tester
+
+      # 8. Execute Performance Test (Syntax Validation)
+      - name: ⏱️ Run Performance Test Bench
+        run: flutter test integration_test/performance_test.dart -d flutter-tester

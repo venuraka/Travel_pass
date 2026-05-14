@@ -1,0 +1,26 @@
+{
+	"name": "TravelPass - Flutter Dev Environment",
+	"build": {
+		"dockerfile": "Dockerfile"
+	},
+
+	// Set settings.json values for the VS Code workspace inside the container
+	"customizations": {
+		"vscode": {
+			"settings": {
+				"dart.flutterSdkPath": "/home/vscode/flutter"
+			},
+			// Install required extensions automatically when container launches
+			"extensions": [
+				"Dart-Code.dart-code",
+				"Dart-Code.flutter"
+			]
+		}
+	},
+
+	// Set the standard user to vscode
+	"remoteUser": "vscode",
+	
+	// Mount directories or forward ports as needed
+	"forwardPorts": [8080]
+}
