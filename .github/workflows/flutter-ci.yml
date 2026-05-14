@@ -89,7 +89,7 @@ jobs:
         run: flutter test test/unit/PlaceService_test.dart --reporter compact
 
       # ── Widget Tests ───────────────────────────────────────────────────────
-      - name: 🎨 Widget Tests — UI Components (23 suites)
+      - name: 🎨 Widget Tests — UI Components (31 suites)
         run: |
           flutter test test/widget/BottomBar_test.dart \
                        test/widget/Cards_test.dart \
@@ -105,6 +105,12 @@ jobs:
                        test/widget/DriverPassengers_test.dart \
                        test/widget/DriverTodayPassengers_test.dart \
                        test/widget/DriverPaymentDetails_test.dart \
+                       test/widget/DriverEditPassenger_test.dart \
+                       test/widget/DriverNewPassenger_test.dart \
+                       test/widget/DriverPendingApproval_test.dart \
+                       test/widget/DriverRegisterPassenger_test.dart \
+                       test/widget/DriverUpdates_test.dart \
+                       test/widget/DriverPaymentHistory_test.dart \
                        test/widget/Header_test.dart \
                        test/widget/InputTexts_test.dart \
                        test/widget/JourneyInfoCard_test.dart \
@@ -114,6 +120,8 @@ jobs:
                        test/widget/PassengerRegistration_test.dart \
                        test/widget/PassengerSettings_test.dart \
                        test/widget/PassengerUpdates_test.dart \
+                       test/widget/PassengerEditDetails_test.dart \
+                       test/widget/PassengerPendingApproval_test.dart \
                        test/widget/RegisterPage_test.dart \
                        test/widget/Topic_test.dart \
                        test/widget/UserSelection_test.dart \
