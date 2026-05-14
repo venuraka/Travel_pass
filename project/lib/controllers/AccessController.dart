@@ -2,7 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class AccessController {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseFirestore _db;
+
+  AccessController({FirebaseFirestore? db}) : _db = db ?? FirebaseFirestore.instance;
 
   /// Checks if a passenger is registered.
   /// Returns true if registered, false otherwise.

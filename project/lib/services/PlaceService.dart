@@ -7,8 +7,9 @@ import '../config/AppConfig.dart';
 
 class PlaceService {
   final String apiKey;
+  final http.Client _client;
 
-  PlaceService(this.apiKey);
+  PlaceService(this.apiKey, {http.Client? client}) : _client = client ?? http.Client();
 
   /// Fetches place suggestions using the new Places API (New)
   /// Endpoint: https://places.googleapis.com/v1/places:autocomplete
@@ -32,7 +33,7 @@ class PlaceService {
     };
 
 
-    final response = await http.post(
+    final response = await _client.post(
       uri,
       headers: headers,
       body: jsonEncode({
@@ -86,7 +87,7 @@ class PlaceService {
       },
     };
 
-    final response = await http.get(
+    final response = await _client.get(
       uri,
       headers: headers,
     );
@@ -129,7 +130,7 @@ class PlaceService {
       },
     };
 
-    final response = await http.get(uri, headers: headers);
+    final response = await _client.get(uri, headers: headers);
 
     if (response.statusCode == 200) {
       final result = json.decode(response.body);
@@ -184,7 +185,7 @@ class PlaceService {
         'X-Android-Cert': AppConfig.androidCertificateHash.replaceAll(':', '').toLowerCase(),
       },
     };
-    final response = await http.get(uri, headers: headers);
+    final response = await _client.get(uri, headers: headers);
 
     if (response.statusCode == 200) {
       final result = json.decode(response.body);
@@ -226,7 +227,7 @@ class PlaceService {
     };
 
     try {
-      final response = await http.get(uri, headers: headers);
+      final response = await _client.get(uri, headers: headers);
 
       if (response.statusCode == 200) {
         final result = json.decode(response.body);

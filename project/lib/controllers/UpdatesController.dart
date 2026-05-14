@@ -7,10 +7,20 @@ import '../services/Database.dart';
 import '../services/NotificationService.dart';
 
 class UpdatesController {
-  final DatabaseService _dbService = DatabaseService();
-  final PushNotificationService _notificationService = PushNotificationService();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final Uuid _uuid = const Uuid();
+  final DatabaseService _dbService;
+  final PushNotificationService _notificationService;
+  final FirebaseAuth _auth;
+  final Uuid _uuid;
+
+  UpdatesController({
+    DatabaseService? dbService,
+    PushNotificationService? notificationService,
+    FirebaseAuth? auth,
+    Uuid? uuid,
+  })  : _dbService = dbService ?? DatabaseService(),
+        _notificationService = notificationService ?? PushNotificationService(),
+        _auth = auth ?? FirebaseAuth.instance,
+        _uuid = uuid ?? const Uuid();
 
   /// Streams updates for the current driver.
   Stream<List<UpdateModel>> getUpdates() {
