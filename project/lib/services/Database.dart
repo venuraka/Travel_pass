@@ -12,7 +12,10 @@ import '../models/AttendanceModel.dart'; // Added // Added
 import '../models/RedemptionModel.dart'; // New Import
 
 class DatabaseService {
-  final FirebaseFirestore _db = FirebaseFirestore.instance;
+  final FirebaseFirestore _db;
+
+  DatabaseService({FirebaseFirestore? firestore})
+      : _db = firestore ?? FirebaseFirestore.instance;
 
   Future<void> saveDriverData(DriverModel driver) async {
     try {

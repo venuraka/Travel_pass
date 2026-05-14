@@ -2,7 +2,10 @@ import 'package:firebase_database/firebase_database.dart';
 import '../models/PassengerModel.dart';
 
 class RealtimeDatabaseService {
-  final FirebaseDatabase _db = FirebaseDatabase.instance;
+  final FirebaseDatabase _db;
+
+  RealtimeDatabaseService({FirebaseDatabase? database})
+      : _db = database ?? FirebaseDatabase.instance;
 
   /// Updates the driver's current location in the Realtime Database.
   Future<void> updateDriverLocation(String driverId, double lat, double lng) async {

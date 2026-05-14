@@ -54,8 +54,13 @@ jobs:
                        --reporter compact
 
       # ── Unit Tests: Services ───────────────────────────────────────────────
-      - name: 🔷 Unit Tests — Auth Service
-        run: flutter test test/unit/AuthService_test.dart --reporter compact
+      - name: 🔷 Unit Tests — System Services (4 suites)
+        run: |
+          flutter test test/unit/AuthService_test.dart \
+                       test/unit/DatabaseService_test.dart \
+                       test/unit/LocalIntentService_test.dart \
+                       test/unit/RealtimeDatabaseService_test.dart \
+                       --reporter compact
 
       # ── Unit Tests: Controllers ────────────────────────────────────────────
       - name: 🔷 Unit Tests — Controllers (13 suites)
@@ -75,8 +80,11 @@ jobs:
                        --reporter compact
 
       # ── Unit Tests: Utilities ──────────────────────────────────────────────
-      - name: 🔷 Unit Tests — Utility Classes
-        run: flutter test test/unit/AuthExceptionHandler_test.dart --reporter compact
+      - name: 🔷 Unit Tests — Utility Classes (2 suites)
+        run: |
+          flutter test test/unit/AuthExceptionHandler_test.dart \
+                       test/unit/PhoneUtils_test.dart \
+                       --reporter compact
 
       # ── API / Service Integration Tests (HTTP & Firebase Functions mocked) ─
       - name: 🌐 API Tests — WeatherService + PlaceService + GeminiService
@@ -89,7 +97,7 @@ jobs:
         run: flutter test test/unit/PlaceService_test.dart --reporter compact
 
       # ── Widget Tests ───────────────────────────────────────────────────────
-      - name: 🎨 Widget Tests — UI Components (31 suites)
+      - name: 🎨 Widget Tests — UI Components (34 suites)
         run: |
           flutter test test/widget/BottomBar_test.dart \
                        test/widget/Cards_test.dart \
@@ -126,6 +134,9 @@ jobs:
                        test/widget/Topic_test.dart \
                        test/widget/UserSelection_test.dart \
                        test/widget/VehicleRegistration_test.dart \
+                       test/widget/PassengerAttendance_test.dart \
+                       test/widget/PassengerSummary_test.dart \
+                       test/widget/PaymentCollection_test.dart \
                        test/widget/WhiteCard_test.dart \
                        --reporter compact
 
