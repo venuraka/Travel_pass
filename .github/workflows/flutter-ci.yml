@@ -1,6 +1,6 @@
 name: TravelPass - Continuous Integration
 
-# Run this pipeline on every code push to the repository and pull requests
+# Run this pipeline on every push and pull request
 on:
   push:
     branches: [ "**" ]
@@ -8,49 +8,127 @@ on:
     branches: [ "**" ]
 
 jobs:
-  test-suite:
-    name: Analyze & Test Framework
+  # ─────────────────────────────────────────────────────────────────────────────
+  # JOB 1 — Core Test Suite (Unit, Widget, API)
+  # Runs on every push. Fast, headless, no emulator needed.
+  # ─────────────────────────────────────────────────────────────────────────────
+  unit-widget-api-tests:
+    name: 🧪 Unit | Widget | API Tests
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: project
 
     steps:
-      # 1. Check out the repository code to the GitHub runner
       - name: 📂 Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Set up the Java Runtime Environment (needed by Flutter/Android build tools)
       - name: ☕ Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      # 3. Install and cache the Flutter SDK environment
-      - name: 🚀 Set up Flutter
+      - name: 🚀 Set up Flutter SDK
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          cache: true # Speeds up subsequent CI runs by caching dependencies
+          cache: true
 
-      # 4. Fetch all Dart/Flutter packages
       - name: 📦 Install dependencies
         run: flutter pub get
 
-      # 5. Static Code Analysis: Verify no formatting/lint errors or compiler warnings
-      - name: 🔍 Run Static Analyzer
+      - name: 🔍 Static Code Analysis
         run: flutter analyze --no-fatal-warnings --no-fatal-infos
 
-      # 6. Execute headless testing suites: Unit, Widget, and API Mock tests
-      - name: 🧪 Run Unit & Widget & API Tests
-        run: flutter test test/
+      # ── Unit Tests: Models ─────────────────────────────────────────────────
+      - name: 🔷 Unit Tests — Data Models (7 suites)
+        run: |
+          flutter test test/unit/PassengerModel_test.dart \
+                       test/unit/DriverModel_test.dart \
+                       test/unit/AttendanceModel_test.dart \
+                       test/unit/PollModel_test.dart \
+                       test/unit/RedemptionModel_test.dart \
+                       test/unit/UpdateModel_test.dart \
+                       test/unit/UserModel_test.dart \
+                       --reporter compact
 
-      # 7. Execute E2E/Integration Test
-      # This runs the integration test shell inside the Dart VM command-line tester!
-      - name: 🏗️ Run Integration Test Bench
-        run: flutter test integration_test/app_test.dart -d flutter-tester
+      # ── Unit Tests: Services ───────────────────────────────────────────────
+      - name: 🔷 Unit Tests — Auth Service
+        run: flutter test test/unit/AuthService_test.dart --reporter compact
 
-      # 8. Execute Performance Test (Syntax Validation)
-      - name: ⏱️ Run Performance Test Bench
-        run: flutter test integration_test/performance_test.dart -d flutter-tester
+      # ── Unit Tests: Controllers ────────────────────────────────────────────
+      - name: 🔷 Unit Tests — Controllers (7 suites)
+        run: |
+          flutter test test/unit/AccessController_test.dart \
+                       test/unit/DriverAttendanceController_test.dart \
+                       test/unit/UpdatesController_test.dart \
+                       test/unit/PassengerController_test.dart \
+                       test/unit/TodayPassengersController_test.dart \
+                       test/unit/DriverDashboardController_test.dart \
+                       --reporter compact
+
+      # ── Unit Tests: Utilities ──────────────────────────────────────────────
+      - name: 🔷 Unit Tests — Utility Classes
+        run: flutter test test/unit/AuthExceptionHandler_test.dart --reporter compact
+
+      # ── API / Service Integration Tests (HTTP & Firebase Functions mocked) ─
+      - name: 🌐 API Tests — WeatherService + PlaceService + GeminiService
+        run: |
+          flutter test test/api/WeatherService_test.dart \
+                       test/api/GeminiService_test.dart \
+                       --reporter compact
+
+      - name: 🔷 Unit Tests — PlaceService (HTTP Mock)
+        run: flutter test test/unit/PlaceService_test.dart --reporter compact
+
+      # ── Widget Tests ───────────────────────────────────────────────────────
+      - name: 🎨 Widget Tests — UI Components
+        run: |
+          flutter test test/widget/JourneyInfoCard_test.dart \
+                       test/widget/LoginPage_test.dart \
+                       --reporter compact
+
+      - name: 🎨 Widget Tests — Smoke Test
+        run: flutter test test/Widget_test.dart --reporter compact
+
+      # ── Full Recursive Run (Safety net — catches anything missed above) ────
+      - name: ✅ Full Recursive Test Suite (All test/ files)
+        run: flutter test test/ --reporter compact
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # JOB 2 — Integration & E2E Tests
+  # Runs the login flow and app navigation tests in the Dart VM tester.
+  # ─────────────────────────────────────────────────────────────────────────────
+  integration-e2e-tests:
+    name: 🏗️ Integration & E2E Tests
+    runs-on: ubuntu-latest
+    needs: unit-widget-api-tests  # Only run if unit tests pass first
+    defaults:
+      run:
+        working-directory: project
+
+    steps:
+      - name: 📂 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ☕ Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: 🚀 Set up Flutter SDK
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: 📦 Install dependencies
+        run: flutter pub get
+
+      - name: 🏗️ E2E Test — Login User Flow & Navigation
+        run: flutter test integration_test/App_test.dart -d flutter-tester
+
+      - name: ⏱️ Performance Test — Scroll & Render Profiling
+        run: flutter test integration_test/Performance_test.dart -d flutter-tester
