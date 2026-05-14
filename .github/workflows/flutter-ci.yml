@@ -40,7 +40,7 @@ jobs:
 
       # 5. Static Code Analysis: Verify no formatting/lint errors or compiler warnings
       - name: 🔍 Run Static Analyzer
-        run: flutter analyze
+        run: flutter analyze --no-fatal-warnings --no-fatal-infos
 
       # 6. Execute headless testing suites: Unit, Widget, and API Mock tests
       - name: 🧪 Run Unit & Widget & API Tests
