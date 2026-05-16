@@ -34,6 +34,11 @@ class _StartjourneyState extends State<Startjourney> {
           _showPassengerPopup(passengers);
         }
       },
+      onJourneyFinished: () {
+        if (mounted) {
+          Navigator.pop(context);
+        }
+      },
     );
 
     final user = FirebaseAuth.instance.currentUser;
@@ -157,9 +162,6 @@ class _StartjourneyState extends State<Startjourney> {
                 allOnboarded: _controller.allOnboarded,
                 onFinishJourney: () async {
                   await _controller.finishJourney();
-                  if (mounted) {
-                    Navigator.pop(context);
-                  }
                 },
               ),
             ),

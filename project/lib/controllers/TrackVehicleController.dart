@@ -40,6 +40,7 @@ class TrackVehicleController {
   final Function(bool) onHasNextPickupChanged; // Added
   final Function(List<Map<String, dynamic>>) onFullRouteAcquired; // Added
   final Function(int) onRouteIndexChanged; // Added
+  final VoidCallback onJourneyEnded; // Added
 
   TrackVehicleController({
     required this.onPooledLocationChanged,
@@ -58,6 +59,7 @@ class TrackVehicleController {
     required this.onHasNextPickupChanged,
     required this.onFullRouteAcquired,
     required this.onRouteIndexChanged,
+    required this.onJourneyEnded,
   });
 
 
@@ -81,6 +83,7 @@ class TrackVehicleController {
   StreamSubscription? _progressSubscription;
   StreamSubscription? _destSubscription;
   StreamSubscription? _attendanceSubscription;
+  StreamSubscription? _journeyStatusSubscription; // Added
   LatLng? _currentVehicleLoc; // Restored
   LatLng? _currentPassengerLoc; // Restored
   LatLng? _routeDestination;
@@ -179,7 +182,15 @@ class TrackVehicleController {
        onOnboardedCountChanged(count);
     });
 
-    // 6. Start location sharing immediately
+    // 6. Listen to Journey Status to detect end
+    _journeyStatusSubscription = _dbService.getJourneyStatusStream(driverId).listen((isStarted) {
+      if (_isDisposed) return;
+      if (!isStarted) {
+        onJourneyEnded();
+      }
+    });
+
+    // 7. Start location sharing immediately
     _startLocationSharing();
   }
 
@@ -436,6 +447,7 @@ class TrackVehicleController {
     _progressSubscription?.cancel();
     _destSubscription?.cancel();
     _attendanceSubscription?.cancel();
+    _journeyStatusSubscription?.cancel();
     _stopLocationSharing();
   }
 }

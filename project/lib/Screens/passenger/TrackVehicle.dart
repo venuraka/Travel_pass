@@ -169,6 +169,17 @@ class _TrackVehicleState extends State<TrackVehicle> {
           });
         }
       },
+      onJourneyEnded: () {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Driver has ended the journey."),
+              backgroundColor: Colors.green,
+            ),
+          );
+          Navigator.pop(context);
+        }
+      },
     );
     _controller.init(); // Use init instead of direct startTracking if we want to fetch pData first
   }

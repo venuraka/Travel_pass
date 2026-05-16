@@ -76,10 +76,12 @@ class StartJourneyController {
 
   final Function(Position) onLocationChanged;
   final Function(List<PassengerModel>) onProximityReached;
+  final VoidCallback onJourneyFinished;
 
   StartJourneyController({
     required this.onLocationChanged,
     required this.onProximityReached,
+    required this.onJourneyFinished,
   });
 
   /// Sets the Google Map controller for camera animations.
@@ -941,6 +943,8 @@ class StartJourneyController {
         break;
       }
     }
+    
+    finalDest ??= _driverRoute!.last;
     if (finalDest == null) return;
 
     LatLng targetLatLng = LatLng(
@@ -1065,7 +1069,7 @@ class StartJourneyController {
       await _dbService.updateJourneyStatus(_currentDriverId!, false);
       // Optional: Cleanup RTDB locations on finish
       await _rtDbService.updateDriverLocation(_currentDriverId!, 0, 0); 
-      dispose();
+      onJourneyFinished();
     }
   }
 
