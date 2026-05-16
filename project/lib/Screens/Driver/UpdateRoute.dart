@@ -629,6 +629,25 @@ class _UpdateRouteScreenState extends State<UpdateRouteScreen> {
       }
     }
 
+    // 7. Check for duplicate location names
+    final List<String> rawNames = [
+      _startNameController.text.trim(),
+      _endNameController.text.trim(),
+      ..._pickupPoints.map((p) => p['nameController'].text.trim())
+    ];
+
+    final Set<String> seenNames = {};
+    for (var name in rawNames) {
+      if (seenNames.contains(name.toLowerCase())) {
+        CustomSnackBar.showError(
+          context,
+          "Duplicate location name: '$name'. Please use unique names.",
+        );
+        return;
+      }
+      seenNames.add(name.toLowerCase());
+    }
+
     // --- End Validation ---
 
     setState(() => _isLoading = true);
