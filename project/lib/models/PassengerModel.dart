@@ -5,10 +5,8 @@ class PassengerModel {
   final String name;
   final String vehiclePlate;
   final String driverId;
-  final String address;
   final String email;
   final String phone;
-  final String otherPhone;
   final String paymentType;
   final String pickupLocation;
   final String role;
@@ -24,10 +22,8 @@ class PassengerModel {
     required this.name,
     required this.vehiclePlate,
     required this.driverId,
-    required this.address,
     required this.email,
     required this.phone,
-    required this.otherPhone,
     required this.paymentType,
     required this.pickupLocation,
     this.role = 'passenger',
@@ -45,10 +41,8 @@ class PassengerModel {
       'name': name,
       'vehiclePlate': vehiclePlate,
       'driverId': driverId,
-      'address': address,
       'email': email,
       'phone': phone,
-      'otherPhone': otherPhone,
       'paymentType': paymentType,
       'pickupLocation': pickupLocation,
       'role': role,
@@ -67,10 +61,8 @@ class PassengerModel {
       name: map['name'] ?? '',
       vehiclePlate: map['vehiclePlate'] ?? '',
       driverId: map['driverId'] ?? '',
-      address: map['address'] ?? '',
       email: map['email'] ?? '',
       phone: map['phone'] ?? '',
-      otherPhone: map['otherPhone'] ?? '',
       paymentType: map['paymentType'] ?? '',
       pickupLocation: map['pickupLocation'] ?? '',
       role: map['role'] ?? 'passenger',

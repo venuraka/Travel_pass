@@ -209,10 +209,8 @@ class _PassengerRegistrationScreenState
         name: _nameController.text.trim(),
         vehiclePlate: _plateController.text.trim(), // Save exact string, DO NOT uppercase!
         driverId: _matchedDriverId!,
-        address: '',
         email: _emailController.text.trim(),
         phone: _phoneController.text.trim(),
-        otherPhone: '',
         paymentType: _paymentType,
         pickupLocation: _selectedLocation!,
         role: 'passenger',
