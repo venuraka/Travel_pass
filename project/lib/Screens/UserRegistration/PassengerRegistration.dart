@@ -32,10 +32,8 @@ class _PassengerRegistrationScreenState
   // Controllers
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _plateController = TextEditingController();
-  final TextEditingController _addressController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _otherPhoneController = TextEditingController();
   final FocusNode _plateFocusNode = FocusNode();
   final DatabaseService _dbService = DatabaseService();
 
@@ -76,10 +74,8 @@ class _PassengerRegistrationScreenState
     _debounce?.cancel();
     _nameController.dispose();
     _plateController.dispose();
-    _addressController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
-    _otherPhoneController.dispose();
     _plateFocusNode.dispose();
     super.dispose();
   }
@@ -162,7 +158,6 @@ class _PassengerRegistrationScreenState
   Future<void> _registerPassenger() async {
     if (_nameController.text.isEmpty ||
         _plateController.text.isEmpty ||
-        _addressController.text.isEmpty ||
         _emailController.text.isEmpty ||
         _phoneController.text.isEmpty) {
       CustomSnackBar.showError(context, "Please fill in all required fields");
@@ -185,20 +180,11 @@ class _PassengerRegistrationScreenState
     // Phone validation: 10-11 digits, optional leading +
     final phoneRegex = RegExp(r'^\+?[0-9]{10,11}$');
     String phone = _phoneController.text.trim();
-    String otherPhone = _otherPhoneController.text.trim();
 
     if (!phoneRegex.hasMatch(phone)) {
       CustomSnackBar.showError(
         context,
         "Phone must be 10-11 digits (allows '+').",
-      );
-      return;
-    }
-
-    if (otherPhone.isNotEmpty && !phoneRegex.hasMatch(otherPhone)) {
-      CustomSnackBar.showError(
-        context,
-        "Other Phone must be 10-11 digits (allows '+').",
       );
       return;
     }
@@ -223,10 +209,10 @@ class _PassengerRegistrationScreenState
         name: _nameController.text.trim(),
         vehiclePlate: _plateController.text.trim(), // Save exact string, DO NOT uppercase!
         driverId: _matchedDriverId!,
-        address: _addressController.text.trim(),
+        address: '',
         email: _emailController.text.trim(),
         phone: _phoneController.text.trim(),
-        otherPhone: _otherPhoneController.text.trim(),
+        otherPhone: '',
         paymentType: _paymentType,
         pickupLocation: _selectedLocation!,
         role: 'passenger',
@@ -375,12 +361,6 @@ class _PassengerRegistrationScreenState
                   ),
                   const SizedBox(height: 30),
                   InputTextField(
-                    labelText: 'Address',
-                    keyboardType: TextInputType.text,
-                    controller: _addressController,
-                  ),
-                  const SizedBox(height: 30),
-                  InputTextField(
                     labelText: 'Email',
                     keyboardType: TextInputType.emailAddress,
                     controller: _emailController,
@@ -390,12 +370,6 @@ class _PassengerRegistrationScreenState
                     labelText: 'Phone Number',
                     keyboardType: TextInputType.phone,
                     controller: _phoneController,
-                  ),
-                  const SizedBox(height: 30),
-                  InputTextField(
-                    labelText: 'Other Phone Number',
-                    keyboardType: TextInputType.phone,
-                    controller: _otherPhoneController,
                   ),
                   const SizedBox(height: 30),
 
