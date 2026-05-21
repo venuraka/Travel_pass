@@ -297,6 +297,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   }
 
   Widget _buildPhoneIcon(Color color, String phoneNumber) {
+    if (phoneNumber.isEmpty) return const SizedBox.shrink();
     return InkWell(
       onTap: () => _makeCall(phoneNumber),
       borderRadius: BorderRadius.circular(20),

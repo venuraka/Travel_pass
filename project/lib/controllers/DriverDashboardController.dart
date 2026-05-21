@@ -269,6 +269,7 @@ class DriverDashboardController {
 
   /// Initiates a phone call to the passenger.
   Future<void> callPassenger(String phone) async {
+    if (phone.trim().isEmpty) return;
     final Uri launchUri = Uri(
       scheme: 'tel',
       path: phone,

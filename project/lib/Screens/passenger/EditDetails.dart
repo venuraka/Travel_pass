@@ -65,10 +65,10 @@ class _EditDetailsScreenState extends State<EditDetailsScreen> {
   }
 
   Future<void> _updateDetails() async {
-    if (_phoneController.text.isEmpty || _selectedLocation == null) {
+    if (_selectedLocation == null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
+      ).showSnackBar(const SnackBar(content: Text('Please select a pickup location')));
       return;
     }
 
@@ -131,7 +131,7 @@ class _EditDetailsScreenState extends State<EditDetailsScreen> {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         InputTextField(
-                          labelText: 'Phone Number',
+                          labelText: 'Phone Number (Optional)',
                           keyboardType: TextInputType.phone,
                           controller: _phoneController,
                           // Note: InputTextField needs to support controller

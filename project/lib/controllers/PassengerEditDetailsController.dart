@@ -36,8 +36,8 @@ class PassengerEditDetailsController {
       final user = _auth.currentUser;
       if (user == null) return {'error': 'User not logged in'};
 
-      if (phone.isEmpty || pickupLocation.isEmpty) {
-        return {'error': 'Please fill all fields'};
+      if (pickupLocation.isEmpty) {
+        return {'error': 'Please select a pickup location'};
       }
 
       await _dbService.updatePassengerDetails(

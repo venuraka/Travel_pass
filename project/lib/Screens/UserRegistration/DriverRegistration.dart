@@ -5,7 +5,7 @@ import '../Components/InputTexts.dart';
 import '../Components/Whitecard.dart';
 import '../Components/Header.dart';
 import '../../services/Database.dart';
-import 'VehicleRegistration.dart';
+import 'AddRoute.dart';
 import '../Components/CustomSnackBar.dart';
 import '../../services/NotificationService.dart';
 
@@ -106,15 +106,15 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
     }
 
     // Phone validation: 10-11 digits, optional leading +
-    // User requested: "allow only 10 numbers if we add country code it can be 11 maximum but it only can be add + symble only"
-    // Interpreted as: Optional +, followed by 10 to 11 digits.
-    final phoneRegex = RegExp(r'^\+?[0-9]{10,11}$');
-    if (!phoneRegex.hasMatch(phone)) {
-      CustomSnackBar.showError(
-        context,
-        "Phone must be 10-11 digits (allows '+').",
-      );
-      return;
+    if (phone.isNotEmpty) {
+      final phoneRegex = RegExp(r'^\+?[0-9]{10,11}$');
+      if (!phoneRegex.hasMatch(phone)) {
+        CustomSnackBar.showError(
+          context,
+          "Phone must be 10-11 digits (allows '+').",
+        );
+        return;
+      }
     }
 
     // Email validation
@@ -144,7 +144,7 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => const VehicleRegistrationScreen(),
+            builder: (context) => const AddRouteScreen(),
           ),
         );
       }
@@ -186,7 +186,7 @@ class _DriverRegistrationScreenState extends State<DriverRegistrationScreen> {
                 ),
                 const SizedBox(height: 30),
                 InputTextField(
-                  labelText: 'Phone',
+                  labelText: 'Phone (Optional)',
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
                 ),

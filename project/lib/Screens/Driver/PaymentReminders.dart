@@ -294,10 +294,11 @@ class _PaymentRemindersScreenState extends State<PaymentRemindersScreen> {
                   ),
                 ),
                 // Call Icon
-                IconButton(
-                  icon: Icon(Icons.phone, color: appGreen),
-                  onPressed: () => _controller.callPassenger(phone),
-                ),
+                if (phone.isNotEmpty)
+                  IconButton(
+                    icon: Icon(Icons.phone, color: appGreen),
+                    onPressed: () => _controller.callPassenger(phone),
+                  ),
               ],
             ),
           ),

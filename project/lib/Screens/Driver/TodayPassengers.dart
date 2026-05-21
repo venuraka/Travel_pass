@@ -264,6 +264,7 @@ class _TodaypassengersScreenState extends State<TodaypassengersScreen> {
 
   // Helper widget for the phone icon
   Widget _buildPhoneIcon(Color color, String phoneNumber) {
+    if (phoneNumber.isEmpty) return const SizedBox.shrink();
     return InkWell(
       onTap: () => _makeCall(phoneNumber),
       borderRadius: BorderRadius.circular(20),

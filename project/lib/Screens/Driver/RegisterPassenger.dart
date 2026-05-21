@@ -83,7 +83,7 @@ class _RegisterPassengerScreenState extends State<RegisterPassengerScreen> {
     final phone = _phoneController.text.trim();
     final paymentAmount = _paymentAmountController.text.trim();
 
-    if (name.isEmpty || phone.isEmpty || paymentAmount.isEmpty) {
+    if (name.isEmpty || paymentAmount.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please fill all required fields'),
@@ -174,7 +174,7 @@ class _RegisterPassengerScreenState extends State<RegisterPassengerScreen> {
 
                     // Phone Number Field
                     InputTextField(
-                      labelText: 'Phone Number',
+                      labelText: 'Phone Number (Optional)',
                       keyboardType: TextInputType.phone,
                       controller: _phoneController,
                     ),

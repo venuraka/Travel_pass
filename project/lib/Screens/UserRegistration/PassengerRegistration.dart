@@ -158,8 +158,7 @@ class _PassengerRegistrationScreenState
   Future<void> _registerPassenger() async {
     if (_nameController.text.isEmpty ||
         _plateController.text.isEmpty ||
-        _emailController.text.isEmpty ||
-        _phoneController.text.isEmpty) {
+        _emailController.text.isEmpty) {
       CustomSnackBar.showError(context, "Please fill in all required fields");
       return;
     }
@@ -178,15 +177,16 @@ class _PassengerRegistrationScreenState
     }
 
     // Phone validation: 10-11 digits, optional leading +
-    final phoneRegex = RegExp(r'^\+?[0-9]{10,11}$');
     String phone = _phoneController.text.trim();
-
-    if (!phoneRegex.hasMatch(phone)) {
-      CustomSnackBar.showError(
-        context,
-        "Phone must be 10-11 digits (allows '+').",
-      );
-      return;
+    if (phone.isNotEmpty) {
+      final phoneRegex = RegExp(r'^\+?[0-9]{10,11}$');
+      if (!phoneRegex.hasMatch(phone)) {
+        CustomSnackBar.showError(
+          context,
+          "Phone must be 10-11 digits (allows '+').",
+        );
+        return;
+      }
     }
 
     setState(() => _isLoading = true);
@@ -365,7 +365,7 @@ class _PassengerRegistrationScreenState
                   ),
                   const SizedBox(height: 30),
                   InputTextField(
-                    labelText: 'Phone Number',
+                    labelText: 'Phone Number (Optional)',
                     keyboardType: TextInputType.phone,
                     controller: _phoneController,
                   ),

@@ -214,6 +214,7 @@ class _PassengersummeryScreenState extends State<PassengersummeryScreen> {
 
   // Helper widget for the Phone Icon
   Widget _buildPhoneIcon(Color color, String phoneNumber) {
+    if (phoneNumber.isEmpty) return const SizedBox.shrink();
     return InkWell(
       onTap: () => _makeCall(phoneNumber),
       child: Padding(
