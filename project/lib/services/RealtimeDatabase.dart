@@ -79,25 +79,30 @@ class RealtimeDatabaseService {
 
   /// Calculates and updates the pooled location based on all active locations.
   /// Uses a mean/weighted average of the driver and all onboarded passengers.
+  /// This creates a crowdsourced "Beacon Pool" which improves tracking accuracy
+  /// and acts as a fallback if the driver's GPS drops.
   Future<void> _updatePooledLocation(String driverId) async {
     try {
+      // Fetch all locations (driver + passengers) stored under this driver's ID
       final snapshot = await _db.ref('locations/$driverId').get();
       if (!snapshot.exists) return;
 
       final data = snapshot.value as Map<dynamic, dynamic>;
       double totalLat = 0;
       double totalLng = 0;
-      int count = 0;
+      int count = 0; // Number of valid GPS signals we are combining
       
       final now = DateTime.now().millisecondsSinceEpoch;
-      const int staleThreshold = 60000; // 60 seconds
+      // We only accept GPS points updated within the last 60 seconds.
+      // This prevents a passenger who turned off their phone from dragging the bus off the map.
+      const int staleThreshold = 60000; 
 
-      // 1. Extract and Validate Driver Location
+      // 1. Extract and Validate the Driver's Location
       if (data.containsKey('driver')) {
         final driverLoc = data['driver'] as Map<dynamic, dynamic>;
         final ts = (driverLoc['timestamp'] as num?)?.toInt() ?? 0;
         
-        // Only include if not stale or if it's the only point
+        // Only include the driver's location if it's fresh
         if (now - ts < staleThreshold) {
           totalLat += (driverLoc['lat'] as num).toDouble();
           totalLng += (driverLoc['lng'] as num).toDouble();
@@ -106,33 +111,39 @@ class RealtimeDatabaseService {
       }
 
       // 2. Extract and Validate Onboarded Passenger Locations
+      // This loops through every passenger on the bus to add their GPS to the pool.
       if (data.containsKey('passengers')) {
         final passengers = data['passengers'] as Map<dynamic, dynamic>;
         passengers.forEach((key, value) {
           final pLoc = value as Map<dynamic, dynamic>;
           final ts = (pLoc['timestamp'] as num?)?.toInt() ?? 0;
           
+          // Only include this passenger if their GPS signal is fresh
           if (now - ts < staleThreshold) {
             totalLat += (pLoc['lat'] as num).toDouble();
             totalLng += (pLoc['lng'] as num).toDouble();
-            count++;
+            count++; // Increase our divisor for the average calculation
           }
         });
       }
 
-      // 3. Update the Pooled Node
+      // 3. Calculate the Average (The Pool) and Update the Database
       if (count > 0) {
+        // Divide the total coordinates by the number of active devices to get the exact center point
         final pooledLat = totalLat / count;
         final pooledLng = totalLng / count;
 
+        // Push this highly accurate, crowdsourced location back to Firebase
+        // This is the specific node that the `TrackVehicleController` listens to!
         await _db.ref('locations/$driverId/pooled').set({
           'lat': pooledLat,
           'lng': pooledLng,
-          'accuracy_weight': count,
+          'accuracy_weight': count, // Shows how many devices contributed to this ping
           'timestamp': ServerValue.timestamp,
         });
       }
     } catch (e) {
+      // Silently fail if something goes wrong, next GPS ping will try again
     }
   }
 
